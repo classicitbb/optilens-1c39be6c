@@ -68,7 +68,9 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
     <form
       key={employee.updated_at}
       onSubmit={(event) => {
-        const values = formValues(event.currentTarget);
+        const values: Record<string, unknown> = formValues(event.currentTarget);
+        // An unticked checkbox is left out of the form data entirely.
+        values.rr_levy_exempt = values.rr_levy_exempt === "on";
         return submit(() => update.mutateAsync({ update: { id: employee.id, values } }), "Profile saved")(event);
       }}
       className="space-y-4"
@@ -95,6 +97,10 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
           <Field label="Hire date" htmlFor="hire_date"><Input id="hire_date" name="hire_date" type="date" defaultValue={employee.hire_date ?? ""} /></Field>
           <Field label="Termination date" htmlFor="termination_date"><Input id="termination_date" name="termination_date" type="date" defaultValue={employee.termination_date ?? ""} /></Field>
           <Field label="Tax code" htmlFor="tax_code"><Input id="tax_code" name="tax_code" defaultValue={employee.tax_code ?? ""} /></Field>
+          <label htmlFor="rr_levy_exempt" className="flex items-center gap-2 self-end pb-2 text-sm">
+            <input id="rr_levy_exempt" name="rr_levy_exempt" type="checkbox" defaultChecked={employee.rr_levy_exempt} className="h-4 w-4" />
+            Exempt from R&amp;R levy
+          </label>
           <Field label="Termination reason" htmlFor="termination_reason" className="sm:col-span-2 lg:col-span-3"><Input id="termination_reason" name="termination_reason" defaultValue={employee.termination_reason ?? ""} /></Field>
         </div>
       </Section>

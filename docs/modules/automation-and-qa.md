@@ -1,5 +1,9 @@
 # Automation and QA Module Docs
 
+## 2026-10-30 — Payroll engine tests and workbook parity
+
+`src/tests/unit/payrollEngine.test.ts` pins the engine to BRA Policy Note OGC No. 001/2026 worked examples ($335.42 and $1,052.09 monthly PAYE), the NIS ceiling, R&R exemption, loan caps and net pay splits. `payrollWorkbookParity.test.ts` is skipped unless `HR_PARITY_JSON` points to an export from `scripts/hr/export_workbook_parity.py`; it requires NIS to match the workbook exactly and R&R within one cent, and writes a PAYE gap report to `HR_PARITY_REPORT` when set.
+
 ## 2026-10-29 — Salary workbook importer
 
 `scripts/hr/import_salary_xlsx.py <workbook> <out.sql> --year YYYY` reads each employee sheet by label (sheet layouts differ), emits idempotent inserts keyed on `employee_no` CV-NN, and records the PAYMENTS columns and loan figures as an HR-only note instead of guessing pay items. It stubs numpy before importing openpyxl so a broken numpy install does not block it. Stdout lists only employee numbers and amounts.

@@ -24,6 +24,7 @@ export interface Employee {
   termination_date: string | null;
   termination_reason: string | null;
   tax_code: string | null;
+  rr_levy_exempt: boolean;
   created_at: string;
   updated_at: string;
 }

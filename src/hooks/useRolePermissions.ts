@@ -67,6 +67,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/finance/costings": "costings",
   "/admin/finance/costings/reports": "costings",
   "/admin/finance/people": "hr",
+  "/admin/finance/payroll": "payroll",
   "/admin/pricing/publisher": "catalog-publisher",
   // Copilot tools
   "/admin/copilot/leads-assistant": "leads",

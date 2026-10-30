@@ -96,6 +96,8 @@ const PaymentActivityPage = lazyWithRetry(() => import("@/pages/admin/settings/P
 const WalkInPaymentsPage = lazyWithRetry(() => import("@/pages/admin/WalkInPaymentsPage"));
 const EmployeesPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/EmployeesPage"));
 const EmployeeDetailPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/EmployeeDetailPage"));
+const PayrollRunsPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/PayrollRunsPage"));
+const PayrollRunPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/PayrollRunPage"));
 const StatementDeliveryPreviewPage = lazyWithRetry(() => import("@/pages/admin/StatementDeliveryPreviewPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
@@ -397,6 +399,8 @@ const AdminRoutes = () => (
       <Route path="finance/walk-in-payments" element={<WalkInPaymentsPage />} />
       <Route path="finance/people" element={<HrRoute><EmployeesPage /></HrRoute>} />
       <Route path="finance/people/:employeeId" element={<HrRoute><EmployeeDetailPage /></HrRoute>} />
+      <Route path="finance/payroll" element={<HrRoute><PayrollRunsPage /></HrRoute>} />
+      <Route path="finance/payroll/:runId" element={<HrRoute><PayrollRunPage /></HrRoute>} />
       <Route
         path="finance/bank-payment-portals"
         element={

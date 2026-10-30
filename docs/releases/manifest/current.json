@@ -1,16 +1,21 @@
 {
-  "semanticVersion": "0.27.0",
-  "sourceEntry": "2026-10-29 — HR phase 1: Office admin role and employee records",
-  "releaseDateTimeUtc": "2026-10-29T00:00:00.000Z",
+  "semanticVersion": "0.28.0",
+  "sourceEntry": "2026-10-30 — HR phase 2: Payroll runs",
+  "releaseDateTimeUtc": "2026-10-30T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "New Office admin role (operator access plus HR & payroll) and Finance → People employee records with pay history, pay items, net pay distribution, protected IDs/bank details and HR notes."
+    "New Finance → Payroll: monthly payroll runs that work out NIS, PAYE and R&R levy per employee, allow one-off adjustments, and lock on approval with loan balances drawn down."
   ],
   "moduleImpact": [
     {
+      "module": "src/features/admin",
+      "impact": "medium",
+      "notes": "Updated as part of HR phase 2: Payroll runs."
+    },
+    {
       "module": "scripts/hr",
       "impact": "medium",
-      "notes": "Updated as part of HR phase 1: Office admin role and employee records."
+      "notes": "Updated as part of HR phase 2: Payroll runs."
     }
   ],
   "migrationNotes": [

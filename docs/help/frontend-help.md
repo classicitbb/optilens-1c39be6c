@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-30 - Payroll in Finance
+
+Open **Finance → Payroll** and click **New payroll run**, pick the month and pay date. Each active employee with a monthly salary gets a payslip showing NIS, PAYE, R&R levy, other deductions and net pay; totals and the remittance due date (15th of the next month) are at the top. Click an employee to see their payslip lines and add one-off items such as a bonus while the run is a draft. Change someone's pay or pay items, then click **Recalculate**. **Approve** locks the run and reduces loan balances; **Mark paid** once the money has gone out. R&R levy exemption is a tick box in the employee's Job details.
+
 ## 2026-10-29 - People (HR) in Finance
 
 Admins and office admins open **Finance → People** to list staff, filter by status or department and add an employee. Each profile has tabs for personal and job details, pay (saving a pay change closes the previous rate the day before), recurring pay items, how net pay is split between accounts, IDs & bank (hidden until you click **Show details**, which is logged) and HR notes (HR-only or shared with the employee).
