@@ -9,7 +9,7 @@ Branch `finance-asset-register`, local source. Adds Finance → Fixed Assets and
 - the opening-balance CSV import, which reconciles against QBO to the cent
 - the IAS 16 roll-forward, the register at a date, and the one-off reclass journal
 
-Migration `20261030200000_asset_register.sql` is **not applied** to the live database; it needs the Lovable MCP. The engine and import have unit tests, routes have an accessibility test, and the app typecheck and build pass. All pages were rendered locally on a temporary dev bench with sample data. They have not been run against real data or a signed-in session. Plan and decisions: docs/ASSET_REGISTER_PLAN.md. Every Markdown file is served publicly through `/repo-health`, so the plan contains no money figures.
+Migration `20261030200000_asset_register.sql` was **applied to the live database on 2026-10-30** through the Lovable MCP, in one transaction. A rolled-back smoke test passed: import, the guards, approval, posting, disposal and the non-admin block. The database is still empty. The engine and import have unit tests, routes have an accessibility test, and the app typecheck and build pass. All pages were rendered locally on a temporary dev bench with sample data. They have not been run against real data or a signed-in session. Plan and decisions: docs/ASSET_REGISTER_PLAN.md. Every Markdown file is served publicly through `/repo-health`, so the plan contains no money figures.
 
 ## Admin mobile sidebar handle edge - 2026-10-29
 
