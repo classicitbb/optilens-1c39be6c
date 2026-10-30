@@ -31,6 +31,7 @@ import { LeaveAdjustmentForm, LeaveBalanceCards, LeaveRequestForm, LeaveRequestT
 import { EmployeeTaxPanel } from "@/features/admin/hr/tax/TaxComponents";
 import { useLeaveAdjustments, useLeavePolicy, useLeaveRequests, useLeaveTypes } from "@/features/admin/hr/leave/useLeave";
 import { day, EMPLOYMENT_TYPE_LABELS, Field, fieldInputClass, formValues, money, STATUS_LABELS } from "@/features/admin/hr/formFields";
+import { linkEmployeeLogin, useEmployeeLoginEmail } from "@/features/admin/hr/self/useMyHr";
 
 // Native selects keep these forms plain FormData posts.
 const NativeSelect = ({ id, name, defaultValue, options }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string> }) => (
@@ -101,6 +102,60 @@ const ContactLink = ({ employee }: { employee: Employee }) => {
           <Button variant="outline" size="sm" disabled={creating} onClick={() => void create()}>Create contact from employee</Button>
         )}
       </div>
+    </Section>
+  );
+};
+
+const LoginLink = ({ employee }: { employee: Employee }) => {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const update = useHrMutation("employees");
+  const { data: email } = useEmployeeLoginEmail(employee.id, !!employee.user_id);
+  const [busy, setBusy] = useState(false);
+
+  const link = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setBusy(true);
+    try {
+      const linked = await linkEmployeeLogin(employee.id, formValues(form).email ?? "");
+      await qc.invalidateQueries({ queryKey: ["hr"] });
+      toast({ title: "Login linked", description: `${linked} can now open /me.` });
+      form.reset();
+    } catch (error) {
+      toast({ title: "Could not link login", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const unlink = async () => {
+    try {
+      await update.mutateAsync({ update: { id: employee.id, values: { user_id: null } } });
+      toast({ title: "Login unlinked" });
+    } catch (error) {
+      toast({ title: "Could not unlink login", description: (error as Error).message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <Section title="Self-service login">
+      <p className="text-sm text-muted-foreground">
+        A linked login lets the employee see their own approved payslips, leave and tax estimate at /me, and request leave.
+      </p>
+      {employee.user_id ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>Linked to <span className="font-medium">{email ?? "…"}</span></span>
+          <Button variant="outline" size="sm" disabled={update.isPending} onClick={() => void unlink()}>Unlink</Button>
+        </div>
+      ) : (
+        <form onSubmit={link} className="flex flex-wrap items-end gap-2">
+          <Field label="Email they sign in with" htmlFor="login-email">
+            <Input id="login-email" name="email" type="email" required defaultValue={employee.email ?? ""} className="w-72" />
+          </Field>
+          <Button type="submit" size="sm" disabled={busy}>Link login</Button>
+        </form>
+      )}
     </Section>
   );
 };
@@ -483,6 +538,7 @@ const EmployeeDetailPage = () => {
         <TabsContent value="profile" className="space-y-4">
           <ProfileTab employeeId={employeeId} />
           <ContactLink employee={employee} />
+          <LoginLink employee={employee} />
         </TabsContent>
         <TabsContent value="pay"><CompensationTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="items"><PayItemsTab employeeId={employeeId} /></TabsContent>
