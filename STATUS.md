@@ -1,5 +1,9 @@
 # Project Status
 
+## FreePBX call panel - 2026-10-30
+
+Local source on branch `pbx-softphone`: after Call, the contact Calls tab shows live progress (phone ringing, dialling customer, connected with timer, ended) with Hang up, Record and Stop recording. New migration `20261030120000_pbx_call_controls.sql`; `pbx-agent` `sync` and `pbx-calls` `control` actions; the agent now originates `PJSIP/<ext>` directly (no voicemail leak), refuses busy phones, and only records when `PBX_ALLOW_RECORDING=1`. App TypeScript, 11 PBX unit tests, PR checks (except the Copilot-facts drift already on main) and build pass; agent logic checked against a fake `asterisk` only. Not checked: Deno type-check (no Deno here), the panel in a signed-in browser, and anything on the real PBX: SSH to 192.168.254.52 rejects the local key, so read-only discovery has not run. Nothing applied, deployed or installed. Browser WebRTC softphone is the agreed second step; its PBX prerequisites are in `docs/pbx-calls-setup.md`.
+
 ## Admin mobile sidebar handle edge - 2026-10-29
 
 The workspace theme's unlayered `.admin-tool button` rule overrides Tailwind radius utilities, so `rounded-l-none` alone did not square the edge. Set the two left corner radii inline on the trigger while preserving right-side rounding, contrast and sizing. Focused verification pending; see HANDOFF.md.
