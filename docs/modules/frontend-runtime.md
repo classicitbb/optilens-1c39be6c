@@ -1,5 +1,13 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-30 - HR phase 3: Leave, income tax, deduction overrides, employee contacts
+
+- `/admin/finance/leave` (feature `hr`) and `/admin/finance/tax` (feature `payroll`) sit behind `HrRoute`. The employee page gains Leave and Tax tabs; `?tab=<value>` opens a tab directly.
+- Leave balances are computed in the browser by `src/features/admin/hr/leave/leaveBalance.ts`: entitlement tiers granted on each hire anniversary from `leave_policy.tracking_from`, the carry-over cap applied before each grant, then adjustments and approved requests. `unpaidLeaveInPeriod` feeds `usePayroll.buildPayslip`, which adds a negative taxable earning (base pay ÷ working days in the month × days), so NIS and PAYE fall with it.
+- Payroll engine: `statutoryRounding` (default `dollar`, halves up; tests use `cent` for BRA's examples) and `overrides` keyed by `deductionKey` (`nis`, `paye`, `rr_levy`, `item:<recurring item id>`). Overridden lines keep `calculated`; overrides live in `payslips.overrides` and are carried through recalculation with adjustments.
+- `src/features/admin/hr/tax/annualTax.ts` holds dated `TAX_YEAR_RULES` (add a row per year, never edit a past one); `useTax.estimateYear` adds opening figures from `employee_tax_years`, the year's payslips (drafts included) and projects the remaining months from the latest payslip.
+- Contacts: deletes go through the `delete_unlinked_contacts` RPC (`deleteUnlinkedContacts` in `useContacts.ts`); the `contacts_delete_guard` trigger also blocks direct deletes of linked contacts. `ContactPickerSelect` is reused on the employee profile.
+
 ## 2026-10-30 - HR phase 2: Payroll runs
 
 `/admin/finance/payroll` and `/admin/finance/payroll/:runId` sit behind `HrRoute`; the sidebar link maps to the `payroll` feature. `src/features/admin/hr/payroll/engine.ts` is a pure monthly payslip calculator (integer cents, half-up rounding) driven by the dated `STATUTORY_RULES` table: add a row when BRA/NIS change a rate, never edit a past row. `usePayroll.ts` loads employees, compensation, recurring items and splits, calculates in the browser and replaces a draft run's payslips on every create/recalculate (one-off adjustments are carried over). Approval goes through the `approve_payroll_run` RPC; DB triggers lock approved/paid runs. Run actions confirm through an `AlertDialog`, not `window.confirm` (embedded browsers dismiss native dialogs silently).

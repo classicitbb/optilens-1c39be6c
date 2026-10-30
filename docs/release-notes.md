@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
+
+### Release Notes
+- Finance → Leave with Barbados statutory defaults (all configurable), balances, approvals; unpaid and NIS-paid days come off payroll.
+- Finance → Income tax: annual tax estimate per employee against PAYE, refund/owed, and unclaimed reliefs with their saving.
+- Payroll deductions round to the nearest dollar and can be edited on draft payslips; employees link to CRM contacts, and linked contacts can't be deleted; employee notes are editable.
+
 ## 2026-10-30 — HR phase 2: Payroll runs
 
 ### Release Notes

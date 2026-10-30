@@ -1,5 +1,5 @@
 import { Fragment, memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
+import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, deleteUnlinkedContacts, type Contact, type ContactDeleteResult } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1756,9 +1756,7 @@ const ContactsPage = ({
         if (error) throw error;
         toast({ title: `Archived ${selectedContactIds.length} contacts` });
       } else {
-        const { error } = await (supabase.from("contacts") as any).delete().in("id", selectedContactIds as any);
-        if (error) throw error;
-        toast({ title: `Deleted ${selectedContactIds.length} contacts` });
+        reportContactDelete(await deleteUnlinkedContacts(selectedContactIds));
       }
       setSelectedContactIds([]);
       setBulkAction(null);
@@ -1768,12 +1766,23 @@ const ContactsPage = ({
     }
   };
 
+  // Linked contacts are skipped by the server; say which so nobody thinks the delete failed.
+  const reportContactDelete = ({ deleted, skipped }: ContactDeleteResult) => {
+    toast({
+      title: `Deleted ${deleted} contact${deleted === 1 ? "" : "s"}`,
+      description: skipped.length
+        ? `${skipped.length} kept because other records link to them: ${skipped.slice(0, 3).map((s) => `${s.name ?? "Unnamed"} (${s.links.join(", ")})`).join("; ")}${skipped.length > 3 ? "…" : ""}`
+        : undefined,
+    });
+  };
+
   const purgeArchivedContacts = async () => {
     try {
-      const { error } = await (supabase.from("contacts") as any).delete().eq("is_archived", true as any);
+      const { data: archived, error } = await (supabase.from("contacts") as any).select("id").eq("is_archived", true as any);
       if (error) throw error;
+      const result = await deleteUnlinkedContacts((archived ?? []).map((c: { id: string }) => c.id));
       setIsPurgeDialogOpen(false);
-      toast({ title: "Archived contacts purged" });
+      reportContactDelete(result);
       await qc.invalidateQueries({ queryKey: ["contacts"] });
     } catch (error: any) {
       toast({ title: "Purge failed", description: error.message ?? "Please try again.", variant: "destructive" });

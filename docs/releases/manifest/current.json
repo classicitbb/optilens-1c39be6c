@@ -1,22 +1,18 @@
 {
-  "semanticVersion": "0.28.0",
-  "sourceEntry": "2026-10-30 — HR phase 2: Payroll runs",
+  "semanticVersion": "0.29.0",
+  "sourceEntry": "2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts",
   "releaseDateTimeUtc": "2026-10-30T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "New Finance → Payroll: monthly payroll runs that work out NIS, PAYE and R&R levy per employee, allow one-off adjustments, and lock on approval with loan balances drawn down.",
-    "Payroll Delete draft / Approve / Mark paid confirm in an in-app dialog, so they work in embedded browsers too."
+    "Finance → Leave with Barbados statutory defaults (all configurable), balances, approvals; unpaid and NIS-paid days come off payroll.",
+    "Finance → Income tax: annual tax estimate per employee against PAYE, refund/owed, and unclaimed reliefs with their saving.",
+    "Payroll deductions round to the nearest dollar and can be edited on draft payslips; employees link to CRM contacts, and linked contacts can't be deleted; employee notes are editable."
   ],
   "moduleImpact": [
     {
       "module": "src/features/admin",
       "impact": "medium",
-      "notes": "Updated as part of HR phase 2: Payroll runs."
-    },
-    {
-      "module": "scripts/hr",
-      "impact": "medium",
-      "notes": "Updated as part of HR phase 2: Payroll runs."
+      "notes": "Updated as part of HR phase 3: Leave, income tax, editable deductions, employee contacts."
     }
   ],
   "migrationNotes": [

@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-30 - HR phase 3 (no defect) and contact deletes
+
+New features, no bug fixed. Behaviour change: deleting a contact that other records link to used to cascade or null those links silently; it is now refused (single delete shows why, bulk delete and purge skip linked contacts and list them). Known limits: leave days are counted Monday–Friday without public holidays (edit the days on the request); balances before `tracking_from` need an opening adjustment; the tax estimate projects remaining months from the latest payslip and needs pay from before the app entered per employee.
+
 ## 2026-10-30 - Payroll Delete draft / Approve / Mark paid did nothing
 
 The payroll run page asked for confirmation with `window.confirm`, which embedded browsers (the Claude desktop browser pane) dismiss silently, so the click returned without acting. The page now uses an in-app `AlertDialog` for all three actions.

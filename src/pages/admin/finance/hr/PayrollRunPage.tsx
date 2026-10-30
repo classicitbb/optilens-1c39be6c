@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { AlertTriangle, ArrowLeft, Calculator, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Calculator, Check, Pencil, RotateCcw, Trash2, X } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import {
   AlertDialog,
@@ -29,6 +29,7 @@ import {
   useRecalculatePayrollRun,
   type Adjustment,
   type PayrollRun,
+  type PayslipEdits,
   type PayslipRow,
 } from "@/features/admin/hr/payroll/usePayroll";
 
@@ -51,12 +52,23 @@ const PayslipDialog = ({
   const recalc = useRecalculatePayrollRun();
   const editable = run.status === "draft";
 
-  const saveAdjustments = async (items: Adjustment[]) => {
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+
+  const saveEdit = async (edit: Partial<PayslipEdits>) => {
     try {
-      await recalc.mutateAsync({ run, payslips, adjustments: { employeeId: payslip.employee_id, items } });
+      await recalc.mutateAsync({ run, payslips, edit: { employeeId: payslip.employee_id, ...edit } });
     } catch (error) {
       toast({ title: "Could not update payslip", description: (error as Error).message, variant: "destructive" });
     }
+  };
+  const saveAdjustments = (items: Adjustment[]) => saveEdit({ adjustments: items });
+
+  // null puts the calculated amount back.
+  const saveOverride = (key: string, amount: number | null) => {
+    const overrides = { ...(payslip.overrides ?? {}) };
+    if (amount == null) delete overrides[key];
+    else overrides[key] = amount;
+    return saveEdit({ overrides }).then(() => setEditingKey(null));
   };
 
   const handleAdd = (event: FormEvent<HTMLFormElement>) => {
@@ -77,15 +89,50 @@ const PayslipDialog = ({
           <DialogTitle>{employee ? employeeDisplayName(employee) : "Payslip"} · {periodLabel(run.period_start)}</DialogTitle>
         </DialogHeader>
         <dl className="divide-y text-sm">
-          {payslip.lines.map((line, i) => (
-            <div key={i} className="flex justify-between gap-3 py-1.5">
-              <dt>
-                {line.label}
-                {line.code === "earning" && line.taxable === false && <span className="ml-2 text-xs text-muted-foreground">non-taxable</span>}
-              </dt>
-              <dd className="tabular-nums">{["base", "earning"].includes(line.code) ? money(line.amount) : `−${money(line.amount)}`}</dd>
-            </div>
-          ))}
+          {payslip.lines.map((line, i) => {
+            const key = line.deductionKey;
+            if (key && editingKey === key) {
+              return (
+                <form
+                  key={i}
+                  className="flex items-center justify-between gap-2 py-1"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void saveOverride(key, Number(formValues(event.currentTarget).amount));
+                  }}
+                >
+                  <label htmlFor={`override-${key}`}>{line.label}</label>
+                  <div className="flex items-center gap-1">
+                    <Input id={`override-${key}`} name="amount" type="number" step="0.01" min="0" required autoFocus defaultValue={line.amount} className="h-8 w-28 text-right" />
+                    <Button type="submit" size="icon" className="h-8 w-8" aria-label="Save amount" disabled={recalc.isPending}><Check className="h-4 w-4" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Cancel" onClick={() => setEditingKey(null)}><X className="h-4 w-4" /></Button>
+                  </div>
+                </form>
+              );
+            }
+            return (
+              <div key={i} className="flex items-center justify-between gap-3 py-1.5">
+                <dt>
+                  {line.label}
+                  {line.code === "earning" && line.taxable === false && <span className="ml-2 text-xs text-muted-foreground">non-taxable</span>}
+                  {line.calculated != null && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">edited · calculated {money(line.calculated)}</span>}
+                </dt>
+                <dd className="flex items-center gap-1 tabular-nums">
+                  {["base", "earning"].includes(line.code) ? money(line.amount) : `−${money(line.amount)}`}
+                  {key && editable && (
+                    <>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${line.label}`} onClick={() => setEditingKey(key)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      {line.calculated != null && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Reset ${line.label} to calculated`} disabled={recalc.isPending} onClick={() => void saveOverride(key, null)}>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </dd>
+              </div>
+            );
+          })}
           <div className="flex justify-between gap-3 py-1.5 font-semibold">
             <dt>Net pay</dt>
             <dd className="tabular-nums">{money(payslip.net)}</dd>

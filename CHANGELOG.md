@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
+
+### Release Notes
+- New **Finance → Leave**: record or approve leave, see every employee's balances, and set up leave types. Defaults follow Barbados law: vacation 3 weeks after each year of service and 4 weeks from the fifth year (Holidays with Pay Act, 2017), maternity 14 weeks and paternity 3 weeks (Family Leave Act, 2025), sick leave tracked (NIS sickness benefit), unpaid leave. Entitlements, carry-over, working days and how each type is paid are all editable. Each employee has a Leave tab with balances, history and opening-balance adjustments.
+- Unpaid and NIS-paid leave comes off pay automatically in that month's payroll run.
+- New **Finance → Income tax**: each employee's estimated 2026 income tax (11.5% on the first $50,000, 27.5% above, after the $25,000 allowance) against PAYE withheld, the expected refund or amount owed, and reliefs they haven't claimed (spouse allowance, medical examination from 40, trade union dues) with what each would save. Each employee has a Tax tab to enter pay from before the app and their claims.
+- Payroll: NIS, PAYE and R&R now round to the nearest dollar (halves up). On a draft payslip every deduction can be edited; edits are marked with the calculated figure, survive Recalculate, and can be reset.
+- Employees can be linked to a CRM contact (or have one created from their details). A contact that an employee, customer account, portal account, opportunity, helpdesk ticket, order, walk-in payment or call points to can no longer be deleted; bulk delete and purge skip those and say which were kept.
+- Employee notes can be edited.
+
+### Technical Changelog
+- Migrations (all applied live 2026-10-30): `20261030140000_employee_contact_link.sql` (`employees.contact_id`, `contact_link_kinds`, `contacts_delete_guard` trigger, `delete_unlinked_contacts` RPC, `employee_notes.updated_at`), `20261030150000_payslip_overrides.sql` (`payslips.overrides`), `20261030160000_hr_leave.sql` (leave_policy, leave_types seeded with statutory defaults, leave_requests, leave_adjustments, `cancel_own_leave_request`), `20261030170000_employee_tax_years.sql`.
+- `src/features/admin/hr/leave/leaveBalance.ts` and `src/features/admin/hr/tax/annualTax.ts`: pure balance and annual-tax calculations with unit tests; payroll engine gains `overrides` and `statutoryRounding`.
+
 ## 2026-10-30 — HR phase 2: Payroll runs
 
 ### Release Notes
