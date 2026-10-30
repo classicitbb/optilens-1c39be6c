@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-29 - HR phase 1 (no defect)
+
+New feature, no bug fixed. Known gap: older SQL policies that hardcode `role IN ('admin','operator')` instead of calling `has_role`/`has_edit_role` do not yet admit office_admin; those surfaces behave like viewer access for that role until updated.
+
 ## 2026-10-28 - Blank admin stock rows and failed-order repair
 
 Blank unsent test stock rows accumulated without a safe cleanup action, while failed admin-created stock rows had no route to reopen the saved lines and submit them again. The workspace now allows correction for eligible staged/failed internal orders and limits Delete blank to empty, zero-total, unsent rows without a website-order link or extra invoice. Captures also showed only the account name even when the extractor had identified the patient; both names now appear.

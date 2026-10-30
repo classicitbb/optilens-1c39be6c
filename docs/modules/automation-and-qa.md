@@ -1,5 +1,9 @@
 # Automation and QA Module Docs
 
+## 2026-10-29 — Salary workbook importer
+
+`scripts/hr/import_salary_xlsx.py <workbook> <out.sql> --year YYYY` reads each employee sheet by label (sheet layouts differ), emits idempotent inserts keyed on `employee_no` CV-NN, and records the PAYMENTS columns and loan figures as an HR-only note instead of guessing pay items. It stubs numpy before importing openpyxl so a broken numpy install does not block it. Stdout lists only employee numbers and amounts.
+
 Local Supabase development proxy (2026-10-20): scripts/vite-supabase-proxy.ts configures the fixed upstream and loopback/origin/path guard. TLS uses trusted Node/system roots and remains verified. Source tests cover forwarding, guards, session-token retention and cancellation. Live no-token proxy checks must return upstream 401; an Origin not allowed transport failure is a regression.
 
 

@@ -135,6 +135,8 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.settings.edge-functions", path: "/admin/settings/edge-functions", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.finance.payment-activity", path: "/admin/finance/payment-activity", domain: "admin-console", audience: "admin", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.finance.statements", path: "/admin/finance/statements", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.finance.people", path: "/admin/finance/people", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.finance.people.detail", path: "/admin/finance/people/:employeeId", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.finance.walk-in-payments", path: "/admin/finance/walk-in-payments", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "public.photochromic", path: "/photochromic", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.staff-card", path: "/connect/:slug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-site", status: "active" },

@@ -1,5 +1,9 @@
 # Developer Workflow Help
 
+## 2026-10-29 — Seeding HR from the salary workbook
+
+Apply both HR migrations live first (git push does not run them). Then `pip install --user openpyxl`, run `python scripts/hr/import_salary_xlsx.py "<workbook.xlsx>" "<path outside the repo>.sql" --year 2026`, apply the SQL through the Lovable MCP `query_database` tool, and delete the file: it contains NRN/NIS numbers and pay.
+
 Local data access (2026-10-20): run `npm run dev -- --host 127.0.0.1 --port 5173` and sign in normally. Supabase HTTP traffic uses the local same-origin proxy on any loopback port, forwarding only your existing session permissions. VITE_SUPABASE_URL remains the configured project; do not paste keys into source or disable TLS verification. Node 22 can add the OS trust store when a trusted enterprise CA is installed. Static production builds retain their direct backend URLs.
 
 

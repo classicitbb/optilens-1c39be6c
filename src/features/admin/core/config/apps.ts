@@ -137,6 +137,7 @@ export const ADMIN_APPS = {
       { label: 'Payment Activity', route: '/admin/finance/payment-activity', icon: CreditCard },
       { label: 'Walk-in Payments', route: '/admin/finance/walk-in-payments', icon: Landmark },
       { label: 'Bank Payment Portals', route: '/admin/finance/bank-payment-portals', icon: Landmark },
+      { label: 'People', route: '/admin/finance/people', icon: Users },
     ] satisfies SidebarItem[],
   },
   website: {

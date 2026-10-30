@@ -87,7 +87,7 @@ const scoreContext = (query: string, text: string) => {
   return queryWords.reduce((score, word) => score + (normalizedText.includes(word) ? 2 : 0), 0);
 };
 
-const STAFF_ROLES = ["admin", "operator", "viewer"];
+const STAFF_ROLES = ["admin", "operator", "office_admin", "viewer"];
 
 /**
  * Atlas (the staff workspace) sends the pages the signed-in user is reading as evidence. That is

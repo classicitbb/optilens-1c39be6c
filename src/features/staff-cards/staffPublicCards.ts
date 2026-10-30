@@ -24,7 +24,7 @@ export type StaffPublicCardDefaults = Partial<Pick<StaffPublicCard,
 
 export type StaffPublicCardDraft = Omit<StaffPublicCard, "user_id">;
 
-export const isStaffRole = (role: AppRole | null | undefined) => role === "admin" || role === "operator" || role === "viewer";
+export const isStaffRole = (role: AppRole | null | undefined) => role === "admin" || role === "operator" || role === "office_admin" || role === "viewer";
 
 export const slugifyPublicCard = (value: string) => value
   .trim()
