@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-30 — FreePBX call panel with hang up and record (local source)
+
+### Release Notes
+- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
+
 ## 2026-10-30 — In-app confirm dialogs across the admin
 
 ### Release Notes
