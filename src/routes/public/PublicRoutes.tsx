@@ -89,8 +89,6 @@ const ContactHashRedirect = () => {
   return null;
 };
 
-import RepoHealthPage from "@/pages/RepoHealth";
-
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
@@ -187,7 +185,6 @@ const PublicRoutes = () => (
 
     <Route path="vizionize-cleaner" element={<VizionizeCleanerPage />} />
 
-    <Route path="repo-health" element={<RepoHealthPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
