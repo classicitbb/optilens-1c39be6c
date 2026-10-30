@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { AtlasPage, AtlasSource } from '../source/types';
+import PersonalSharing from './PersonalSharing';
 
 interface Props { page: AtlasPage; source: AtlasSource; open: boolean; onOpenChange: (open: boolean) => void }
 const PageSharingDialog = ({ page, source, open, onOpenChange }: Props) => {
@@ -29,6 +30,10 @@ const PageSharingDialog = ({ page, source, open, onOpenChange }: Props) => {
     finally { setBusy(false); }
   };
   const url = share ? `${window.location.origin}/shared/pages/${share.token}` : '';
+  if (page.spaceId === 'personal') return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-w-2xl">
+    <DialogHeader><DialogTitle>Share personal page</DialogTitle></DialogHeader>
+    <PersonalSharing page={page} source={source} />
+  </DialogContent></Dialog>;
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-w-2xl">
     <DialogHeader><DialogTitle>Share published page</DialogTitle></DialogHeader>
     <p>Anyone with this link can read the published page after signing in or creating a website account. They may forward the link. Draft edits stay private.</p>

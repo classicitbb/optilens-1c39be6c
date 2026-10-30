@@ -41,8 +41,11 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
   `spacing` field on the canonical `table` block (omitted when comfortable).
 - Drag a column border to resize. Widths are pixels on each cell's `colwidth` and an optional `colWidths` array on the canonical
   block (`null` = share leftover space); readers emit a `<colgroup>`. "Autofit" measures an off-screen clone of the table.
-- Tables have no merged cells. Pasted HTML is run through `unmergeTableCells` (`pasteTables.ts`), which splits every colspan/rowspan
-  into plain cells that repeat the content, so nothing shifts column on save.
+- Merged cells: right-click → Merge cells / Split cell (drag across cells to select). The canonical `table` block keeps a full
+  `rows` grid (covered cells are empty) plus optional `spans: [{row, col, rowSpan?, colSpan?}]` on the top-left cell, so older
+  readers still see a plain grid. `resolveTableSpans` (BlogPostRenderer) validates spans for every reader; Markdown export repeats
+  a merged cell's text across the cells it covers. Pasted HTML keeps its merges (`unmergeTableCells` is no longer applied).
+- Inline `dropdown` field (`/dropdown`: pick one of several options, last entry edits them) and `/date` (a `date` mention).
 
 ## Layout
 

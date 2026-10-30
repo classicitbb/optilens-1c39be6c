@@ -37,6 +37,8 @@ export interface AtlasPage {
   /** Schema-driven properties, keyed by the property keys of the page's space. */
   props: AtlasProps;
   authorId: string | null;
+  /** Owner of a personal page (null for shared-space pages). */
+  ownerId?: string | null;
   lastEditedBy: string | null;
   version: number;
   publishedAt: string | null;
@@ -146,7 +148,18 @@ export interface PublishInput {
   changeNote?: string;
 }
 
+/** A person a personal page is shared with. */
+export interface PersonalShare {
+  userId: string;
+  canEdit: boolean;
+}
+
 export interface AtlasSource {
+  /** Personal pages only: who the page is shared with (owner-only; RLS enforces it). */
+  listPersonalShares(id: string): Promise<PersonalShare[]>;
+  /** Share a personal page with someone, or change their edit right. */
+  setPersonalShare(id: string, userId: string, canEdit: boolean): Promise<void>;
+  removePersonalShare(id: string, userId: string): Promise<void>;
   getPageSharing(id: string): Promise<{ token: string; enabled: boolean } | null>;
   setPageSharing(id: string, enabled: boolean): Promise<{ token: string; enabled: boolean }>;
   listPageAccesses(id: string): Promise<{ id: string; userId: string | null; email: string | null; title: string; version: number; accessedAt: string }[]>;
@@ -173,7 +186,7 @@ export interface AtlasSource {
   listVersions(id: string): Promise<AtlasVersion[]>;
   restoreVersion(id: string, version: AtlasVersion): Promise<void>;
   /** People who can be @-mentioned or shown as owners. */
-  searchPeople(query: string): Promise<{ id: string; name: string }[]>;
+  searchPeople(query: string, options?: { staffOnly?: boolean }): Promise<{ id: string; name: string }[]>;
   personName(id: string): Promise<string | null>;
   /** Title, summary and body search over pages the caller can read. */
   search(query: string, options?: { spaceIds?: string[]; limit?: number }): Promise<AtlasHit[]>;

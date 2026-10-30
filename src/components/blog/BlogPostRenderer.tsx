@@ -19,7 +19,9 @@ export type BlogInlineNode =
   | { type: "color"; color?: BlogColorName; background?: BlogColorName; children: BlogInlineNode[] }
   | { type: "mention"; kind: "page" | "person" | "date"; label: string; id?: string; slug?: string }
   /** A value hidden behind a show/hide toggle. Never written to HTML, Markdown or search text. */
-  | { type: "secret"; value: string };
+  | { type: "secret"; value: string }
+  /** A choice from a fixed list of options. `value` is one of `options`, or empty while unchosen. */
+  | { type: "dropdown"; options: string[]; value: string };
 
 export interface BlogTodoItem {
   checked: boolean;
@@ -39,7 +41,7 @@ export type BlogBlockNode =
   | { type: "todo"; items: BlogTodoItem[] }
   | { type: "code"; language?: string; text: string }
   | { type: "divider" }
-  | { type: "table"; header: boolean; spacing?: "compact" | "spacious"; colWidths?: (number | null)[]; rows: BlogInlineNode[][][] }
+  | { type: "table"; header: boolean; spacing?: "compact" | "spacious"; colWidths?: (number | null)[]; spans?: BlogTableSpan[]; rows: BlogInlineNode[][][] }
   | { type: "pageLink"; articleId: string; title: string; slug?: string };
 
 export interface BlogPageRef {
@@ -242,6 +244,47 @@ const defaultResolvePageHref: ResolveHref = (page) => (page.slug ? `/knowledge/$
 const colorClasses = (color?: unknown, background?: unknown) =>
   cn(isBlogColorName(color) && `ws-color-${color}`, isBlogColorName(background) && `ws-bg-${background}`);
 
+/** A merged cell: anchored at its top-left grid position. The cells it covers stay in `rows`, empty. */
+export interface BlogTableSpan {
+  row: number;
+  col: number;
+  rowSpan?: number;
+  colSpan?: number;
+}
+
+export interface ResolvedTableSpans {
+  /** Anchor cells by "row:col". */
+  anchors: Map<string, { rowSpan: number; colSpan: number }>;
+  /** Grid positions hidden under an anchor, by "row:col". */
+  covered: Set<string>;
+}
+
+const wholeNumber = (value: unknown) => (typeof value === "number" && Number.isInteger(value) ? value : 0);
+
+/**
+ * Validates stored spans against the grid: spans are clamped to the table, and any that overlap an earlier
+ * span or the anchor of another are dropped, so a damaged document still renders as a plain grid.
+ */
+export const resolveTableSpans = (spans: unknown, rowCount: number, colCount: number): ResolvedTableSpans => {
+  const anchors = new Map<string, { rowSpan: number; colSpan: number }>();
+  const covered = new Set<string>();
+  if (!Array.isArray(spans)) return { anchors, covered };
+  const list = (spans as BlogTableSpan[])
+    .filter((span) => span && wholeNumber(span.row) >= 0 && wholeNumber(span.col) >= 0 && span.row < rowCount && span.col < colCount)
+    .sort((a, b) => a.row - b.row || a.col - b.col);
+  for (const span of list) {
+    const rowSpan = Math.min(Math.max(1, wholeNumber(span.rowSpan) || 1), rowCount - span.row);
+    const colSpan = Math.min(Math.max(1, wholeNumber(span.colSpan) || 1), colCount - span.col);
+    if (rowSpan === 1 && colSpan === 1) continue;
+    const cells: string[] = [];
+    for (let i = 0; i < rowSpan; i += 1) for (let j = 0; j < colSpan; j += 1) cells.push(`${span.row + i}:${span.col + j}`);
+    if (cells.some((cell) => covered.has(cell) || anchors.has(cell))) continue;
+    anchors.set(cells[0], { rowSpan, colSpan });
+    cells.slice(1).forEach((cell) => covered.add(cell));
+  }
+  return { anchors, covered };
+};
+
 /** Like the editor, a table whose every column has a width is exactly that wide; otherwise it fills the page. */
 const fixedTableWidth = (colWidths?: (number | null)[]) =>
   colWidths && colWidths.length > 0 && colWidths.every((width) => typeof width === "number" && width > 0) ? `${colWidths.reduce<number>((sum, width) => sum + (width ?? 0), 0)}px` : undefined;
@@ -285,6 +328,12 @@ const renderInlineNode = (node: BlogInlineNode, key: string, resolve: ResolveHre
     }
     case "secret":
       return <SecretField key={key} value={node.value} />;
+    case "dropdown":
+      return (
+        <span key={key} className="ws-dropdown" data-dropdown-value={node.value}>
+          {node.value || "Select…"}
+        </span>
+      );
     default:
       return (
         <span key={key} data-unknown-inline={String((node as { type?: unknown } | null)?.type ?? "unknown")} className="ws-unknown-inline">
@@ -395,13 +444,18 @@ const renderBlockNode = (block: BlogBlockNode, key: string, resolve: ResolveHref
             <tbody>
               {block.rows.map((row, rowIndex) => {
                 const Cell = block.header && rowIndex === 0 ? "th" : "td";
+                const merged = resolveTableSpans(block.spans, block.rows.length, Math.max(0, ...block.rows.map((r) => r.length)));
                 return (
                   <tr key={`${key}-${rowIndex}`}>
-                    {row.map((cell, cellIndex) => (
-                      <Cell key={`${key}-${rowIndex}-${cellIndex}`} className={`border border-border text-left align-top ${block.spacing === "compact" ? "px-2 py-1" : block.spacing === "spacious" ? "px-4 py-4" : "px-3 py-2"}`}>
+                    {row.map((cell, cellIndex) => {
+                      if (merged.covered.has(`${rowIndex}:${cellIndex}`)) return null;
+                      const span = merged.anchors.get(`${rowIndex}:${cellIndex}`);
+                      return (
+                      <Cell key={`${key}-${rowIndex}-${cellIndex}`} colSpan={span?.colSpan} rowSpan={span?.rowSpan} className={`border border-border text-left align-top ${block.spacing === "compact" ? "px-2 py-1" : block.spacing === "spacious" ? "px-4 py-4" : "px-3 py-2"}`}>
                         {cell.map((child, childIndex) => renderInlineNode(child, `${key}-${rowIndex}-${cellIndex}-${childIndex}`, resolve))}
                       </Cell>
-                    ))}
+                      );
+                    })}
                   </tr>
                 );
               })}

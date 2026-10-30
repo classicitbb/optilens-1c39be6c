@@ -30,6 +30,7 @@ import CommandPalette, { type PaletteAction } from "./components/CommandPalette"
 import MoveToDialog, { type MoveTarget } from "./components/MoveToDialog";
 import AssignmentsPanel from "./components/AssignmentsPanel";
 import PageBody from "./components/PageBody";
+import OutlineRail from "./components/OutlineRail";
 import PagePasswordSetting from "./components/PagePasswordSetting";
 import { isPageUnlocked, usePageUnlocked, useUnlockVersion } from "./lock";
 import PropertiesForm from "./components/PropertiesForm";
@@ -220,6 +221,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   // Iris: any entry point (⌘J, sidebar, selection, "/" menu, block menu) opens the panel, optionally with a request.
   const [irisRequest, setIrisRequest] = useState<IrisRequest | null>(null);
   const editorInstance = useRef<Editor | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const openIris = useCallback(
     (request?: AskIrisRequest) => {
       setIrisRequest(request ? { ...request, nonce: Date.now() } : null);
@@ -434,7 +436,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   };
 
   const sharePage = async () => {
-    if (isAdmin) { setSharingOpen(true); return; }
+    if (isAdmin || selectedPage?.spaceId === "personal") { setSharingOpen(true); return; }
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}${selectedPage ? `?articleId=${encodeURIComponent(selectedPage.id)}` : ""}`);
       toast({ title: "Link copied" });
@@ -707,6 +709,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           onToggleEdit={() => setMode(editing ? "view" : "edit")}
           onPublish={() => void savePublishedPage()}
           onShare={() => void sharePage()}
+          settings={settings}
           onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
           onToggleFullWidth={() => {
             if (!selectedPage) return;
@@ -766,9 +769,9 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onToggleCover={() => patchPageMeta(selectedPage.id, { cover: !meta?.cover })}
               onStatusChange={(status) => void changeStatus(status)}
               onContextsChange={(contexts) => setDraft((current) => ({ ...current, contexts }))}
-              settings={settings}
             />
-            <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-[5px] ${fullWidth ? "max-w-none" : "max-w-[920px]"}`}>
+            <div ref={bodyRef} className={`relative mx-auto w-full px-6 pb-24 pt-6 sm:px-12 ${fullWidth ? "max-w-none" : "max-w-[920px]"}`}>
+              <OutlineRail rootRef={bodyRef} />
               <PageBody
                 page={selectedPage}
                 editor={editor}
@@ -827,7 +830,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       />
 
       <ImportDryRunDialog open={importOpen} onOpenChange={setImportOpen} existingSlugs={allPages.map((page) => page.slug)} />
-      {selectedPage && isAdmin ? <PageSharingDialog key={`${user?.id}:${selectedPage.id}`} page={selectedPage} source={data.source} open={sharingOpen} onOpenChange={setSharingOpen} /> : null}
+      {selectedPage && (isAdmin || selectedPage.spaceId === "personal") ? <PageSharingDialog key={`${user?.id}:${selectedPage.id}`} page={selectedPage} source={data.source} open={sharingOpen} onOpenChange={setSharingOpen} /> : null}
 
       <MoveToDialog
         open={Boolean(moveTargetId)}

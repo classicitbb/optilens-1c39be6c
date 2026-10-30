@@ -1,5 +1,6 @@
 import type { Editor, Range } from "@tiptap/core";
 import {
+  CalendarDays,
   Code2,
   FileText,
   Heading1,
@@ -16,6 +17,7 @@ import {
   PenLine,
   Quote,
   Sparkles,
+  SquareChevronDown,
   Table2,
   ChevronRight,
   TriangleAlert,
@@ -72,7 +74,7 @@ export const SLASH_ITEMS: SlashItem[] = [
   { id: "quote", group: "Basic", title: "Quote", hint: '"', keywords: ["blockquote", "cite"], icon: Quote, run: convert("quote") },
   { id: "callout", group: "Basic", title: "Callout", hint: "Highlighted note", keywords: ["note", "tip", "info"], icon: Lightbulb, run: convert("callout") },
   { id: "divider", group: "Basic", title: "Divider", hint: "---", keywords: ["hr", "line", "separator"], icon: Minus, run: (context) => context.editor.chain().focus().deleteRange(context.range).setHorizontalRule().run() },
-  { id: "code", group: "Basic", title: "Code", hint: "```", keywords: ["snippet", "pre"], icon: Code2, run: convert("code") },
+  { id: "code", group: "Basic", title: "Code", hint: "```", keywords: ["code block", "snippet", "pre"], icon: Code2, run: convert("code") },
   {
     id: "image",
     group: "Basic",
@@ -105,6 +107,38 @@ export const SLASH_ITEMS: SlashItem[] = [
       clear(context);
       context.startPageLink();
     },
+  },
+  {
+    id: "date",
+    group: "Basic",
+    title: "Date",
+    hint: "Today's date",
+    keywords: ["today", "calendar", "day"],
+    icon: CalendarDays,
+    run: ({ editor, range }) => {
+      const label = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" }).format(new Date());
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent([{ type: "mention", attrs: { kind: "date", label, id: null, slug: null } }, { type: "text", text: " " }])
+        .run();
+    },
+  },
+  {
+    id: "dropdown",
+    group: "Basic",
+    title: "Dropdown",
+    hint: "Pick one of several options",
+    keywords: ["select", "choice", "options", "status"],
+    icon: SquareChevronDown,
+    run: ({ editor, range }) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent([{ type: "dropdown", attrs: { options: ["Option 1", "Option 2", "Option 3"], value: "" } }, { type: "text", text: " " }])
+        .run(),
   },
   {
     id: "secret",

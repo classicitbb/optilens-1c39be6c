@@ -109,7 +109,7 @@ const BlockGutter = ({ editor, wrapperRef, onAskIris }: BlockGutterProps) => {
         aria-label="Add a block below"
         title="Add a block below"
         onClick={() => addBlockBelow(editor, block)}
-        className="flex h-6 w-6 items-center justify-center rounded-[4px] text-ws-ink-3 hover:bg-[var(--ws-hover)]"
+        className="flex h-6 w-6 items-center justify-center rounded-[4px] text-ws-ink-3 opacity-60 transition-opacity hover:bg-[var(--ws-hover)] hover:opacity-100"
       >
         <Plus className="h-4 w-4" />
       </button>
@@ -123,7 +123,7 @@ const BlockGutter = ({ editor, wrapperRef, onAskIris }: BlockGutterProps) => {
             title="Drag to move · click for menu"
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
-            className="flex h-6 w-5 cursor-grab items-center justify-center rounded-[4px] text-ws-ink-3 hover:bg-[var(--ws-hover)] active:cursor-grabbing"
+            className="flex h-6 w-5 cursor-grab items-center justify-center rounded-[4px] text-ws-ink-3 opacity-60 transition-opacity hover:bg-[var(--ws-hover)] hover:opacity-100 active:cursor-grabbing"
           >
             <GripVertical className="h-4 w-4" />
           </button>

@@ -1,4 +1,4 @@
-import type { BlogBlockNode, BlogCanonicalContent, BlogInlineNode } from "@/components/blog/BlogPostRenderer";
+import { resolveTableSpans, type BlogBlockNode, type BlogCanonicalContent, type BlogInlineNode } from "@/components/blog/BlogPostRenderer";
 import { nestByDepth, type DepthNode } from "@/lib/listDepth";
 
 const inlineToMarkdown = (nodes: BlogInlineNode[]): string =>
@@ -17,6 +17,8 @@ const inlineToMarkdown = (nodes: BlogInlineNode[]): string =>
           return `\`${inlineToMarkdown(node.children)}\``;
         case "link":
           return `[${inlineToMarkdown(node.children)}](${node.href})`;
+        case "dropdown":
+          return node.value;
         case "underline":
         case "color":
           return inlineToMarkdown(node.children);
@@ -67,11 +69,22 @@ const blockToMarkdown = (block: BlogBlockNode): string => {
     case "table": {
       if (block.rows.length === 0) return "";
       const columns = Math.max(...block.rows.map((row) => row.length));
+      // Markdown tables cannot merge cells, so a merged cell's text is repeated across the cells it covers.
+      const merged = resolveTableSpans(block.spans, block.rows.length, columns);
+      const filled = block.rows.map((row, r) =>
+        Array.from({ length: columns }, (_, c) => {
+          for (const [anchor, span] of merged.anchors) {
+            const [ar, ac] = anchor.split(":").map(Number);
+            if (r >= ar && r < ar + span.rowSpan && c >= ac && c < ac + span.colSpan) return block.rows[ar][ac] ?? [];
+          }
+          return row[c] ?? [];
+        }),
+      );
       const line = (row: BlogInlineNode[][]) =>
         `| ${Array.from({ length: columns }, (_, index) => cell(row[index] ?? [])).join(" | ")} |`;
-      const [first, ...rest] = block.rows;
+      const [first, ...rest] = filled;
       const head = block.header ? first : Array.from({ length: columns }, () => [] as BlogInlineNode[]);
-      const body = block.header ? rest : block.rows;
+      const body = block.header ? rest : filled;
       return [line(head), `| ${Array.from({ length: columns }, () => "---").join(" | ")} |`, ...body.map(line)].join("\n");
     }
     case "pageLink":
