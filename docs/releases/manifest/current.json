@@ -4,7 +4,8 @@
   "releaseDateTimeUtc": "2026-10-30T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "New Finance → Payroll: monthly payroll runs that work out NIS, PAYE and R&R levy per employee, allow one-off adjustments, and lock on approval with loan balances drawn down."
+    "New Finance → Payroll: monthly payroll runs that work out NIS, PAYE and R&R levy per employee, allow one-off adjustments, and lock on approval with loan balances drawn down.",
+    "Payroll Delete draft / Approve / Mark paid confirm in an in-app dialog, so they work in embedded browsers too."
   ],
   "moduleImpact": [
     {

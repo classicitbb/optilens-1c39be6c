@@ -5,7 +5,8 @@
 ### Release Notes
 - New **Finance → Payroll**: start a monthly payroll run and every active employee's payslip is worked out from their pay setup — NIS (11% up to $5,360/month), PAYE (BRA monthly method, 11.5%/27.5% from April 2026) and the R&R levy (0.25%) — with totals and the 15th-of-next-month remittance date.
 - Open a payslip to see each line, how net pay is split, and to add one-off earnings or deductions (bonus, adjustment) while the run is a draft.
-- Approving locks the run and takes loan repayments off loan balances; then mark it paid. Employees can mark themselves R&R-exempt on their profile (Job section).
+- Approving locks the run and takes loan repayments off loan balances; then mark it paid. HR can mark an employee R&R-exempt on their profile (Job section).
+- Delete draft, Approve and Mark paid now confirm in an in-app dialog (the browser pop-up was silently dismissed in some browsers, so the buttons appeared to do nothing).
 
 ### Technical Changelog
 - `src/features/admin/hr/payroll/engine.ts`: pure payslip calculation in integer cents with dated statutory rules; unit tests use BRA Policy Note OGC No. 001/2026 worked examples.

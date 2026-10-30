@@ -6,6 +6,7 @@ Summarized release outcomes for each major date-stamped update.
 
 ### Release Notes
 - New Finance → Payroll: monthly payroll runs that work out NIS, PAYE and R&R levy per employee, allow one-off adjustments, and lock on approval with loan balances drawn down.
+- Payroll Delete draft / Approve / Mark paid confirm in an in-app dialog, so they work in embedded browsers too.
 
 ## 2026-10-29 — HR phase 1: Office admin role and employee records
 
