@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Editor } from "@tiptap/core";
 import { CellSelection } from "@tiptap/pm/tables";
-import { ArrowLeftRight, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, PanelTop, RotateCcw, Rows3, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart, Combine, PanelTop, RotateCcw, Rows3, SplitSquareHorizontal, Trash2 } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -44,6 +44,13 @@ const TableMenuItems = ({ editor }: { editor: Editor }) => {
       </ContextMenuItem>
       <ContextMenuItem onSelect={run(() => chain().deleteColumn().run())}>
         <Trash2 className="mr-2 h-4 w-4" /> Delete column
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem disabled={!editor.can().mergeCells()} onSelect={run(() => chain().mergeCells().run())}>
+        <Combine className="mr-2 h-4 w-4" /> Merge cells
+      </ContextMenuItem>
+      <ContextMenuItem disabled={!editor.can().splitCell()} onSelect={run(() => chain().splitCell().run())}>
+        <SplitSquareHorizontal className="mr-2 h-4 w-4" /> Split cell
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem onSelect={run(() => chain().toggleHeaderRow().run())}>

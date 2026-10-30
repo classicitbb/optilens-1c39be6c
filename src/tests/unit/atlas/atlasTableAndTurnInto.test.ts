@@ -74,6 +74,62 @@ describe("table column widths", () => {
   });
 });
 
+describe("merged cells", () => {
+  const grid = (): BlogCanonicalContent => ({
+    blocks: [
+      {
+        type: "table",
+        header: true,
+        spans: [
+          { row: 0, col: 0, colSpan: 2 },
+          { row: 1, col: 2, rowSpan: 2 },
+        ],
+        rows: [
+          [cell("Wide"), [], cell("C")],
+          [cell("1"), cell("2"), cell("tall")],
+          [cell("3"), cell("4"), []],
+        ],
+      },
+    ],
+  });
+
+  it("round-trips colspan and rowspan through the editor", () => {
+    expect(tiptapDocToCanonical(canonicalToTiptapDoc(grid()))).toEqual(grid());
+  });
+
+  it("drops covered cells from the editor rows and sets spans on the anchors", () => {
+    const rows = (canonicalToTiptapDoc(grid()) as { content: { content: { content: { attrs?: Record<string, number> }[] }[] }[] }).content[0].content;
+    expect(rows.map((row) => row.content.length)).toEqual([2, 3, 2]);
+    expect(rows[0].content[0].attrs?.colspan).toBe(2);
+    expect(rows[1].content[2].attrs?.rowspan).toBe(2);
+  });
+
+  it("ignores spans that overlap or fall outside the grid", () => {
+    const doc = grid();
+    (doc.blocks[0] as { spans: unknown[] }).spans = [{ row: 0, col: 0, colSpan: 2 }, { row: 0, col: 1, colSpan: 2 }, { row: 9, col: 9, colSpan: 2 }];
+    const rows = (canonicalToTiptapDoc(doc) as { content: { content: { content: unknown[] }[] }[] }).content[0].content;
+    expect(rows.map((row) => row.content.length)).toEqual([2, 3, 3]);
+  });
+
+  it("merges and splits selected cells in the editor", () => {
+    const { editor } = make(table());
+    editor.chain().focus().setCellSelection({ anchorCell: 2, headCell: 7 }).run();
+    expect(editor.can().mergeCells()).toBe(true);
+    editor.chain().focus().mergeCells().run();
+    const block = tiptapDocToCanonical(editor.getJSON()).blocks[0] as { spans?: unknown[] };
+    expect(block.spans).toEqual([{ row: 0, col: 0, colSpan: 2 }]);
+    editor.chain().focus().splitCell().run();
+    expect((tiptapDocToCanonical(editor.getJSON()).blocks[0] as { spans?: unknown[] }).spans).toBeUndefined();
+  });
+});
+
+describe("dropdown field", () => {
+  it("round-trips through the editor", () => {
+    const doc: BlogCanonicalContent = { blocks: [{ type: "paragraph", children: [{ type: "dropdown", options: ["Open", "Done"], value: "Done" }] }] };
+    expect(tiptapDocToCanonical(canonicalToTiptapDoc(doc))).toEqual(doc);
+  });
+});
+
 describe("table rows and columns", () => {
   it("adds and removes rows and columns around the caret", () => {
     const { editor } = make(table());

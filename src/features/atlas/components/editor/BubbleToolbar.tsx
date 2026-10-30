@@ -19,7 +19,7 @@ const Tool = ({ active, label, onClick, disabled, children }: { active?: boolean
     onMouseDown={(event) => event.preventDefault()}
     onClick={onClick}
     className={cn(
-      "flex h-7 min-w-7 items-center justify-center gap-1 whitespace-nowrap rounded-[4px] px-1.5 text-[13px] text-ws-ink-2 hover:bg-[var(--ws-hover)] disabled:cursor-not-allowed disabled:opacity-40",
+      "flex h-8 min-w-8 items-center justify-center gap-1 whitespace-nowrap rounded-[4px] px-1.5 text-[13px] text-ws-ink-2 hover:bg-[var(--ws-hover)] disabled:cursor-not-allowed disabled:opacity-40",
       active && "bg-ws-accent-tint text-ws-accent",
     )}
   >
@@ -90,7 +90,7 @@ const BubbleToolbar = ({ editor, onAskIris }: BubbleToolbarProps) => {
         if (ed.isActive("codeBlock") || ed.isActive("image") || ed.isActive("pageLink") || ed.isActive("unknownBlock")) return false;
         return state.doc.textBetween(from, to, " ").trim().length > 0;
       }}
-      className="ws-bubble z-50 rounded-[8px] border border-ws-line bg-ws-paper p-1 text-ws-ink"
+      className="ws-bubble z-50 rounded-[10px] border border-ws-line bg-ws-paper p-1 text-ws-ink shadow-lg"
     >
       <div className="flex items-center gap-0.5" role="toolbar" aria-label="Text formatting">
         <Tool
@@ -107,13 +107,13 @@ const BubbleToolbar = ({ editor, onAskIris }: BubbleToolbarProps) => {
           <span className="hidden sm:inline">Turn into</span> <ChevronDown className="h-3 w-3" />
         </Tool>
         <Divider />
-        <Tool label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <Tool label="Bold (Ctrl+B)" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold className="h-3.5 w-3.5" />
         </Tool>
-        <Tool label="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <Tool label="Italic (Ctrl+I)" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic className="h-3.5 w-3.5" />
         </Tool>
-        <Tool label="Underline" active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+        <Tool label="Underline (Ctrl+U)" active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}>
           <Underline className="h-3.5 w-3.5" />
         </Tool>
         <Tool label="Strikethrough" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>

@@ -31,8 +31,11 @@ export const deriveStoredSpace = (row: { space?: string | null; content_type?: s
 /** Stored column values a new page gets, per space. Unknown spaces store like the first one. */
 const SPACE_STORE_DEFAULTS: Record<string, { content_type: string; visibility: string; page_slug: string; contexts: string[] }> = {
   wiki: { content_type: "wiki", visibility: "internal", page_slug: "knowledge/wiki", contexts: ["knowledge/wiki"] },
+  // Private by default: internal visibility, no contexts (those are an editor-only, shared-space concept).
+  personal: { content_type: "wiki", visibility: "internal", page_slug: "personal", contexts: [] },
   website: { content_type: "knowledge", visibility: "public", page_slug: "knowledge", contexts: [] },
 };
+const PERSONAL_SPACE = "personal";
 const storeDefaults = (spaceId: string) => SPACE_STORE_DEFAULTS[spaceId] ?? SPACE_STORE_DEFAULTS.wiki;
 
 /** Property key -> column. Properties are schema-driven per space; this is the storage mapping. */
@@ -96,6 +99,7 @@ const toPage = (row: Row): AtlasPage => {
       ...("full_width" in row ? { fullWidth: row.full_width } : {}),
     },
     authorId: row.author_id ?? null,
+    ownerId: row.owner_id ?? null,
     lastEditedBy: row.last_edited_by ?? null,
     version: row.version_number ?? 1,
     publishedAt: row.published_at ?? null,
@@ -164,6 +168,20 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
   };
 
   return {
+    async listPersonalShares(id) {
+      const { data, error } = await (supabase as any).from("help_article_shares").select("user_id, can_edit").eq("article_id", id);
+      if (error) throw error;
+      return ((data ?? []) as Row[]).map((row) => ({ userId: row.user_id as string, canEdit: row.can_edit === true }));
+    },
+    async setPersonalShare(id, userId, canEdit) {
+      const { error } = await (supabase as any).from("help_article_shares").upsert({ article_id: id, user_id: userId, can_edit: canEdit });
+      if (error) throw error;
+    },
+    async removePersonalShare(id, userId) {
+      const { error } = await (supabase as any).from("help_article_shares").delete().eq("article_id", id).eq("user_id", userId);
+      if (error) throw error;
+    },
+
     async getPageSharing(id) {
       const { data, error } = await (supabase as any).from("atlas_page_shares").select("token, enabled").eq("page_id", id).maybeSingle();
       if (error) throw error;
@@ -249,6 +267,15 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
         ...storedProps(props),
         ...(spaceColumn ? { space: input.spaceId } : {}),
       };
+      if (input.spaceId === PERSONAL_SPACE) {
+        // Stored privately: the policy requires the author to be the owner. Without the space column
+        // the page would land in the wiki, so refuse rather than publish something meant to be private.
+        if (!spaceColumn) throw new Error("Personal pages are not available on this backend yet.");
+        const { data: session } = await supabase.auth.getSession();
+        const ownerId = session.session?.user.id;
+        if (!ownerId) throw new Error("Sign in to create a personal page.");
+        payload.owner_id = ownerId;
+      }
       const { data, error } = await (supabase as any).from("help_articles").insert(payload).select("id").single();
       if (error) throw error;
       const contexts = input.contexts && input.contexts.length > 0 ? input.contexts : defaults.contexts;
@@ -304,7 +331,7 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
       };
       const { error } = await (supabase as any).from("help_articles").update(payload).eq("id", input.id);
       if (error) throw error;
-      if (input.contexts.length > 0) await writeContexts(input.id, input.contexts);
+      if (input.contexts.length > 0 && input.spaceId !== PERSONAL_SPACE) await writeContexts(input.id, input.contexts);
       return { historyRecorded: await snapshot(input.id, input.title, input.doc, next, input.changeNote) };
     },
 

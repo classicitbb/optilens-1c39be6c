@@ -419,6 +419,91 @@ const Secret = Node.create({
   },
 });
 
+const EDIT_OPTIONS = "__edit_options__";
+
+/** An inline pick-one field. The last entry in the list edits the options (comma separated). */
+const Dropdown = Node.create({
+  name: "dropdown",
+  group: "inline",
+  inline: true,
+  atom: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      options: {
+        default: [] as string[],
+        parseHTML: (element) => (element.getAttribute("data-dropdown-options") ?? "").split("\u001f").filter(Boolean),
+        renderHTML: (attributes) => ({ "data-dropdown-options": (attributes.options as string[]).join("\u001f") }),
+      },
+      value: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-dropdown-value") ?? "",
+        renderHTML: (attributes) => ({ "data-dropdown-value": String(attributes.value ?? "") }),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "span[data-dropdown-node]" }];
+  },
+  renderHTML({ HTMLAttributes, node }) {
+    return ["span", mergeAttributes(HTMLAttributes, { "data-dropdown-node": "", class: "ws-dropdown" }), String(node.attrs.value || "Select…")];
+  },
+  renderText({ node }) {
+    return String(node.attrs.value ?? "");
+  },
+  addNodeView() {
+    return ({ node, getPos, editor }) => {
+      let current = node;
+      const dom = document.createElement("span");
+      dom.className = "ws-dropdown";
+      dom.contentEditable = "false";
+
+      const select = document.createElement("select");
+      select.className = "ws-dropdown-select";
+      select.setAttribute("aria-label", "Dropdown");
+      select.disabled = !editor.isEditable;
+
+      const fill = () => {
+        select.replaceChildren();
+        const options = current.attrs.options as string[];
+        const placeholder = new Option("Select…", "");
+        select.add(placeholder);
+        options.forEach((option) => select.add(new Option(option, option)));
+        if (editor.isEditable) select.add(new Option("Edit options…", EDIT_OPTIONS));
+        select.value = String(current.attrs.value ?? "");
+      };
+      fill();
+
+      const patch = (attrs: Record<string, unknown>) => {
+        const pos = getPos();
+        if (typeof pos === "number") editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, ...attrs }));
+      };
+
+      select.addEventListener("change", () => {
+        if (select.value !== EDIT_OPTIONS) return patch({ value: select.value });
+        const entered = window.prompt("Options, separated by commas", (current.attrs.options as string[]).join(", "));
+        if (entered === null) return fill();
+        const options = Array.from(new Set(entered.split(",").map((option) => option.trim()).filter(Boolean)));
+        patch({ options, value: options.includes(String(current.attrs.value)) ? current.attrs.value : "" });
+      });
+
+      dom.append(select);
+
+      return {
+        dom,
+        stopEvent: (event) => event.target === select,
+        ignoreMutation: () => true,
+        update(updated) {
+          if (updated.type.name !== "dropdown") return false;
+          current = updated;
+          fill();
+          return true;
+        },
+      };
+    };
+  },
+});
+
 // ── Keys and behaviours ────────────────────────────────────────────────────
 
 /**
@@ -575,6 +660,7 @@ export const buildBaseExtensions = (options: { onAskIris?: (request: AskIrisRequ
   WsColor,
   Mention,
   Secret,
+  Dropdown,
   BlockKeys,
   IrisSpace.configure({ onAskIris: options.onAskIris }),
   Placeholder.configure({

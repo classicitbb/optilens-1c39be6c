@@ -154,6 +154,26 @@
 }
 .ws-prose .ws-secret-eye:hover { color: hsl(var(--foreground)); }
 
+.ws-prose .ws-dropdown {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05em 0.5em;
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+.ws-prose .ws-dropdown-select {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+}
+.ws-prose .ws-dropdown-select:disabled { cursor: default; appearance: none; }
+
 .ws-prose .ws-callout {
   border-radius: 4px;
 }

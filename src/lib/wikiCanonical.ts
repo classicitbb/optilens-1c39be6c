@@ -1,10 +1,12 @@
-import { isBlogColorName } from "@/components/blog/BlogPostRenderer";
+import { isBlogColorName, resolveTableSpans } from "@/components/blog/BlogPostRenderer";
 import { depthsToStore, nestByDepth, type DepthNode } from "@/lib/listDepth";
 import type { BlogBlockNode, BlogCanonicalContent, BlogInlineNode } from "@/components/blog/BlogPostRenderer";
 
 const isHtmlLike = (value: string) => /<[a-z][\s\S]*>/i.test(value);
 
 const asText = (text: string): BlogInlineNode => ({ type: "text", text });
+
+const dropdownOptions = (value: unknown): string[] => (Array.isArray(value) ? value.filter((option): option is string => typeof option === "string" && option.length > 0) : []);
 
 const parseInlineNode = (node: Node): BlogInlineNode[] => {
   if (node.nodeType === Node.TEXT_NODE) {
@@ -113,6 +115,8 @@ const inlineToHtml = (node: BlogInlineNode): string => {
     }
     case "mention":
       return `<span data-mention="${escapeHtml(node.kind)}">${escapeHtml(node.label)}</span>`;
+    case "dropdown":
+      return `<span data-dropdown-value="${escapeHtml(node.value)}">${escapeHtml(node.value)}</span>`;
     default:
       return "";
   }
@@ -154,7 +158,15 @@ const blockToHtml = (block: BlogBlockNode): string => {
       return `<table>${block.rows
         .map((row, rowIndex) => {
           const cellTag = block.header && rowIndex === 0 ? "th" : "td";
-          return `<tr>${row.map((cell) => `<${cellTag}>${inline(cell)}</${cellTag}>`).join("")}</tr>`;
+          const merged = resolveTableSpans(block.spans, block.rows.length, Math.max(0, ...block.rows.map((r) => r.length)));
+          return `<tr>${row
+            .map((cell, cellIndex) => {
+              if (merged.covered.has(`${rowIndex}:${cellIndex}`)) return "";
+              const span = merged.anchors.get(`${rowIndex}:${cellIndex}`);
+              const attrs = `${span && span.colSpan > 1 ? ` colspan="${span.colSpan}"` : ""}${span && span.rowSpan > 1 ? ` rowspan="${span.rowSpan}"` : ""}`;
+              return `<${cellTag}${attrs}>${inline(cell)}</${cellTag}>`;
+            })
+            .join("")}</tr>`;
         })
         .join("")}</table>`;
     case "pageLink":
@@ -400,6 +412,7 @@ const tiptapInlineToCanonical = (nodes: TiptapJson[] = []): BlogInlineNode[] =>
       ];
     }
     if (node.type === "secret") return [{ type: "secret", value: typeof node.attrs?.value === "string" ? node.attrs.value : "" }];
+    if (node.type === "dropdown") return [{ type: "dropdown", options: dropdownOptions(node.attrs?.options), value: str(node.attrs?.value) ?? "" }];
     if (node.type !== "text" || !node.text) return [];
     let out: BlogInlineNode = asText(node.text);
     const marks = node.marks ?? [];
@@ -486,15 +499,63 @@ const tiptapBlockToCanonical = (node: TiptapJson): BlogBlockNode[] => {
       return [{ type: "toggle", summary: paragraphInline(summary), children: rest.flatMap(tiptapBlockToCanonical) }];
     }
     case "table": {
-      const rows = kids.map((row) => (row.content ?? []).map((cell) => joinParagraphs((cell.content ?? []).filter((child) => child.type === "paragraph"))));
+      const spanOf = (cell: TiptapJson, attr: "colspan" | "rowspan") => {
+        const value = Number(cell.attrs?.[attr]);
+        return Number.isInteger(value) && value > 1 ? value : 1;
+      };
       const header = kids.length > 0 && (kids[0].content ?? []).length > 0 && (kids[0].content ?? []).every((cell) => cell.type === "tableHeader");
       const spacing = node.attrs?.spacing === "compact" || node.attrs?.spacing === "spacious" ? node.attrs.spacing : undefined;
-      const firstRow = kids[0]?.content ?? [];
-      const widths = firstRow.map((cell) => {
-        const width = Array.isArray(cell.attrs?.colwidth) ? Number(cell.attrs.colwidth[0]) : 0;
-        return width > 0 ? Math.round(width) : null;
+
+      // Merged cells: ProseMirror rows omit the cells a span covers, so lay the cells on a grid and keep covered
+      // positions as empty cells, with each merge recorded as a span on its top-left cell.
+      const covered = new Set<string>();
+      const spans: { row: number; col: number; rowSpan?: number; colSpan?: number }[] = [];
+      const rows: BlogInlineNode[][][] = kids.map((row, r) => {
+        const out: BlogInlineNode[][] = [];
+        let c = 0;
+        const skipCovered = () => {
+          while (covered.has(`${r}:${c}`)) {
+            out[c] = [];
+            c += 1;
+          }
+        };
+        for (const cell of row.content ?? []) {
+          skipCovered();
+          const colSpan = spanOf(cell, "colspan");
+          const rowSpan = spanOf(cell, "rowspan");
+          out[c] = joinParagraphs((cell.content ?? []).filter((child) => child.type === "paragraph"));
+          for (let j = 1; j < colSpan; j += 1) out[c + j] = [];
+          for (let i = 1; i < rowSpan; i += 1) for (let j = 0; j < colSpan; j += 1) covered.add(`${r + i}:${c + j}`);
+          if (colSpan > 1 || rowSpan > 1) spans.push({ row: r, col: c, ...(rowSpan > 1 ? { rowSpan } : {}), ...(colSpan > 1 ? { colSpan } : {}) });
+          c += colSpan;
+        }
+        skipCovered();
+        return out;
       });
-      return [{ type: "table", header, ...(spacing ? { spacing } : {}), ...(widths.some(Boolean) ? { colWidths: widths } : {}), rows }];
+      if (spans.length > 0) {
+        const columns = Math.max(...rows.map((row) => row.length));
+        rows.forEach((row) => {
+          while (row.length < columns) row.push([]);
+        });
+      }
+
+      // A merged first-row cell contributes one width per column it spans.
+      const widths = (kids[0]?.content ?? []).flatMap((cell) =>
+        Array.from({ length: spanOf(cell, "colspan") }, (_, j) => {
+          const width = Array.isArray(cell.attrs?.colwidth) ? Number(cell.attrs.colwidth[j]) : 0;
+          return width > 0 ? Math.round(width) : null;
+        }),
+      );
+      return [
+        {
+          type: "table",
+          header,
+          ...(spacing ? { spacing } : {}),
+          ...(widths.some(Boolean) ? { colWidths: widths } : {}),
+          ...(spans.length > 0 ? { spans } : {}),
+          rows,
+        },
+      ];
     }
     case "pageLink": {
       const articleId = str(node.attrs?.articleId);
@@ -562,6 +623,8 @@ const canonicalInlineToTiptap = (nodes: BlogInlineNode[] = [], marks: NonNullabl
         return [{ type: "mention", attrs: { kind: node.kind, label: node.label, id: node.id ?? null, slug: node.slug ?? null } }];
       case "secret":
         return [{ type: "secret", attrs: { value: typeof node.value === "string" ? node.value : "" } }];
+      case "dropdown":
+        return [{ type: "dropdown", attrs: { options: dropdownOptions(node.options), value: typeof node.value === "string" ? node.value : "" } }];
       default:
         return [];
     }
@@ -625,17 +688,28 @@ const canonicalBlockToTiptap = (block: BlogBlockNode): TiptapJson[] => {
     case "table": {
       const columns = Math.max(1, ...block.rows.map((row) => row.length));
       if (block.rows.length === 0) return [{ type: "paragraph" }];
+      const merged = resolveTableSpans(block.spans, block.rows.length, columns);
       return [
         {
           type: "table",
           attrs: { spacing: block.spacing ?? "normal" },
           content: block.rows.map((row, rowIndex) => ({
             type: "tableRow",
-            content: Array.from({ length: columns }, (_, column) => ({
-              type: block.header && rowIndex === 0 ? "tableHeader" : "tableCell",
-              ...(block.colWidths?.[column] ? { attrs: { colwidth: [block.colWidths[column]] } } : {}),
-              content: [paragraphOf(row[column] ?? [])],
-            })),
+            content: Array.from({ length: columns }, (_, column) => ({ column, span: merged.anchors.get(`${rowIndex}:${column}`) }))
+              .filter(({ column }) => !merged.covered.has(`${rowIndex}:${column}`))
+              .map(({ column, span }) => {
+                const widths = Array.from({ length: span?.colSpan ?? 1 }, (_, j) => block.colWidths?.[column + j] ?? 0);
+                const attrs = {
+                  ...(widths.some(Boolean) ? { colwidth: widths } : {}),
+                  ...(span && span.colSpan > 1 ? { colspan: span.colSpan } : {}),
+                  ...(span && span.rowSpan > 1 ? { rowspan: span.rowSpan } : {}),
+                };
+                return {
+                  type: block.header && rowIndex === 0 ? "tableHeader" : "tableCell",
+                  ...(Object.keys(attrs).length > 0 ? { attrs } : {}),
+                  content: [paragraphOf(row[column] ?? [])],
+                };
+              }),
           })),
         },
       ];
@@ -657,6 +731,7 @@ const inlineSearchText = (nodes: BlogInlineNode[] = []): string =>
     .map((node) => {
       if (node?.type === "text") return node.text;
       if (node?.type === "mention") return node.label;
+      if (node?.type === "dropdown") return node.value;
       return node && "children" in node ? inlineSearchText(node.children) : "";
     })
     .join("");

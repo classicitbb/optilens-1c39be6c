@@ -1,4 +1,4 @@
-import { BookOpen, Globe, ListChecks, type LucideIcon } from "lucide-react";
+import { BookOpen, Globe, ListChecks, Lock, type LucideIcon } from "lucide-react";
 import type { AtlasPage, AtlasPropValue, AtlasStatus } from "./source/types";
 
 /**
@@ -128,6 +128,13 @@ const websiteProperties: AtlasPropertyDef[] = [
   { key: "sortOrder", label: "Sort order", type: "number", target: "field" },
 ];
 
+const personalProperties: AtlasPropertyDef[] = [
+  { key: "slug", label: "Slug", type: "text", target: "field", mono: true, lockedWhenPublished: true, help: "Locked while published so existing links keep working." },
+  { key: "summary", label: "Summary", type: "textarea", target: "field", placeholder: "Short description shown in search and lists." },
+  { key: "parentId", label: "Parent page", type: "select", target: "field", optionsRef: "pages" },
+  { key: "sortOrder", label: "Sort order", type: "number", target: "field" },
+];
+
 const ruleFeature = (feature: string, level: "view" | "edit"): CapabilityRule => ({ kind: "feature", feature, level });
 
 export const BUILT_IN_SPACES: AtlasSpaceDef[] = [
@@ -170,6 +177,26 @@ export const BUILT_IN_SPACES: AtlasSpaceDef[] = [
       edit: ruleFeature("wiki", "edit"),
       publish: ruleFeature("wiki", "edit"),
       remove: { kind: "none" },
+    },
+  },
+  {
+    id: "personal",
+    label: "My pages",
+    description: "Private to you until you share a page with specific people.",
+    icon: Lock,
+    layout: "tree",
+    // Row-level security is the real gate (owner or an explicit share); these rules only decide what the UI offers.
+    scope: { storeSpace: "personal" },
+    views: [],
+    defaultView: "table",
+    savedViews: [],
+    properties: personalProperties,
+    allowCreate: true,
+    capability: {
+      view: ruleFeature("wiki", "view"),
+      edit: ruleFeature("wiki", "view"),
+      publish: ruleFeature("wiki", "view"),
+      remove: ruleFeature("wiki", "view"),
     },
   },
   {

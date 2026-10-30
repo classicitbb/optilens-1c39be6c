@@ -236,9 +236,9 @@ export interface IdentityProps {
 }
 
 const PropertyRow = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className="flex min-h-7 items-center gap-3">
-    <span className="ws-label w-20 shrink-0 text-ws-ink-3">{label}</span>
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-[14px] text-ws-ink-2">{children}</div>
+  <div className="flex min-h-7 items-center gap-2" data-property={label.toLowerCase()}>
+    <span className="ws-label shrink-0 text-ws-ink-3">{label}</span>
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[14px] text-ws-ink-2">{children}</div>
   </div>
 );
 
@@ -256,7 +256,7 @@ export const PageIdentity = (props: IdentityProps) => {
   return (
     <div>
       {cover ? <Cover /> : null}
-      <div className={cn("mx-auto w-full px-6 sm:px-[5px]", fullWidth ? "max-w-none" : "max-w-[920px]")}>
+      <div className={cn("mx-auto w-full px-6 sm:px-12", fullWidth ? "max-w-none" : "max-w-[920px]")}>
         <div className={cn("group/ident relative", cover ? "-mt-7" : "pt-8")}>
           {icon ? (
             <Popover>
@@ -302,7 +302,7 @@ export const PageIdentity = (props: IdentityProps) => {
           />
         </div>
 
-        <div className="mt-3 space-y-0.5 pb-4">
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 pb-4" aria-label="Page properties">
           <PropertyRow label="Status">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
