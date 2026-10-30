@@ -12,6 +12,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Index = lazyWithRetry(() => import("@/pages/Index"));
 const AboutUsPage = lazyWithRetry(() => import("@/pages/AboutUsPage"));
+const MyHrPage = lazyWithRetry(() => import("@/pages/MyHrPage"));
 const VizionizeCleanerPage = lazyWithRetry(() => import("@/pages/VizionizeCleanerPage"));
 const BlogHubPage = lazyWithRetry(() => import("@/pages/BlogHubPage"));
 const BlogPostPage = lazyWithRetry(() => import("@/pages/BlogPostPage"));
@@ -119,6 +120,7 @@ const PublicRoutes = () => (
     <Route path="knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="shared/pages/:token" element={<ProtectedRoute><SharedPageViewer /></ProtectedRoute>} />
+    <Route path="me" element={<ProtectedRoute><MyHrPage /></ProtectedRoute>} />
     <Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />
     <Route path="terms" element={<LegalPage slug="terms" />} />
     <Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />

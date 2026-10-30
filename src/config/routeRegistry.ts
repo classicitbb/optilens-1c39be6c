@@ -89,6 +89,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "customer.rx-order", path: "/profile/rx-order", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "active" },
   { id: "customer.rx-order-detail", path: "/profile/orders/rx/:id", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "hidden" },
   { id: "customer.rx-draft", path: "/profile/rx-drafts/:draftId", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "active" },
+  { id: "staff.me", path: "/me", domain: "customer-portal", audience: "staff", authMode: "authenticated", layout: "customer-shell", navGroup: "none", status: "active" },
   { id: "admin.root", path: "/admin", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.copilot", path: "/admin/copilot", domain: "admin-console", audience: "admin", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active", redirectTo: "/copilot" },
   { id: "admin.copilot.workspace", path: "/copilot", domain: "admin-console", audience: "staff", authMode: "admin", layout: "customer-shell", navGroup: "admin", status: "active" },
