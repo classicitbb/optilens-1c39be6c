@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const ALL_SCOPES = [
   "catalog:read", "catalog:write",
@@ -50,6 +51,7 @@ type ApiKey = {
 
 export default function ApiKeysPage() {
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -82,7 +84,7 @@ export default function ApiKeysPage() {
   }
 
   async function revoke(id: string) {
-    if (!confirm("Revoke this key? External integrations using it will stop working immediately.")) return;
+    if (!(await confirm({ title: "Revoke this key?", description: "External integrations using it will stop working immediately.", confirmLabel: "Revoke", destructive: true }))) return;
     const { error } = await (supabase as any).rpc("revoke_api_key", { p_id: id });
     if (error) toast({ title: "Revoke failed", description: error.message, variant: "destructive" });
     else load();
@@ -116,6 +118,7 @@ export default function ApiKeysPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6 max-w-5xl">
+      {confirmDialog}
       <header>
         <h1 className="text-2xl font-semibold">API Keys</h1>
         <p className="text-sm text-muted-foreground">

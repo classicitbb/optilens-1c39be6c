@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { outlinePath, radiiToXY, rejectTraceFile, scaleOutline, type ShapeData, type ShapeGeometry } from "../../domain/shape";
 import { STD_SHAPES } from "../../domain/standardShapes";
 import { standardShape } from "../../domain/standardLibrary";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Callout } from "../ui";
 import type { CardProps } from "./types";
 
@@ -88,13 +89,15 @@ export function OutlinePreview({ geometry }: { geometry: ShapeGeometry }) {
 /** The four standard shapes. */
 export function StandardShapePicker({ api, notify }: Pick<CardProps, "api" | "notify">) {
   const { values } = api;
-  const choose = (id: string) => {
-    if (values.shape.source === "trace" && !window.confirm("Replace the uploaded trace with the standard shape?")) return;
+  const { confirm, confirmDialog } = useConfirm();
+  const choose = async (id: string) => {
+    if (values.shape.source === "trace" && !(await confirm({ title: "Replace the uploaded trace with the standard shape?", confirmLabel: "Replace" }))) return;
     const note = api.pickStandardShape(id);
     notify(note ?? `${STD_SHAPES.find((s) => s.id === id)?.n} selected — resize it by typing A and B`);
   };
   return (
     <div className="space-y-2">
+      {confirmDialog}
       <div className="flex flex-wrap gap-2" role="group" aria-label="Standard shape">
         {STD_SHAPES.map((s) => {
           const on = values.shape.source === "standard" && values.shape.standardId === s.id;

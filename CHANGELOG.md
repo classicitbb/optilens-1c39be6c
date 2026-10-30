@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-30 — In-app confirm dialogs across the admin
+
+### Release Notes
+- Delete, revoke, release, cancel and discard confirmations across the admin (and Rx order form, Atlas, Doc Studio, saved assistant chats) now open an in-app dialog instead of the browser's native pop-up. Embedded browsers such as the Claude desktop browser pane silently dismissed the native pop-up, so those buttons appeared to do nothing.
+- Legacy Doc Studio's name/rename/link prompts now use an in-app input dialog too.
+
+### Technical Changelog
+- New `src/hooks/useConfirm.tsx` (promise-based shadcn AlertDialog: render `confirmDialog`, then `await confirm({ title, description, confirmLabel, destructive })`), used by ~25 call sites.
+- New `src/lib/inAppDialog.ts` (framework-free confirm/prompt) for the legacy Rx order engine; plain-script twin `public/ds/in-app-dialog.js` exposes `window.__cvDialog` for legacy Doc Studio (loaded by studio.html and DocStudioEmbed).
+- Pricelist editor leave guard now always blocks navigation and continues it after the in-app confirm.
+- ESLint `no-alert` is now an error (PayrollRunPage exempt until hr-phase1's own fix lands).
+
 ## 2026-10-30 — HR phase 2: Payroll runs
 
 ### Release Notes

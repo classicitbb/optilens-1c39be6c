@@ -26,6 +26,7 @@ import { buildPricelistEditorPath, isPricelistEditorSection, type PricelistEdito
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const BLUE = "hsl(215 65% 50%)";
 const LABEL_COLOR = "hsl(215 15% 40%)";
@@ -66,6 +67,7 @@ const PricelistVersionsSection = () => {
     usePricelistVersions();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedSectionParam = searchParams.get("section") ?? undefined;
@@ -251,8 +253,8 @@ const PricelistVersionsSection = () => {
     }
   };
 
-  const handleDelete = (v: PricelistVersion) => {
-    if (!confirm(`Delete "${v.name}" and all its prices? This cannot be undone.`)) return;
+  const handleDelete = async (v: PricelistVersion) => {
+    if (!(await confirm({ title: `Delete "${v.name}"?`, description: "This deletes the pricelist and all its prices. This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     deleteMutation.mutate(v.id, {
       onSuccess: () => toast({ title: "Pricelist deleted" }),
       onError: (e: any) =>
@@ -318,6 +320,7 @@ const PricelistVersionsSection = () => {
 
   return (
     <div className="space-y-3">
+      {confirmDialog}
       {/* Section header */}
       <div className="flex items-center justify-between">
         <div>

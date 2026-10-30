@@ -17,6 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useConfirm } from "@/hooks/useConfirm";
 
 type SortKey = "name" | "abbrev" | "code" | "is_active" | "created_at" | "updated_at";
 type SortDir = "asc" | "desc";
@@ -33,6 +34,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const { data, isLoading, createMutation, updateMutation, deleteMutation, bulkUpdateMutation, bulkDeleteMutation } = useReferenceData(table);
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const { logChange } = useAuditLog();
 
   const [filter, setFilter] = useState<Filter>("active");
@@ -155,8 +157,8 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
     });
   };
 
-  const handleDelete = (item: ReferenceItem) => {
-    if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+  const handleDelete = async (item: ReferenceItem) => {
+    if (!(await confirm({ title: `Delete "${item.name}"?`, description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     deleteMutation.mutate(item.id, {
       onSuccess: () => {
         toast({ title: `${entityLabel} deleted` });
@@ -187,6 +189,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
 
   return (
     <div className="space-y-3">
+      {confirmDialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-foreground">{entityLabel}</h2>

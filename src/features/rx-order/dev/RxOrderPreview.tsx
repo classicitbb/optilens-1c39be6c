@@ -32,6 +32,7 @@ import type { RxCatalog } from "@/features/rx-order/form/types";
 import "@/features/rx-order/embed/rx-order.css";
 import markup from "@/features/rx-order/embed/rx-order-markup.html?raw";
 import { createRxOrderEngine } from "@/features/rx-order/embed/rx-order-engine.js";
+import { useConfirm } from "@/hooks/useConfirm";
 
 type Scenario = "healthy" | "unpriced-lens" | "withdrawn-addon" | "unpriced-addon";
 
@@ -76,6 +77,7 @@ const reactFixtureCatalog = (data: ReturnType<typeof dataFor>, pricesVisible: bo
 
 const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
   const navigate = useNavigate();
+  const { confirm, confirmDialog } = useConfirm();
   const { data: accounts = [] } = useCustomerAccounts();
   const [mode, setMode] = useState<Mode>("fixtures");
   // Which implementation the customer preview mounts: the previous engine or the React rewrite.
@@ -94,7 +96,7 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
   }, [accounts, accountFilter]);
 
   const deleteMyTestOrders = async () => {
-    if (!window.confirm("Delete every test Rx order you have saved on the bench?")) return;
+    if (!(await confirm({ title: "Delete every test Rx order you have saved on the bench?", confirmLabel: "Delete", destructive: true }))) return;
     const { data: me } = await supabase.auth.getUser();
     const { data, error } = await (supabase.from("quotes") as any)
       .delete().eq("is_test", true).eq("created_by", me.user?.id ?? "").select("id");
@@ -153,6 +155,7 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+      {confirmDialog}
       <div
         style={{
           position: "sticky", top: 0, zIndex: 60, display: "flex", flexWrap: "wrap",

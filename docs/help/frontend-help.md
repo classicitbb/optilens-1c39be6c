@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-30 - Confirmation dialogs
+
+When you delete, revoke, release or cancel something in the admin, a confirmation box now opens inside the page. Click the highlighted button to go ahead, or **Cancel** (or press Esc) to back out. Doc Studio asks for names and links in the same kind of box.
+
 ## 2026-10-30 - Payroll in Finance
 
 Open **Finance → Payroll** and click **New payroll run**, pick the month and pay date. Each active employee with a monthly salary gets a payslip showing NIS, PAYE, R&R levy, other deductions and net pay; totals and the remittance due date (15th of the next month) are at the top. Click an employee to see their payslip lines and add one-off items such as a bonus while the run is a draft. Change someone's pay or pay items, then click **Recalculate**. **Approve** locks the run and reduces loan balances; **Mark paid** once the money has gone out. R&R levy exemption is a tick box in the employee's Job details.

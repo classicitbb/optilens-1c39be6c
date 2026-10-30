@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   buildPricelistEditorPath,
   isPricelistEditorSection,
@@ -22,7 +23,12 @@ const SECTION_LABELS: Record<PricelistEditorSection, string> = {
   supplies: "Supplies Prices",
 };
 
-const LEAVE_WARNING = "You have unsaved price changes. Leave this editor and discard them?";
+const LEAVE_WARNING = {
+  title: "Discard unsaved price changes?",
+  description: "You have unsaved price changes. Leave this editor and discard them?",
+  confirmLabel: "Leave and discard",
+  destructive: true,
+};
 
 const PricelistEditorShell = () => {
   const { versionId, section: sectionParam } = useParams();
@@ -43,6 +49,7 @@ const PricelistEditorShell = () => {
     supplies: false,
   });
   const allowUnloadRef = useRef(false);
+  const { confirm, confirmDialog } = useConfirm();
   const hasUnsavedChanges = dirtySections.rx || dirtySections.stock || dirtySections.supplies;
 
   useEffect(() => {
@@ -78,30 +85,38 @@ const PricelistEditorShell = () => {
       if (!destination) return;
       const targetUrl = new URL(destination, window.location.href);
       if (targetUrl.origin === window.location.origin && isThisEditorPath(targetUrl.pathname)) return;
-      if (window.confirm(LEAVE_WARNING)) {
-        allowUnloadRef.current = true;
-        return;
-      }
       event.preventDefault();
       event.stopImmediatePropagation();
+      void confirm(LEAVE_WARNING).then((ok) => {
+        if (!ok) return;
+        allowUnloadRef.current = true;
+        if (targetUrl.origin === window.location.origin) navigate(`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`);
+        else window.location.assign(targetUrl.href);
+      });
     };
 
     document.addEventListener("click", handleDocumentClick, true);
     return () => document.removeEventListener("click", handleDocumentClick, true);
-  }, [hasUnsavedChanges, isThisEditorPath]);
+  }, [confirm, hasUnsavedChanges, isThisEditorPath, navigate]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
     const currentUrl = `${location.pathname}${location.search}${location.hash}`;
     const handlePopState = () => {
       if (isThisEditorPath(window.location.pathname)) return;
-      if (window.confirm(LEAVE_WARNING)) return;
+      // Stay on the editor while the in-app dialog asks; leave only if confirmed.
+      const leftTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       window.history.pushState(window.history.state, "", currentUrl);
       window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
+      void confirm(LEAVE_WARNING).then((ok) => {
+        if (!ok) return;
+        allowUnloadRef.current = true;
+        navigate(leftTo);
+      });
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [hasUnsavedChanges, isThisEditorPath, location.hash, location.pathname, location.search]);
+  }, [confirm, hasUnsavedChanges, isThisEditorPath, location.hash, location.pathname, location.search, navigate]);
 
   const setSectionDirty = useCallback((targetSection: PricelistEditorSection, isDirty: boolean) => {
     setDirtySections((previous) => previous[targetSection] === isDirty
@@ -112,8 +127,8 @@ const PricelistEditorShell = () => {
   const handleStockDirty = useCallback((isDirty: boolean) => setSectionDirty("stock", isDirty), [setSectionDirty]);
   const handleSuppliesDirty = useCallback((isDirty: boolean) => setSectionDirty("supplies", isDirty), [setSectionDirty]);
 
-  const handleExit = () => {
-    if (hasUnsavedChanges && !window.confirm(LEAVE_WARNING)) return;
+  const handleExit = async () => {
+    if (hasUnsavedChanges && !(await confirm(LEAVE_WARNING))) return;
     navigate("/admin/pricing/pricelists");
   };
 
@@ -160,6 +175,7 @@ const PricelistEditorShell = () => {
 
   return (
     <div className="space-y-3">
+      {confirmDialog}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
         <div className="flex min-w-0 items-center gap-3">
           <Button variant="outline" size="sm" className="h-8 shrink-0" onClick={handleExit}>
