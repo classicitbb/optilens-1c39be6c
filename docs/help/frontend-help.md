@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-29 - People (HR) in Finance
+
+Admins and office admins open **Finance → People** to list staff, filter by status or department and add an employee. Each profile has tabs for personal and job details, pay (saving a pay change closes the previous rate the day before), recurring pay items, how net pay is split between accounts, IDs & bank (hidden until you click **Show details**, which is logged) and HR notes (HR-only or shared with the employee).
+
 ## 2026-10-28 - Repair an admin stock order and identify captured patients
 
 In **Admin → Rx & Stock Orders**, open a staged or failed internal stock order with **Edit**, correct its patient/order reference, items or instructions, then submit it. When automatic Gatekeeper delivery is off, return to the workspace and release it there. A **Delete blank** action appears only for empty, unsent internal stock orders with no additional invoice. Website checkout orders and orders already sent to a lab cannot use these actions. Rx capture lists show the detected patient name above the customer account.

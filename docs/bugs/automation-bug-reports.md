@@ -1,5 +1,9 @@
 # Automation Bug Reports
 
+## 2026-10-29 — Salary importer (no defect)
+
+New script, no bug fixed. Note: the importer's first run skipped every sheet because a text-value heuristic treated employee names as the next label; it now stops only on known label words.
+
 Localhost gateway transport (2026-10-20): root causes were a port-specific hosted CORS allowlist and Node lacking the installed system CA by default. A loopback-restricted Vite proxy, verified upstream TLS and unchanged caller auth resolve the development path. Missing login still returns 401; the fix must not inject service-role credentials or widen hosted permissions.
 
 

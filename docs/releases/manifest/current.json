@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.26.0",
-  "sourceEntry": "2026-10-28 — Homepage drawer and returning customer actions",
-  "releaseDateTimeUtc": "2026-10-28T00:00:00.000Z",
+  "semanticVersion": "0.27.0",
+  "sourceEntry": "2026-10-29 — HR phase 1: Office admin role and employee records",
+  "releaseDateTimeUtc": "2026-10-29T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Keep the rounded quick-start handle clear of homepage text. Pull down to open, pull up to close, tap outside or press Escape to dismiss. Approved portal customers see daily ordering, tracking and supply-shopping actions in place of trade-account prompts."
+    "New Office admin role (operator access plus HR & payroll) and Finance → People employee records with pay history, pay items, net pay distribution, protected IDs/bank details and HR notes."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "scripts/hr",
       "impact": "medium",
-      "notes": "Updated as part of Homepage drawer and returning customer actions."
+      "notes": "Updated as part of HR phase 1: Office admin role and employee records."
     }
   ],
   "migrationNotes": [

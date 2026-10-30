@@ -3,6 +3,7 @@ import { lazy } from "react";
 import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
+import HrRoute from "@/features/admin/hr/HrRoute";
 import { buildPricelistSelectionPath, type PricelistEditorSection } from "@/features/pricelists/routes";
 import AtlasLegacyRedirect from "@/features/atlas/AtlasLegacyRedirect";
 
@@ -93,6 +94,8 @@ const BankPaymentPortalsPage = lazyWithRetry(() => import("@/pages/admin/setting
 );
 const PaymentActivityPage = lazyWithRetry(() => import("@/pages/admin/settings/PaymentActivityPage"));
 const WalkInPaymentsPage = lazyWithRetry(() => import("@/pages/admin/WalkInPaymentsPage"));
+const EmployeesPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/EmployeesPage"));
+const EmployeeDetailPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/EmployeeDetailPage"));
 const StatementDeliveryPreviewPage = lazyWithRetry(() => import("@/pages/admin/StatementDeliveryPreviewPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
@@ -392,6 +395,8 @@ const AdminRoutes = () => (
         }
       />
       <Route path="finance/walk-in-payments" element={<WalkInPaymentsPage />} />
+      <Route path="finance/people" element={<HrRoute><EmployeesPage /></HrRoute>} />
+      <Route path="finance/people/:employeeId" element={<HrRoute><EmployeeDetailPage /></HrRoute>} />
       <Route
         path="finance/bank-payment-portals"
         element={

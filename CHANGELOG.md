@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-29 — HR phase 1: Office admin role and employee records
+
+### Release Notes
+- New **Office admin** role: operator-level access to the admin plus HR and payroll. Assign it in Settings → Users; tune it in Roles & Permissions (new HR / Employees and Payroll features).
+- New **Finance → People**: employee directory with search and status/department filters, and an employee profile with Profile, Compensation (effective-dated history), Pay items (recurring earnings/deductions and net pay distribution), IDs & bank, and Notes tabs. Only admins and office admins can open it.
+
+### Technical Changelog
+- Migrations `20261029130000_office_admin_role.sql` (enum value) and `20261029130100_hr_core.sql`: `has_role(...,'operator')` and `has_edit_role` now admit office_admin; new `can_hr`, `is_employee_self`; tables employees, employee_sensitive, employee_compensation, employee_recurring_items, employee_pay_splits, employee_notes with RLS; sensitive IDs readable only via the logged `reveal_employee_sensitive` RPC and written via `save_employee_sensitive`; audit_log triggers on HR tables.
+- `scripts/hr/import_salary_xlsx.py` turns the yearly salary workbook into idempotent seed SQL (output holds personal data; keep it out of the repo).
+- admin-user-management and companion-assistant treat office_admin as staff (needs edge redeploy).
+
 ## 2026-10-28 — Homepage drawer and returning customer actions
 
 ### Release Notes

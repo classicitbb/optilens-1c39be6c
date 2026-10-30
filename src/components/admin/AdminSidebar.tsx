@@ -11,6 +11,10 @@ import { useLauncherPins } from "@/features/admin/core/hooks/useLauncherPins";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetOverlay, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { PATH_FEATURE_MAP, useRolePermissions } from "@/hooks/useRolePermissions";
+
+// HR and payroll links are hidden from roles without the grant; other items keep showing as before.
+const RESTRICTED_FEATURES = new Set(["hr", "payroll"]);
 
 // "pinned"   — always open, no flyout (user locked it)
 // "open"     — open, will collapse to icon rail on manual toggle
@@ -31,6 +35,7 @@ const AdminSidebar = () => {
   const [isHovering, setIsHovering] = useState(false);
   const userInteractedRef = useRef(false);
   const { isPinned: isPinnedToLauncher, toggle: toggleLauncherPin } = useLauncherPins();
+  const { canView } = useRolePermissions();
 
   // Auto-collapse 5s after page load (unless user pins/toggles or hovers first)
   useEffect(() => {
@@ -87,7 +92,12 @@ const AdminSidebar = () => {
 
   const sidebarItems: SidebarNavItem[] = useMemo(
     () =>
-      activeApp?.sidebarItems.map((item) => ({
+      activeApp?.sidebarItems
+        .filter((item) => {
+          const feature = PATH_FEATURE_MAP[item.route];
+          return !feature || !RESTRICTED_FEATURES.has(feature) || canView(feature);
+        })
+        .map((item) => ({
         label: item.label,
         to: item.route,
         icon: item.icon,
@@ -107,7 +117,7 @@ const AdminSidebar = () => {
             </Badge>
           ) : null,
       })) ?? [],
-    [activeApp, integrationStatus, integrationStatusLabel],
+    [activeApp, integrationStatus, integrationStatusLabel, canView],
   );
 
   const handleToggle = () => {

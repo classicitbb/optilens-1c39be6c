@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { AppRole } from "@/hooks/useUserRole";
 
-const ROLE_ORDER: AppRole[] = ["admin", "operator", "viewer", "customer"];
+const ROLE_ORDER: AppRole[] = ["admin", "operator", "office_admin", "viewer", "customer"];
 
 const FEATURE_LABELS: Record<string, string> = {
   catalog: "Product Catalog",
@@ -17,6 +17,8 @@ const FEATURE_LABELS: Record<string, string> = {
   imports: "Imports",
   exports: "Exports",
   costings: "Import Costings",
+  hr: "HR / Employees",
+  payroll: "Payroll",
   "catalog-publisher": "Lens Catalog Builder",
   quotations: "Quotations",
   crm: "CRM",

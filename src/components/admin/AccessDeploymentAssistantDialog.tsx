@@ -43,6 +43,7 @@ const normalize = (value: string | null | undefined) => value?.trim().toLowerCas
 const roleLabels: Record<Exclude<AppRole, "customer">, string> = {
   admin: "Admin — full control",
   operator: "Operator — day-to-day work",
+  office_admin: "Office admin — operator work plus HR & payroll",
   viewer: "Viewer — read-only",
 };
 

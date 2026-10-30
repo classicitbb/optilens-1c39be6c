@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from "rea
 import { useUserRole, AppRole } from "@/hooks/useUserRole";
 
 // Roles that an admin is allowed to impersonate (downgrade only — never another admin)
-const IMPERSONABLE_ROLES: ReadonlySet<AppRole> = new Set(["operator", "viewer", "customer"]);
+const IMPERSONABLE_ROLES: ReadonlySet<AppRole> = new Set(["operator", "office_admin", "viewer", "customer"]);
 
 interface AdminRoleContextType {
   role: AppRole | null;
@@ -76,7 +76,7 @@ export const AdminRoleProvider = ({ children }: { children: ReactNode }) => {
     role: activeRole,
     realRole: roleData.role,
     isLoading: roleData.isLoading,
-    canEdit: activeRole === "admin" || activeRole === "operator",
+    canEdit: activeRole === "admin" || activeRole === "operator" || activeRole === "office_admin",
     isAdmin: activeRole === "admin",
     hasAccess: !!activeRole,
     isImpersonating,

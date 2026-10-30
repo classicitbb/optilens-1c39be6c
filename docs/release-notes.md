@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-29 — HR phase 1: Office admin role and employee records
+
+### Release Notes
+- New Office admin role (operator access plus HR & payroll) and Finance → People employee records with pay history, pay items, net pay distribution, protected IDs/bank details and HR notes.
+
 ## 2026-10-28 — Homepage drawer and returning customer actions
 
 ### Release Notes

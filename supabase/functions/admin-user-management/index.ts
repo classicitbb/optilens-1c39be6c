@@ -207,7 +207,7 @@ const allowedActions = new Set([
   "delete-revoked-user",
 ]);
 
-/** True if the login holds any staff role (admin/operator/viewer). */
+/** True if the login holds any staff role (admin/operator/office_admin/viewer). */
 async function loginHasStaffRole(
   // deno-lint-ignore no-explicit-any
   adminClient: any,
@@ -218,7 +218,7 @@ async function loginHasStaffRole(
     .eq("user_id", userId);
   if (error) throw error;
   return ((data ?? []) as Array<{ role?: string | null }>).some(
-    (entry) => entry.role === "admin" || entry.role === "operator" || entry.role === "viewer",
+    (entry) => entry.role === "admin" || entry.role === "operator" || entry.role === "office_admin" || entry.role === "viewer",
   );
 }
 
@@ -610,7 +610,7 @@ Deno.serve(async (req) => {
       const roles = (targetRoles ?? [])
         .map((entry: { role?: string | null }) => entry.role)
         .filter((role: unknown): role is string => typeof role === "string");
-      if (roles.some((role: string) => role === "admin" || role === "operator" || role === "viewer")) {
+      if (roles.some((role: string) => role === "admin" || role === "operator" || role === "office_admin" || role === "viewer")) {
         return jsonResponse(req, 403, { error: "Privileged staff accounts cannot be emulated from Website Portals." });
       }
 

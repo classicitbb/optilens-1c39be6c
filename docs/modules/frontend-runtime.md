@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-29 - HR phase 1: People module and office_admin role
+
+`AppRole` gains `office_admin` (staff access, canEdit, `canHr`). `/admin/finance/people` and `/admin/finance/people/:employeeId` are wrapped in `HrRoute` (realRole admin or office_admin, mirroring `can_hr()`); the Finance sidebar hides links whose `PATH_FEATURE_MAP` feature is `hr`/`payroll` when the role lacks `can_view`. Data hooks live in `src/features/admin/hr/useEmployees.ts`; sensitive IDs are fetched only on an explicit "Show details" click via `reveal_employee_sensitive`, which writes an audit_log row.
+
 ## 2026-10-28 - Admin order recovery and capture patient identity
 
 In Rx & Stock Orders, staged/failed admin-created stock submissions without transport, receipt, or website order linkage open in the stock builder with account, reference, PO, instructions, raw lines and active variants restored. Staff correct the details and explicitly submit again. Delete blank is limited to empty raw/priced lines, zero total, eligible status, no dispatch evidence, no linked web order, and no supplemental invoice; the server's existing admin delete policy remains in force. Rx capture intake and workspace rows display extracted patient name with the customer account. No schema or Edge Function change.
