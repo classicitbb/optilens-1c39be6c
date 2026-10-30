@@ -10,6 +10,10 @@ import { contactHasPhone, toDialDigits } from "../_shared/pbx/calls.ts";
 const corsPolicy = createCorsPolicy({ allowMethods: "POST, OPTIONS" });
 const RECORDING_BUCKET = "call-recordings";
 const PLAYBACK_SECONDS = 300;
+const ACTIVE_STATUSES = ["requested", "dialing", "ringing", "calling", "connected"];
+// The agent refreshes a live call every few seconds; a row it stopped updating is not live.
+const LIVE_WINDOW_MS = 2 * 60_000;
+const CONTROLS = new Set(["hangup", "record", "stop-record"]);
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
@@ -51,8 +55,9 @@ Deno.serve(async (req) => {
       .from("call_requests")
       .select("id", { count: "exact", head: true })
       .eq("requested_by", user.id)
-      .eq("status", "requested");
-    if ((count ?? 0) > 0) return json(429, { error: "Your previous call is still being connected." });
+      .in("status", ACTIVE_STATUSES)
+      .gte("updated_at", new Date(Date.now() - LIVE_WINDOW_MS).toISOString());
+    if ((count ?? 0) > 0) return json(429, { error: "Your previous call is still in progress." });
 
     const { data: row, error } = await admin
       .from("call_requests")
@@ -61,6 +66,24 @@ Deno.serve(async (req) => {
       .single();
     if (error) return json(500, { error: "Could not queue the call." });
     return json(200, { id: row.id, extension: mapping.extension });
+  }
+
+  if (body?.action === "control") {
+    const id = typeof body.id === "string" ? body.id : "";
+    const command = typeof body.command === "string" ? body.command : "";
+    if (!id || !CONTROLS.has(command)) return json(400, { error: "id and a valid command are required." });
+
+    const { data: row } = await admin.from("call_requests").select("id,status,requested_by").eq("id", id).maybeSingle();
+    if (!row || row.requested_by !== user.id) return json(404, { error: "Call not found." });
+    if (!ACTIVE_STATUSES.includes(row.status)) return json(409, { error: "This call has already ended." });
+
+    // Not yet picked up by the agent: cancelling needs no PBX action.
+    if (row.status === "requested" && command === "hangup") {
+      await admin.from("call_requests").update({ status: "ended", ended_at: new Date().toISOString(), error: "Cancelled." }).eq("id", id).eq("status", "requested");
+      return json(200, { ok: true });
+    }
+    await admin.from("call_requests").update({ control: command }).eq("id", id);
+    return json(200, { ok: true });
   }
 
   if (body?.action === "recording-url") {

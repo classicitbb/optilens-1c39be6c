@@ -24,7 +24,6 @@ const outputPath = path.join(repoRoot, "src", "lib", "generated", "publicContent
 /** Routes that render no indexable prose of their own. */
 const SKIP_PATHS = new Set([
   "/assistant/window", // assistant chrome, no content
-  "/repo-health", // internal diagnostics
   "/me", // staff self-service, signed-in only
   "/connect/:slug", // per-record card, content is DB-driven
 ]);

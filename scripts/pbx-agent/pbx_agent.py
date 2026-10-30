@@ -6,6 +6,8 @@ Runs on the FreePBX server (or any machine on the office LAN that has the
 
   1. Polls the `pbx-agent` edge function for click-to-call requests made on the
      website and starts them: the staff extension rings first, then the customer.
+     While the call lasts it reports its progress and carries out the Hang up,
+     Record and Stop buttons pressed on the website.
   2. Uploads call recordings that staff chose to make, and asks the website to
      link them to a contact, log them in the CRM and transcribe them.
 
@@ -33,6 +35,10 @@ DIAL_PREFIX = os.environ.get("PBX_DIAL_PREFIX", "")
 POLL_SECONDS = float(os.environ.get("PBX_POLL_SECONDS", "3"))
 SCAN_SECONDS = float(os.environ.get("PBX_SCAN_SECONDS", "30"))
 SETTLE_SECONDS = 20  # a file still being written is left alone
+# Recording from the website's Record button stays off until the consent notice
+# and retention plan in docs/pbx-calls-setup.md are agreed. Set to 1 to allow it.
+ALLOW_RECORDING = os.environ.get("PBX_ALLOW_RECORDING", "") == "1"
+NO_CHANNEL_SECONDS = 15  # originate accepted but no channel appeared: give up
 AUDIO_EXTENSIONS = (".wav", ".mp3")
 
 
@@ -51,17 +57,96 @@ def call_function(payload):
         return json.loads(response.read() or b"{}")
 
 
+def asterisk(command):
+    result = subprocess.run(["asterisk", "-rx", command], capture_output=True, text=True, timeout=15)
+    if result.returncode != 0:
+        raise subprocess.SubprocessError((result.stderr or result.stdout or "asterisk command failed").strip()[:300])
+    return result.stdout
+
+
+def extension_channels(extension):
+    """Channels of one extension's phone, from `core show channels concise`.
+
+    Fields: Channel!Context!Exten!Priority!State!Application!Data!CallerID!
+    Accountcode!PeerAccount!AMAflags!Duration!BridgeID!Uniqueid
+    """
+    prefix = f"PJSIP/{extension}-"
+    rows = []
+    for line in asterisk("core show channels concise").splitlines():
+        fields = line.split("!")
+        if len(fields) >= 13 and fields[0].startswith(prefix):
+            rows.append({"name": fields[0], "state": fields[4], "bridged": bool(fields[12])})
+    return rows
+
+
+def call_status(channel):
+    if channel["state"] != "Up":
+        return "ringing"  # the staff phone is ringing
+    return "connected" if channel["bridged"] else "calling"  # customer answered / being dialled
+
+
 def start_call(request):
     extension, destination = request["extension"], request["destination"]
     # Digits only: these values go into an Asterisk command.
     if not re.fullmatch(r"\d{2,8}", extension) or not re.fullmatch(r"\d{7,15}", destination):
         return False, "Refused: extension or number was not plain digits."
-    # Rings the extension; when it answers, the dialplan dials the customer.
-    command = f"channel originate Local/{extension}@{CONTEXT} extension {DIAL_PREFIX}{destination}@{CONTEXT}"
-    result = subprocess.run(["asterisk", "-rx", command], capture_output=True, text=True, timeout=15)
-    if result.returncode != 0:
-        return False, (result.stderr or result.stdout or "asterisk command failed").strip()[:300]
+    # Only one channel per phone is ours to control, so never start a call on a busy phone.
+    if extension_channels(extension):
+        return False, "Your phone is already on a call."
+    # Rings the staff phone itself (not the extension's dialplan, which could send an
+    # unanswered call to voicemail and then dial the customer into it); when the phone
+    # is answered, the dialplan dials the customer.
+    asterisk(f"channel originate PJSIP/{extension} extension {DIAL_PREFIX}{destination}@{CONTEXT}")
     return True, ""
+
+
+def recording_path(call):
+    # FreePBX's own naming, so the website links the file to the call and contact.
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    return os.path.join(MONITOR_DIR, f"out-{call['destination']}-{call['extension']}-{stamp}-{time.time():.3f}.wav")
+
+
+def apply_control(call, control):
+    channel = call.get("channel")
+    if not channel:
+        return "The call has not started yet."
+    if control == "hangup":
+        asterisk(f"channel request hangup {channel}")
+    elif control == "record":
+        if not ALLOW_RECORDING:
+            return "Recording from the website is turned off on the PBX agent."
+        if not call["recording"]:
+            asterisk(f"mixmonitor start {channel} {recording_path(call)}")
+            call["recording"] = True
+    elif control == "stop-record" and call["recording"]:
+        asterisk(f"mixmonitor stop {channel}")
+        call["recording"] = False
+    return ""
+
+
+def track_calls(active):
+    """Report the state of calls started from the website and apply staff controls."""
+    updates = []
+    for call in list(active.values()):
+        channels = extension_channels(call["extension"])
+        if channels:
+            call["channel"] = channels[0]["name"]
+            status = call_status(channels[0])
+        elif call.get("channel") or time.time() - call["started"] > NO_CHANNEL_SECONDS:
+            status = "ended"
+        else:
+            continue  # originate accepted, channel not created yet
+        updates.append({"id": call["id"], "status": status, "recording": call["recording"], "error": call.pop("error", "")})
+        if status == "ended":
+            del active[call["id"]]
+    if not updates:
+        return
+    controls = call_function({"action": "sync", "calls": updates}).get("controls") or {}
+    for call_id, control in controls.items():
+        call = active.get(call_id)
+        if call:
+            call["error"] = apply_control(call, control)
+            log(f"call {call_id}: {control} {call['error'] or 'done'}")
 
 
 def load_state():
@@ -136,14 +221,22 @@ def main():
     state = load_state()
     save_state(state)
     last_scan = 0.0
+    active = {}  # website calls in progress, by request id
     log(f"pbx-agent started, watching {MONITOR_DIR}")
     while True:
         try:
+            if active:
+                track_calls(active)
             request = call_function({"action": "claim"}).get("request")
             if request:
-                ok, error = start_call(request)
+                try:
+                    ok, error = start_call(request)
+                except subprocess.SubprocessError as failure:
+                    ok, error = False, str(failure)
                 log(f"call {request['id']}: {'started' if ok else 'failed: ' + error}")
                 call_function({"action": "report", "id": request["id"], "ok": ok, "error": error})
+                if ok:
+                    active[request["id"]] = {**request, "started": time.time(), "recording": False}
                 continue  # check for another queued call straight away
             if time.time() - last_scan >= SCAN_SECONDS:
                 last_scan = time.time()

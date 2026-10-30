@@ -81,3 +81,5 @@ Atlas sharing SQL regression (local only): scripts/test_atlas_sharing_sql.mjs ex
 PBX agent (2026-10-24, local source): unconfirmed on a real PBX — dialplan context/prefix, recording file-name format and on-demand recording behaviour for Local channels. Recordings that do not match are stored unlinked, not lost.
 
 2026-10-28 QA maintenance: retain the legacy admin lens-assistant URL as a redirect to Rx Rules; the smoke harness now checks the current Forgot password button text. Route/source contract tests follow the current explicit aliases and live-data field projections, while launcher pins now forward context-menu trigger props and are found by their disambiguated accessible link names. Validation remains enabled; no gates were removed.
+
+PBX call panel (2026-10-30, local source): the agent's channel matching assumes one `PJSIP/<ext>-` channel per staff phone during a website call and that the `channel originate PJSIP/<ext>` target is right for every staff phone (a follow-me or mobile-only extension would not ring). Unconfirmed on the real PBX.
