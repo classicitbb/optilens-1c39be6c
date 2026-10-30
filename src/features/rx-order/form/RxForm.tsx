@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useCartDrafts } from "@/hooks/useCartDrafts";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { captureJobs } from "@/features/rx-capture/api";
 import { useDeleteRxDraft, useRxDrafts, useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
 import { Button } from "@/components/ui/button";
@@ -184,6 +185,7 @@ function LoadedForm({
 }) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const { addToCart } = useCart();
   const saveDraft = useSaveEmbeddedRxOrderDraft();
   const deleteDraft = useDeleteRxDraft();
@@ -414,7 +416,7 @@ function LoadedForm({
   };
 
   const onDiscardDraft = async () => {
-    if (!window.confirm("Discard this draft and clear the form?")) return;
+    if (!(await confirm({ title: "Discard this draft and clear the form?", confirmLabel: "Discard", destructive: true }))) return;
     try {
       if (draftIdRef.current) await deleteDraft.mutateAsync(draftIdRef.current);
       draftIdRef.current = undefined;
@@ -490,6 +492,7 @@ function LoadedForm({
 
   return (
     <div className={cn("mx-auto w-full max-w-6xl px-4 pb-24 pt-4 lg:pb-8", props.surface === "portal" && "min-h-0 flex-1 overflow-y-auto overscroll-contain pt-0 [scrollbar-gutter:stable]")} data-testid="rx-form" data-rx-form data-rx-scroll-frame={props.surface === "portal" || undefined} onKeyDown={onFormKeyDown} onFocusCapture={onFormFocus}>
+      {confirmDialog}
       {props.surface === "portal" && <RxStickyLayout />}
       {props.introduction && <p className="mb-3 text-sm text-muted-foreground">{props.introduction}</p>}
       {isTest && (

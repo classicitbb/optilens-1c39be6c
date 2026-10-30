@@ -5,6 +5,7 @@
 import { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
 import { captureJobs, createCaptureJob, readCapture } from "@/features/rx-capture/api";
 import { ACCEPT, isAcceptedFile } from "@/features/rx-capture/files";
@@ -24,11 +25,12 @@ export function FillFromPhoto({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
     if (!isAcceptedFile(file)) { onError("Choose a photo or a PDF of the sheet."); return; }
-    if (hasEntries && !window.confirm("Reading a sheet replaces what you have entered so far. Continue?")) return;
+    if (hasEntries && !(await confirm({ title: "Replace what you have entered?", description: "Reading a sheet replaces what you have entered so far.", confirmLabel: "Read sheet" }))) return;
     setBusy(true);
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -48,6 +50,7 @@ export function FillFromPhoto({
 
   return (
     <>
+      {confirmDialog}
       <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={busy} onClick={() => input.current?.click()}>
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
         {busy ? "Reading your sheet…" : "Fill from photo"}

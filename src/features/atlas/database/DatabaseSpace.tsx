@@ -2,6 +2,7 @@ import { Suspense, useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LayoutGrid, Plus, Rows3, Table2, type LucideIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ const parseView = (value: string | null, space: AtlasSpaceDef): AtlasView =>
 const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynamicOptions, editorPages, searchPeople, resolvePageHref, supportsDrafts }: DatabaseSpaceProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const adminRole = useAdminRoleSafe();
   const [params, setParams] = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -155,7 +157,7 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
 
   const removePage = async (page: AtlasPage) => {
     if (!capabilities.remove) return;
-    if (!window.confirm(`Delete “${titleOf(page)}” permanently? This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Delete “${titleOf(page)}” permanently?`, description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     try {
       await data.removePage(page.id);
       toast({ title: "Deleted", description: titleOf(page) });
@@ -170,6 +172,7 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
 
   return (
     <div className="flex min-h-full flex-col">
+      {confirmDialog}
       <div className="mx-auto w-full max-w-[1100px] px-6 pt-6 sm:px-10">
         <div className="flex items-center gap-3">
           <Icon className="h-7 w-7 text-ws-accent" />

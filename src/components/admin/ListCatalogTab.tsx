@@ -10,6 +10,7 @@ import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, Arro
 import { getProductHubRoute, type ProductType } from "@/lib/productLinks";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { writeAoaWorkbook } from "@/lib/excelExport";
 import { LensPickerPopover, PickedItem } from "@/components/admin/LensPickerPopover";
 import { SupplyPickerPopover, PickedSupply } from "@/components/admin/SupplyPickerPopover";
@@ -100,6 +101,7 @@ const ListCatalogTab = ({
   );
   const { structure: rxStructure } = useRxPricingStructure(versionId ?? null);
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const { data: companySettings } = useCompanySettings();
   const { getLineOverride, calcFinalPrice } = usePriceHierarchy(versionId);
   const { data: pricelistVersions = [] } = usePricelistVersions();
@@ -767,12 +769,17 @@ const ListCatalogTab = ({
   };
 
   /* ── Group management ── */
-  const removeSection = (sectionName: string, rowType: "lens" | "addon" | "supply", force = false) => {
+  const removeSection = async (sectionName: string, rowType: "lens" | "addon" | "supply", force = false) => {
     const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
     const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
     const rowsInSection = effectiveMap.get(sectionName) ?? [];
     if (!force && rowsInSection.length > 0) {
-      const ok = window.confirm(`"${sectionName}" has ${rowsInSection.length} item(s). Remove this group and all of its items?`);
+      const ok = await confirm({
+        title: `Remove the group "${sectionName}"?`,
+        description: `It has ${rowsInSection.length} item(s). The group and all of its items will be removed.`,
+        confirmLabel: "Remove group",
+        destructive: true,
+      });
       if (!ok) return;
     }
     setter(() => {
@@ -783,12 +790,12 @@ const ListCatalogTab = ({
     setIsDirty(true);
   };
 
-  const renameSection = (oldName: string, newName: string, rowType: "lens" | "addon" | "supply") => {
+  const renameSection = async (oldName: string, newName: string, rowType: "lens" | "addon" | "supply") => {
     const trimmed = newName.trim();
     if (!trimmed) {
-      const shouldRemove = window.confirm("Group name is empty. Do you want to remove this group?");
-      if (shouldRemove) removeSection(oldName, rowType, true);
       setEditingSectionName(null);
+      const shouldRemove = await confirm({ title: "Group name is empty", description: "Do you want to remove this group?", confirmLabel: "Remove group", destructive: true });
+      if (shouldRemove) void removeSection(oldName, rowType, true);
       return;
     }
     if (trimmed === oldName) { setEditingSectionName(null); return; }
@@ -1320,6 +1327,7 @@ const ListCatalogTab = ({
 
   return (
     <div className="space-y-4">
+      {confirmDialog}
       {/* Inline save controls when no external saveBar handler */}
       {!renderSaveBar &&
       <div className="no-print">

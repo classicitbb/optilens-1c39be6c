@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-30 - In-app confirm dialogs
+
+Native `window.confirm/alert/prompt` are banned by ESLint `no-alert`. React code uses `useConfirm()` from `src/hooks/useConfirm.tsx`: render `{confirmDialog}` once in the component and `if (!(await confirm({ title }))) return;`. Vanilla engines bundled by Vite use `inAppConfirm`/`inAppPrompt` from `src/lib/inAppDialog.ts`; static scripts under `public/ds` use `window.__cvDialog` from `public/ds/in-app-dialog.js`. The pricelist editor's capture-phase link guard now always cancels the click and re-navigates after the dialog resolves.
+
 ## 2026-10-30 - HR phase 2: Payroll runs
 
 `/admin/finance/payroll` and `/admin/finance/payroll/:runId` sit behind `HrRoute`; the sidebar link maps to the `payroll` feature. `src/features/admin/hr/payroll/engine.ts` is a pure monthly payslip calculator (integer cents, half-up rounding) driven by the dated `STATUTORY_RULES` table: add a row when BRA/NIS change a rate, never edit a past row. `usePayroll.ts` loads employees, compensation, recurring items and splits, calculates in the browser and replaces a draft run's payslips on every create/recalculate (one-off adjustments are carried over). Approval goes through the `approve_payroll_run` RPC; DB triggers lock approved/paid runs.
