@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import {
   ChevronRight,
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getAtlasHost } from "../host";
 
 export const formatRelative = (iso?: string | null): string => {
@@ -78,15 +79,18 @@ interface PageTopBarProps {
   onExportMarkdown: () => void;
   onOpenHistory: () => void;
   onTrash: () => void;
+  /** Slug, summary, link target, section, parent, order and password fields, shown from the page actions menu. */
+  settings: ReactNode;
 }
 
 export const PageTopBar = (props: PageTopBarProps) => {
   const { crumbs, editedAt, insetLeft, editing, dirty, isSaving, canPublish, canEdit, hasPage, irisOpen, fullWidth, isFavorite } = props;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 flex h-11 items-center gap-2 border-b border-transparent bg-ws-bg/90 px-4 backdrop-blur",
+        "sticky top-0 z-10 flex h-11 items-center gap-2 border-b border-ws-line bg-ws-side/95 px-4 backdrop-blur",
         insetLeft && "pl-12",
       )}
     >
@@ -157,6 +161,9 @@ export const PageTopBar = (props: PageTopBarProps) => {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem disabled={!canEdit || !editing} onSelect={() => setSettingsOpen(true)} title={canEdit && !editing ? "Switch to Edit to change page settings" : undefined}>
+            <Settings2 className="mr-2 h-3.5 w-3.5" /> Page settings
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={props.onToggleFullWidth}>
             <Maximize2 className="mr-2 h-3.5 w-3.5" /> {fullWidth ? "Standard width" : "Full width"}
           </DropdownMenuItem>
@@ -190,6 +197,15 @@ export const PageTopBar = (props: PageTopBarProps) => {
       >
         <Upload className="h-3.5 w-3.5" /> {props.isPublished ? "Update" : "Publish"}
       </button>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-h-[85vh] w-[28rem] max-w-[calc(100vw-2rem)] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Page settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">{props.settings}</div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -231,8 +247,6 @@ export interface IdentityProps {
   onToggleCover: () => void;
   onStatusChange: (status: "draft" | "archived") => void;
   onContextsChange: (slugs: string[]) => void;
-  /** Slug, summary, link target, section, parent and order fields. */
-  settings: ReactNode;
 }
 
 const PropertyRow = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -377,20 +391,6 @@ export const PageIdentity = (props: IdentityProps) => {
             {props.versionNumber ? <span className="ws-mono text-[12px] text-ws-ink-3">· v{props.versionNumber}</span> : null}
           </PropertyRow>
 
-          {editable ? (
-            <PropertyRow label="More">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button type="button" className="flex items-center gap-1.5 rounded-[4px] px-1.5 py-0.5 text-[13px] text-ws-ink-3 hover:bg-[var(--ws-hover)]">
-                    <Settings2 className="h-3.5 w-3.5" /> Page settings
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="max-h-[70vh] w-80 space-y-3 overflow-y-auto p-3">
-                  {props.settings}
-                </PopoverContent>
-              </Popover>
-            </PropertyRow>
-          ) : null}
         </div>
         <div className="border-b border-ws-line" />
       </div>

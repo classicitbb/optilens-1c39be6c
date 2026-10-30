@@ -709,6 +709,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           onToggleEdit={() => setMode(editing ? "view" : "edit")}
           onPublish={() => void savePublishedPage()}
           onShare={() => void sharePage()}
+          settings={settings}
           onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
           onToggleFullWidth={() => {
             if (!selectedPage) return;
@@ -768,7 +769,6 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onToggleCover={() => patchPageMeta(selectedPage.id, { cover: !meta?.cover })}
               onStatusChange={(status) => void changeStatus(status)}
               onContextsChange={(contexts) => setDraft((current) => ({ ...current, contexts }))}
-              settings={settings}
             />
             <div ref={bodyRef} className={`relative mx-auto w-full px-6 pb-24 pt-6 sm:px-12 ${fullWidth ? "max-w-none" : "max-w-[920px]"}`}>
               <OutlineRail rootRef={bodyRef} />
