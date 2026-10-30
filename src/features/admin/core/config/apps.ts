@@ -141,6 +141,8 @@ export const ADMIN_APPS = {
       { label: 'Payroll', route: '/admin/finance/payroll', icon: Calculator },
       { label: 'Leave', route: '/admin/finance/leave', icon: CalendarDays },
       { label: 'Income tax', route: '/admin/finance/tax', icon: Receipt },
+      { label: 'Fixed Assets', route: '/admin/finance/assets', icon: Building2 },
+      { label: 'Depreciation Runs', route: '/admin/finance/assets/runs', icon: ScrollText },
     ] satisfies SidebarItem[],
   },
   website: {
