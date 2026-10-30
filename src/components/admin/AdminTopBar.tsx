@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, ArrowLeft, Settings } from
+  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, ArrowLeft, Settings, GraduationCap, PlayCircle } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +25,10 @@ import OperatorAttentionAlert from "./OperatorAttentionAlert";
 import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
 import AnnotateMenu from "@/features/annotate/AnnotateMenu";
 import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
+import { pathnameToContextSlug } from "@/lib/adminContexts";
+import { toursForPage } from "@/help/tours";
+import { useTours } from "@/help/tours/TourProvider";
+import { TRAINING_HUB_PATH } from "@/help/trainingHub";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -44,6 +48,7 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/orders", "Orders"],
 ["/admin/settings/users", "Settings · Users"],
 ["/admin/settings/company", "Settings · Company"],
+["/admin/settings/training", "Settings · Tours & training"],
 ["/admin/crm/contacts", "CRM · Contacts"],
 ["/admin/crm/leads", "CRM · Leads"],
 ["/admin/crm/settings", "CRM · Settings"],
@@ -110,6 +115,8 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const tours = useTours();
+  const pageTours = toursForPage(location.pathname, pathnameToContextSlug(location.pathname));
 
   // PWA install prompt
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -250,14 +257,32 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
 
             {!isMobile && <AnnotateMenu />}
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden md:inline-flex h-7 w-7" onClick={onHelpToggle} aria-pressed={helpOpen}>
-                  <HelpCircle className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Help</span></TooltipContent>
-            </Tooltip>
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hidden md:inline-flex h-7 w-7" aria-label="Help menu" aria-pressed={helpOpen} data-tour="help-button">
+                      <HelpCircle className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom"><span className="text-xs">Help</span></TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onSelect={onHelpToggle} className="gap-2">
+                  <BookOpen className="h-4 w-4" /> {helpOpen ? "Close page help" : "Help for this page"}
+                </DropdownMenuItem>
+                {tours && pageTours.map((tour) => (
+                  <DropdownMenuItem key={tour.id} onSelect={() => tours.startTour(tour.id)} className="gap-2">
+                    <PlayCircle className="h-4 w-4" /> Tour: {tour.title}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate(TRAINING_HUB_PATH)} data-navigation-target={TRAINING_HUB_PATH} className="gap-2">
+                  <GraduationCap className="h-4 w-4" /> Tours & training
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -313,6 +338,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                 {isMobile && <>
                   <div className="flex items-center gap-3 px-2.5 py-2"><NewMenu /><TooltipProvider><AnnotateMenu /></TooltipProvider></div>
                   <DropdownMenuItem onSelect={onHelpToggle}>Help for this page</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigate(TRAINING_HUB_PATH)}>Tours & training</DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => navigate("/admin/settings/company")}>Settings</DropdownMenuItem>
                   {isImpersonating && <DropdownMenuItem onSelect={stopImpersonation}>Stop viewing as {impersonatedUserName || role}</DropdownMenuItem>}
                   <DropdownMenuSeparator />

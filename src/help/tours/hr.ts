@@ -1,0 +1,75 @@
+import type { TourDefinition } from "./types";
+
+const GROUP = "People & Payroll";
+
+export const hrTours: TourDefinition[] = [
+  {
+    id: "hr.people",
+    title: "The People list",
+    summary: "Find employees, filter by status and department, and add a new employee.",
+    group: GROUP,
+    feature: "hr",
+    contextSlug: "finance/people",
+    path: "/admin/finance/people",
+    autoStart: true,
+    steps: [
+      { target: "hr-people-add", title: "Add an employee", body: "Start here for a new hire. You only need a first and last name; everything else can be filled in on their record." },
+      { target: "hr-people-search", title: "Search", body: "Type part of a name, job title, employee number or email to narrow the list." },
+      { target: "hr-people-filters", title: "Filters", body: "The list shows active staff by default. Switch to All statuses to see people on leave and former employees, or pick a department." },
+      { target: "hr-people-table", title: "Open a record", body: "Click any row to open the employee's record: profile, pay, pay items, IDs and notes." },
+      { target: "help-button", title: "Help is always here", body: "Open Help on any page for articles, step-by-step how-tos and this tour. You can replay it whenever you like." },
+    ],
+  },
+  {
+    id: "hr.employee",
+    title: "An employee record",
+    summary: "What each tab of an employee record is for, from profile to bank details.",
+    group: GROUP,
+    feature: "hr",
+    contextSlug: "finance/people",
+    path: "/admin/finance/people",
+    matchPath: /^\/admin\/finance\/people\/[^/]+$/,
+    startHint: "Open any employee from the list and the tour will start.",
+    steps: [
+      { target: "hr-employee-tabs", title: "Five tabs", body: "Everything about one person lives on this page. Each tab saves on its own." },
+      { target: "hr-employee-profile-save", title: "Profile", body: "Personal and job details. Changes here are only kept when you press Save profile." },
+      { target: "hr-employee-tab-pay", title: "Compensation", body: "Set the monthly salary and yearly PAYE allowances. A pay change starts on its Effective from date and closes the old record for you." },
+      { target: "hr-employee-tab-items", title: "Pay items", body: "Recurring earnings and deductions such as health insurance or a staff loan, plus how net pay is split across bank accounts." },
+      { target: "hr-employee-tab-ids", title: "IDs & bank", body: "National registration, NIS, TAMIS and bank details. They stay hidden until you choose to show them, and every reveal is logged." },
+      { target: "hr-employee-tab-notes", title: "Notes", body: "Check-ins, commendations and disciplinary notes, kept with the date they were written." },
+    ],
+  },
+  {
+    id: "hr.payroll",
+    title: "Payroll runs",
+    summary: "Start a monthly payroll run and find past runs.",
+    group: GROUP,
+    feature: "payroll",
+    contextSlug: "finance/payroll",
+    path: "/admin/finance/payroll",
+    autoStart: true,
+    steps: [
+      { target: "hr-payroll-new", title: "New payroll run", body: "Pick the month and pay date. Every active employee with a monthly salary gets a payslip worked out straight away." },
+      { target: "hr-payroll-list", title: "Past and current runs", body: "Each month has one run. Draft runs can still change; Approved runs are locked; Paid means the money has gone out." },
+    ],
+  },
+  {
+    id: "hr.payroll-run",
+    title: "Checking and approving a payroll run",
+    summary: "Review totals and payslips, add one-off items, then approve and mark paid.",
+    group: GROUP,
+    feature: "payroll",
+    contextSlug: "finance/payroll",
+    path: "/admin/finance/payroll",
+    matchPath: /^\/admin\/finance\/payroll\/[^/]+$/,
+    startHint: "Open a payroll run from the list and the tour will start.",
+    steps: [
+      { target: "hr-run-totals", title: "Totals", body: "Gross, NIS, PAYE, R&R levy and net pay for everyone in the run. NIS, PAYE and the levy are due by the 15th of next month." },
+      { target: "hr-run-missing", title: "Who is left out", body: "Anyone without a monthly salary for the month is listed here. Set up their pay, then press Recalculate." },
+      { target: "hr-run-payslips", title: "Payslips", body: "Click a name to see the full payslip and add one-off earnings or deductions for this month, such as a bonus." },
+      { target: "hr-run-recalculate", title: "Recalculate", body: "Rebuilds every payslip from the latest pay setup. One-off items you added are kept." },
+      { target: "hr-run-approve", title: "Approve", body: "When the figures are right, approve. The run is locked and loan balances are reduced." },
+      { target: "hr-run-mark-paid", title: "Mark paid", body: "After the transfers are made, mark the run paid so everyone can see it is done." },
+    ],
+  },
+];

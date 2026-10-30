@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense, useMemo, useRef } from "react";
-import { X, BookOpen, ChevronRight, ExternalLink } from "lucide-react";
-import { useNavigate } from "react-router";
+import { X, BookOpen, ChevronRight, ExternalLink, GraduationCap, PlayCircle } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,10 @@ import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
 import { wikiCategories } from "@/data/wikiContent";
 import { toWikiArticleSlug } from "@/lib/wikiArticleRouting";
 import { atlasPath } from "@/features/atlas/config";
+import { toursForPage } from "@/help/tours";
+import { useTours } from "@/help/tours/TourProvider";
+import { TRAINING_HUB_PATH } from "@/help/trainingHub";
+import { isHowTo, isVisibleInHelpPanel } from "@/help/helpArticleKinds";
 
 const WikiArticleEditDialog = lazy(() => import("./WikiArticleEditDialog"));
 
@@ -40,6 +44,9 @@ const CATEGORY_DEFAULT_CONTEXT: Record<string, string> = {
 
 const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const tours = useTours();
+  const pageTours = toursForPage(pathname, currentSlug);
   const { articles, isLoading } = useHelpArticles(currentSlug);
   const { headings } = useWikiHeadings();
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
@@ -90,12 +97,19 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
   }, [articles, staticArticles]);
 
   const scopedArticles = useMemo(() => {
-    const visible = mergedArticles.filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
+    const visible = mergedArticles.filter(
+      (article) =>
+        isVisibleInHelpPanel((article as { status?: string }).status, canEdit) &&
+        article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)),
+    );
     const exact = visible.filter((a) => a.context_slugs.includes(currentSlug));
     const shared = visible.filter((a) => a.context_slugs.includes("all"));
     const other = visible.filter((a) => !a.context_slugs.includes(currentSlug) && !a.context_slugs.includes("all"));
     return [...exact, ...shared, ...other];
-  }, [mergedArticles, currentSlug, canView]);
+  }, [mergedArticles, currentSlug, canView, canEdit]);
+
+  const howTos = scopedArticles.filter((article) => isHowTo(article));
+  const pageArticles = scopedArticles.filter((article) => !isHowTo(article));
 
   const initKeyRef = useRef<string>("");
 
@@ -183,11 +197,30 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
           <div className="p-4 space-y-2">
             {isLoading && <p className="text-xs text-muted-foreground">Loading...</p>}
 
+            {tours && (
+              <div className="space-y-1.5 border border-border bg-[hsl(var(--admin-overlay-surface-bg))] p-3">
+                {pageTours.map((tour) => (
+                  <Button key={tour.id} size="sm" className="h-7 w-full justify-start gap-1.5 text-xs" onClick={() => tours.startTour(tour.id)}>
+                    <PlayCircle className="h-3.5 w-3.5" /> Take the tour: {tour.title}
+                  </Button>
+                ))}
+                <Button variant="ghost" size="sm" className="h-7 w-full justify-start gap-1.5 text-xs" onClick={() => navigate(TRAINING_HUB_PATH)}>
+                  <GraduationCap className="h-3.5 w-3.5" /> All tours & training
+                </Button>
+              </div>
+            )}
+
             {!isLoading && scopedArticles.length === 0 && (
               <p className="text-xs text-muted-foreground">No help articles available for this page.</p>
             )}
 
-            {scopedArticles.map((article) => {
+            {[
+              { heading: "How to\u2026", items: howTos },
+              { heading: howTos.length > 0 ? "About this page" : null, items: pageArticles },
+            ].map(({ heading, items }) => items.length > 0 && (
+              <section key={heading ?? "articles"} className="space-y-2" aria-label={heading ?? "Help articles"}>
+                {heading && <h3 className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{heading}</h3>}
+            {items.map((article) => {
               const isExpanded = expandedIds.includes(article.id);
               const isExactContext = article.context_slugs.includes(currentSlug);
 
@@ -204,6 +237,9 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
                     <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[hsl(var(--admin-overlay-surface-fg))]">
                       {article.title}
                     </span>
+                    {(article as { status?: string }).status === "draft" && (
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0 border-amber-500 text-amber-700 dark:text-amber-400">Draft</Badge>
+                    )}
                     <Badge variant={isExactContext ? "default" : "outline"} className="text-[10px] h-5 px-1.5 shrink-0">
                       {isExactContext ? "Page" : article.context_slugs.includes("all") ? "Global" : getContextLabel(article.context_slugs[0] ?? "all")}
                     </Badge>
@@ -235,6 +271,8 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
                 </div>
               );
             })}
+              </section>
+            ))}
           </div>
         </ScrollArea>
       </div>

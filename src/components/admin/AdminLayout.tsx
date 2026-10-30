@@ -5,6 +5,7 @@ import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
 import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
+import { TourProvider } from "@/help/tours/TourProvider";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { useScrollingClass } from "@/hooks/useScrollingClass";
 import { useAdminBodyClass } from "@/hooks/useAdminBodyClass";
@@ -28,25 +29,27 @@ const AdminLayout = () => {
 
   return (
     <AdminRoleProvider>
-      <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
-        <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
-        <div className="relative flex flex-1 min-h-0">
-          {!hideSidebar && <AdminSidebar />}
-          <div className="flex flex-1 min-w-0 min-h-0">
-            <main
-              className={`admin-content flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden ${isDocStudio ? "p-0" : isEmail ? "p-[5px]" : "p-4"}`}
-            >
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                <Outlet />
-              </div>
-            </main>
-            <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
-            <CrmActivityDialog />
-            <HelpdeskTicketDialog />
+      <TourProvider contextSlug={contextSlug}>
+        <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
+          <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
+          <div className="relative flex flex-1 min-h-0">
+            {!hideSidebar && <AdminSidebar />}
+            <div className="flex flex-1 min-w-0 min-h-0">
+              <main
+                className={`admin-content flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden ${isDocStudio ? "p-0" : isEmail ? "p-[5px]" : "p-4"}`}
+              >
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                  <Outlet />
+                </div>
+              </main>
+              <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
+              <CrmActivityDialog />
+              <HelpdeskTicketDialog />
+            </div>
           </div>
+          <AdminCopilotAssistant />
         </div>
-        <AdminCopilotAssistant />
-      </div>
+      </TourProvider>
     </AdminRoleProvider>
   );
 };
