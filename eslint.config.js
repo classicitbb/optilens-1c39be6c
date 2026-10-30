@@ -42,6 +42,9 @@ export default tseslint.config(
       "prefer-const": "warn",
       "no-useless-escape": "warn",
       "no-useless-assignment": "warn",
+      // Embedded browsers (e.g. the Claude desktop browser pane) dismiss native
+      // dialogs silently. Use useConfirm (React) or src/lib/inAppDialog instead.
+      "no-alert": "error",
       "no-restricted-syntax": [
         "error",
         {
@@ -50,5 +53,10 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // TODO: drop once hr-phase1 (b49db858) lands; it replaces this file's window.confirm.
+    files: ["src/pages/admin/finance/hr/PayrollRunPage.tsx"],
+    rules: { "no-alert": "off" },
   },
 );

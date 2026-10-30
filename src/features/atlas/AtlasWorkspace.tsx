@@ -5,6 +5,7 @@ import { FilePlus2, LayoutTemplate } from "lucide-react";
 import type { Editor } from "@tiptap/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
 import { canonicalToSearchText, canonicalToTiptapDoc } from "@/lib/wikiCanonical";
 import { slugifyHelpValue } from "@/lib/helpCenter";
@@ -72,6 +73,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const { user } = useAuth();
   const { isAdmin } = useAdminRoleSafe();
   const [sharingOpen, setSharingOpen] = useState(false);
@@ -326,8 +328,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     if (!canEdit) return;
     const section = sections.find((item) => item.id === sectionIdOf(nodeId));
     const count = spacePages.filter((page) => page.sectionId === section?.id).length;
-    const detail = count > 0 ? ` Its ${count} ${count === 1 ? "page stays" : "pages stay"} and move to the top level.` : "";
-    if (!window.confirm(`Delete the section “${section?.title ?? "section"}”?${detail}`)) return;
+    const detail = count > 0 ? `Its ${count} ${count === 1 ? "page stays" : "pages stay"} and move to the top level.` : undefined;
+    if (!(await confirm({ title: `Delete the section “${section?.title ?? "section"}”?`, description: detail, confirmLabel: "Delete", destructive: true }))) return;
     try {
       await data.deleteSection(sectionIdOf(nodeId));
       toast({ title: "Section deleted", description: section?.title });
@@ -598,6 +600,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
 
   return (
     <>
+      {confirmDialog}
       <WorkspaceShell
         sidebarWidth={sidebar.width}
         onSidebarWidthChange={sidebar.setWidth}

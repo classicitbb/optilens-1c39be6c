@@ -19,6 +19,7 @@ import {
 import { StaffPublicCardEditorDialog } from "@/features/staff-cards/components/StaffPublicCardEditorDialog";
 import { StaffPublicCardPreviewDialog } from "@/features/staff-cards/components/StaffPublicCardPreviewDialog";
 import { isStaffRole } from "@/features/staff-cards/staffPublicCards";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const ROLES: AppRole[] = ["admin", "operator", "office_admin", "viewer", "customer"];
 
@@ -34,6 +35,7 @@ const UsersPage = () => {
   const { users, isLoading, assignRole, removeRole, resetPassword, inviteUser, createUser, deleteRevokedUser } = useAdminUsers();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("viewer");
   const [search, setSearch] = useState("");
@@ -110,7 +112,7 @@ const UsersPage = () => {
 
   const handleDeleteRevokedUser = async (user: AdminUser) => {
     const userLabel = user.contact_name || user.display_name || user.full_name || user.email || "this login";
-    if (!window.confirm(`Delete ${userLabel}? This permanently removes the revoked login.`)) return;
+    if (!(await confirm({ title: `Delete ${userLabel}?`, description: "This permanently removes the revoked login.", confirmLabel: "Delete", destructive: true }))) return;
     try {
       await deleteRevokedUser.mutateAsync(user.user_id);
       toast({ title: "Revoked login deleted", description: `${userLabel} was removed.` });
@@ -177,6 +179,7 @@ const UsersPage = () => {
 
   return (
     <div className="p-4 space-y-4">
+      {confirmDialog}
       <div className="flex items-center justify-between">
         <AdminPageHeader icon={Shield} title="User Management">
           <Button variant="ghost" size="icon" className="h-6 w-6" title="Open Contacts" onClick={() => navigate("/admin/crm/contacts")}>

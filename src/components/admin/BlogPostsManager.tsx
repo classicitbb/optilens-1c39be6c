@@ -43,6 +43,7 @@ import { useSearchParams } from "react-router";
 
 const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
 import EditorErrorBoundary from "@/components/admin/EditorErrorBoundary";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const describeError = (error: unknown): string => {
   if (!error) return "Unknown error";
@@ -190,6 +191,7 @@ const BlogPostsManager = ({
   isAdmin: boolean;
 }) => {
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const { posts, upsertBlogPost, deleteBlogPost, seedBlogPosts, isSaving, isSeeding } =
     useAdminBlogPosts();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -294,7 +296,7 @@ const BlogPostsManager = ({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this blog entry permanently?")) return;
+    if (!(await confirm({ title: "Delete this blog entry permanently?", confirmLabel: "Delete", destructive: true }))) return;
     try {
       await deleteBlogPost(id);
       toast({ title: "Blog entry deleted" });
@@ -668,6 +670,7 @@ const BlogPostsManager = ({
 
   return (
     <div className="flex h-full flex-col">
+      {confirmDialog}
       <div className="border-b border-border bg-muted/30 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div>

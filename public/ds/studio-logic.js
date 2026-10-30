@@ -595,7 +595,15 @@
   fmtUL = () => this.fmt('insertUnorderedList');
   fmtCenter = () => this.fmt('justifyCenter');
   fmtJustify = () => this.fmt('justifyFull');
-  fmtLink = () => { const u = prompt('Link URL (https://…)'); if (u) this.fmt('createLink', u); };
+  fmtLink = async () => {
+    // The in-app prompt takes focus, so keep the editor selection and put it back before linking.
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+    const u = await window.__cvDialog.prompt('Link URL (https://…)');
+    if (!u) return;
+    if (range) { sel.removeAllRanges(); sel.addRange(range); }
+    this.fmt('createLink', u);
+  };
   onEditorClick = (e) => {
     if (e.target && e.target.tagName === 'IMG') this.selectImage(e.target);
   };
@@ -1119,13 +1127,13 @@
   ];
 
   // ---------- snippets ----------
-  saveSnippet = () => {
+  saveSnippet = async () => {
     const ed = this.activeTiny();
     let html = '';
     if (ed) { try { html = this.sanitize(ed.selection.getContent({ format: 'html' }) || ''); } catch (e) {} }
     let label;
-    if (html) { label = prompt('Name this snippet:'); }
-    else { const t = prompt('No text selected. Type the snippet text to save:'); if (t) { html = '<p>' + this.esc(t) + '</p>'; label = prompt('Name this snippet:') || t.slice(0, 22); } }
+    if (html) { label = await window.__cvDialog.prompt('Name this snippet:'); }
+    else { const t = await window.__cvDialog.prompt('No text selected. Type the snippet text to save:'); if (t) { html = '<p>' + this.esc(t) + '</p>'; label = (await window.__cvDialog.prompt('Name this snippet:')) || t.slice(0, 22); } }
     if (!label || !html) return;
     this.setState(s => ({ snippets: [...s.snippets, { id: Date.now() + '', label, html }] }), this.persist);
     this.toast('Snippet saved');
@@ -1319,8 +1327,8 @@
   updateStRow = (i, key, val) => this.setState(s => { const r=[...(s.stRows||[])]; r[i]={...r[i],[key]:val}; return { stRows:r }; }, this.persistSoon);
 
   // ---------- STATEMENT db populate ----------
-  promptStatementDb = () => {
-    const id = prompt('Enter Statement ID to load from database:', this.state.stDbId || '');
+  promptStatementDb = async () => {
+    const id = await window.__cvDialog.prompt('Enter Statement ID to load from database:', this.state.stDbId || '');
     if (id === null) return;
     if (!id.trim()) { this.clearStatementDb(); return; }
     this.populateStatementFromDb(id.trim());
@@ -1774,9 +1782,9 @@
   canEditBillingFile = () => this.state.currentBillingAccess !== 'view';
   billingChanged = () => { this.persistSoon(); this.scheduleBillingAutosave(); };
 
-  saveBillDraft = () => {
+  saveBillDraft = async () => {
     const def = (this.state.blNumber || this.billMeta().title) + (this.state.blToCompany ? ' — ' + this.state.blToCompany : (this.state.blToName ? ' — ' + this.state.blToName : ''));
-    const name = prompt('Name this draft:', def); if (!name) return;
+    const name = await window.__cvDialog.prompt('Name this draft:', def); if (!name) return;
     const fields = {}; this.BILL_DRAFT_KEYS.forEach(k => fields[k] = k === 'blRows' ? (this.state.blRows || []).map(r => ({ ...r })) : this.state[k]);
     this.setState(s => ({ billDrafts: [...(s.billDrafts || []), { id: Date.now() + '', name, type: this.state.billType, fields, savedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }] }), this.persist);
     this.toast('Local recovery draft saved');
@@ -2128,7 +2136,7 @@
       await this.openBillingFile(item.id);
       return this.renameBillingFile();
     }
-    const name = prompt('Rename file:', item.fileName || 'Doc Studio file');
+    const name = await window.__cvDialog.prompt('Rename file:', item.fileName || 'Doc Studio file');
     if (!name) return;
     try {
       const data = await this.docApi('/api/docstudio/files/' + encodeURIComponent(item.id));
@@ -2141,7 +2149,7 @@
 
   deleteFileFromList = async (item) => {
     if (!item.isOwner) { this.toast('Only the owner can delete this file'); return; }
-    if (!confirm('Remove this file from your list?')) return;
+    if (!(await window.__cvDialog.confirm('Remove this file from your list?', { confirmLabel: 'Remove', destructive: true }))) return;
     try {
       const url = item.kind === 'billing' ? '/api/docstudio/billing-documents/' : '/api/docstudio/files/';
       await this.docApi(url + encodeURIComponent(item.id), { method: 'DELETE' });
@@ -2364,7 +2372,7 @@
 
   deleteBillingFile = async () => {
     if (!this.state.currentBillingDocumentId || !this.state.currentBillingIsOwner) { this.toast('Only the owner can delete this file'); return; }
-    if (!confirm('Remove this billing file from your list?')) return;
+    if (!(await window.__cvDialog.confirm('Remove this billing file from your list?', { confirmLabel: 'Remove', destructive: true }))) return;
     try {
       await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(this.state.currentBillingDocumentId), { method: 'DELETE' });
       this.setState({ currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true, billCollaborators: [], billSaveState: 'Deleted' });

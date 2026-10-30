@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-30 — In-app confirm dialogs across the admin
+
+### Release Notes
+- Admin confirmations and prompts now use in-app dialogs, so they work in embedded browsers that silently block native pop-ups.
+
 ## 2026-10-30 — HR phase 2: Payroll runs
 
 ### Release Notes

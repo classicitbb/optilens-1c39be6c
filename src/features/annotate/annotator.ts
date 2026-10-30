@@ -286,13 +286,24 @@ body.annot-active *{cursor:crosshair!important}
           h("button", { class: "annot-btn", type: "button", onclick: (e) => { e.stopPropagation(); openEditor(resolve(n), n); } }, "Edit")))));
     });
     const copyBtn = h("button", { class: "annot-btn primary", type: "button", onclick: () => copyMarkdown(copyBtn) }, "Copy markdown");
+    // Two-click clear instead of window.confirm, which embedded browsers dismiss silently.
+    let clearArmed = false;
+    const clearBtn = h("button", { class: "annot-btn danger", type: "button", disabled: !notes.length, onclick: () => {
+      if (!clearArmed) {
+        clearArmed = true;
+        clearBtn.textContent = "Delete all " + notes.length + "?";
+        setTimeout(() => { clearArmed = false; clearBtn.textContent = "Clear"; }, 4000);
+        return;
+      }
+      notes = []; save(); renderPins(); refreshDrawer(); emit();
+    } }, "Clear");
     drawer = h("aside", { class: "annot-drawer", [UI]: true, "aria-label": "Review annotations" },
       h("header", {}, h("strong", {}, "Review & export · " + notes.length), h("button", { class: "annot-btn", type: "button", onclick: closeDrawer }, "Close")),
       list,
       h("footer", { class: "annot-row" }, copyBtn,
         h("button", { class: "annot-btn", type: "button", onclick: downloadMarkdown, disabled: !notes.length }, "Download .md"),
         h("span", { class: "annot-spacer" }),
-        h("button", { class: "annot-btn danger", type: "button", disabled: !notes.length, onclick: () => { if (confirm("Delete all " + notes.length + " notes on this page?")) { notes = []; save(); renderPins(); refreshDrawer(); emit(); } } }, "Clear")));
+        clearBtn));
     ensureLayer().append(drawer);
   }
 

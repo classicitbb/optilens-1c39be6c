@@ -1,21 +1,26 @@
 {
-  "semanticVersion": "0.28.0",
-  "sourceEntry": "2026-10-30 — HR phase 2: Payroll runs",
+  "semanticVersion": "0.29.0",
+  "sourceEntry": "2026-10-30 — In-app confirm dialogs across the admin",
   "releaseDateTimeUtc": "2026-10-30T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "New Finance → Payroll: monthly payroll runs that work out NIS, PAYE and R&R levy per employee, allow one-off adjustments, and lock on approval with loan balances drawn down."
+    "Admin confirmations and prompts now use in-app dialogs, so they work in embedded browsers that silently block native pop-ups."
   ],
   "moduleImpact": [
     {
-      "module": "src/features/admin",
+      "module": "src/hooks/useConfirm.tsx",
       "impact": "medium",
-      "notes": "Updated as part of HR phase 2: Payroll runs."
+      "notes": "Updated as part of In-app confirm dialogs across the admin."
     },
     {
-      "module": "scripts/hr",
+      "module": "src/lib/inAppDialog.ts",
       "impact": "medium",
-      "notes": "Updated as part of HR phase 2: Payroll runs."
+      "notes": "Updated as part of In-app confirm dialogs across the admin."
+    },
+    {
+      "module": "public/ds",
+      "impact": "medium",
+      "notes": "Updated as part of In-app confirm dialogs across the admin."
     }
   ],
   "migrationNotes": [

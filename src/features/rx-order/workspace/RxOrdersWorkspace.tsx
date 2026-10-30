@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { cn } from "@/lib/utils";
 import {
   applyFilters, countByTab, isBlankUnsentStockOrder, NO_FILTERS, SOURCE_LABELS, statusLabel, TABS, type Filters, type WorkspaceItem, type WorkspaceTab,
@@ -44,6 +45,7 @@ const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "
 
 export default function RxOrdersWorkspace() {
   const navigate = useNavigate();
+  const { confirm, confirmDialog } = useConfirm();
   const ws = useRxWorkspace();
   const stockRelease = useReleaseStockOrder();
   const dispatch = useOrderDispatchSettings();
@@ -100,7 +102,7 @@ export default function RxOrdersWorkspace() {
 
   const deleteBlankStockOrder = async (stock: NonNullable<WorkspaceItem["stock"]>) => {
     if (!isAdmin || !isBlankUnsentStockOrder(stock)) return;
-    if (!window.confirm(`Permanently delete blank order ${stock.order_reference || stock.id}? This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Permanently delete blank order ${stock.order_reference || stock.id}?`, description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     setDeletingStockId(stock.id);
     try {
       const { data: invoices, error: invoiceError } = await (supabase.from("order_extra_invoices" as never) as any)
@@ -131,7 +133,7 @@ export default function RxOrdersWorkspace() {
   };
 
   const releaseSelected = async () => {
-    if (!picked.length || !window.confirm(`Release ${picked.length} order${picked.length === 1 ? "" : "s"} to the lab? Each goes to its chosen sender.`)) return;
+    if (!picked.length || !(await confirm({ title: `Release ${picked.length} order${picked.length === 1 ? "" : "s"} to the lab?`, description: "Each goes to its chosen sender.", confirmLabel: "Release" }))) return;
     setBulkBusy(true);
     let ok = 0;
     const failed: string[] = [];
@@ -162,8 +164,8 @@ export default function RxOrdersWorkspace() {
             <SelectTrigger className="h-6 w-[100px] text-[10px]"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="innovations">OptiLens</SelectItem><SelectItem value="gatekeeper">Gatekeeper</SelectItem></SelectContent>
           </Select>
-          <Button size="sm" className="h-6 gap-1 px-2 text-[10px]" disabled={stockRelease.isPending} onClick={() => {
-            if (window.confirm(`Release ${i.quoteNumber} to ${provider === "gatekeeper" ? "Gatekeeper" : "OptiLens"}?`)) void release(i, provider).catch(() => undefined);
+          <Button size="sm" className="h-6 gap-1 px-2 text-[10px]" disabled={stockRelease.isPending} onClick={async () => {
+            if (await confirm({ title: `Release ${i.quoteNumber} to ${provider === "gatekeeper" ? "Gatekeeper" : "OptiLens"}?`, confirmLabel: "Release" })) void release(i, provider).catch(() => undefined);
           }}><Send className="h-3 w-3" />{stock.status === "failed" ? "Retry" : "Release"}</Button>
         </>}
       </div>;
@@ -212,7 +214,7 @@ export default function RxOrdersWorkspace() {
         )}
         {["pending_review", "approved", "failed"].includes(s.status) && (
           <Button size="sm" variant="ghost" className="h-6 gap-1 px-2 text-[10px] text-muted-foreground" disabled={cancelMutation.isPending}
-            onClick={() => { if (window.confirm("Cancel this order? It will not be sent to the lab.")) cancelMutation.mutate(s.id); }}>
+            onClick={async () => { if (await confirm({ title: "Cancel this order?", description: "It will not be sent to the lab.", confirmLabel: "Cancel order", cancelLabel: "Keep order", destructive: true })) cancelMutation.mutate(s.id); }}>
             <Ban className="h-3 w-3" /> Cancel
           </Button>
         )}
@@ -224,6 +226,7 @@ export default function RxOrdersWorkspace() {
 
   return (
     <div className="space-y-4 p-4">
+      {confirmDialog}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2 text-base font-semibold"><Send className="h-4 w-4" /> Rx & Stock Orders</h1>
         <div className="ml-auto flex flex-wrap items-center gap-2">

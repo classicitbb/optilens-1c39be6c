@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-30 - Confirm buttons did nothing in embedded browsers
+
+Symptom: delete/approve/release buttons that asked "Are you sure?" did nothing in the Claude desktop browser pane. Cause: those embedded browsers dismiss `window.confirm`/`prompt` silently (returning false/null). Fix: all admin and portal call sites now use in-app dialogs; `no-alert` lint prevents regressions. Not converted: three unreachable `prompt` calls after an early `return` in legacy Doc Studio (saveLetter/saveSig/savePost).
+
 ## 2026-10-30 - HR phase 2 payroll (no defect)
 
 New feature, no bug fixed. Known limits: only monthly salaries are calculated (hourly or other frequencies are left out of a run and listed); PAYE uses each employee's allowances in the app, which differ from the figures the 2026 workbook was keyed with, so HR should check allowances against TAMIS before the first live run.

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEdgeFunctionHealth } from "@/features/admin/edge-function-health/useEdgeFunctionHealth";
 import { AGENT_ONLINE_MS, useLiveDataGatewayDiagnostics } from "@/features/admin/edge-function-health/useLiveDataGatewayDiagnostics";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const formatTime = (value: string | null) => value ? new Date(value).toLocaleString() : "Not checked yet";
 
@@ -19,6 +20,7 @@ const statusCodeBadgeVariant = (statusCode: number): "secondary" | "outline" | "
 
 export default function EdgeFunctionStatusPage() {
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const health = useEdgeFunctionHealth();
   const gateway = useLiveDataGatewayDiagnostics();
   const [redeploying, setRedeploying] = useState(false);
@@ -39,7 +41,7 @@ export default function EdgeFunctionStatusPage() {
   );
 
   const redeployGateway = async () => {
-    if (!window.confirm("Redeploy live-data-gateway from its current main source? This replaces the running function.")) return;
+    if (!(await confirm({ title: "Redeploy live-data-gateway?", description: "It is rebuilt from its current main source and replaces the running function.", confirmLabel: "Redeploy" }))) return;
     setRedeploying(true);
     try {
       const { data, error } = await supabase.functions.invoke("redeploy-edge-function", {
@@ -70,6 +72,7 @@ export default function EdgeFunctionStatusPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {confirmDialog}
       <AdminPageHeader icon={Activity} title="Edge Function Status">
         <Button variant="outline" size="sm" className="gap-2" onClick={() => void health.refetch()} disabled={health.isFetching}>
           <RefreshCw className={`h-3.5 w-3.5 ${health.isFetching ? "animate-spin" : ""}`} />

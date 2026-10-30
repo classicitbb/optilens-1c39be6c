@@ -8,6 +8,8 @@
 //   • an ADAPTER seam: live accounts/catalog/pricing data in, order events out
 // Do not refactor this file for style; fidelity to the prototype is the point.
 // ══════════════════════════════════════════════════════════════════════════
+import { inAppConfirm } from "@/lib/inAppDialog";
+
 export function createRxOrderEngine(rootEl, ADAPTER) {
 ADAPTER = ADAPTER || {};
 const __docL=[], __winL=[];
@@ -3184,7 +3186,7 @@ function buildShapePick(){
   const sb = $('#seedLib');
   if (sb) sb.addEventListener('click', () => $('#libInput').click());
 }
-function pickStdShape(id){
+async function pickStdShape(id){
   if (!id) {
     S.stdShape=''; S.shape=null; buildShapePick(); render(); toast('Shape cleared');
     /* standard shape cleared — the trace dropzone is relevant again on remote edge */
@@ -3192,7 +3194,7 @@ function pickStdShape(id){
     return;
   }
   if (!SHAPELIB[id]) { toast('That shape isn\'t loaded yet — use Load shape library'); return; }
-  if (S.file && !confirm('Replace the uploaded trace with the standard shape?')) return;
+  if (S.file && !(await inAppConfirm('Replace the uploaded trace with the standard shape?', { confirmLabel: 'Replace' }))) return;
   S.stdShape = id; S.shape = SHAPELIB[id]; S.shapeSrc = 'standard';
   const meta = STD_SHAPES.find(s=>s.id===id);
   /* DBL is a real frame measurement — don't auto-fill it from a generic standard
@@ -3641,9 +3643,9 @@ function renderBranches(){
     <span class="bi">${b.code}</span><span><span class="bn">${b.name}</span><span class="bd">${b.info}</span></span>
     ${S.branch&&S.branch.id===b.id?'<span class="bt">Current</span>':''}</button>`).join('')
     :'<p class="chipnone" style="padding:22px 4px;text-align:center">No accounts match your search.</p>';
-  $$('#branchList .branch').forEach(el=>el.addEventListener('click',()=>{
+  $$('#branchList .branch').forEach(el=>el.addEventListener('click',async()=>{
     const b=BRANCHES.find(x=>x.id===el.dataset.b), changing=S.branch&&S.branch.id!==b.id;
-    if(changing&&!confirm('Move this order to '+b.name+'?\n\nPricing, currency and delivery may differ.')) return;
+    if(changing&&!(await inAppConfirm('Move this order to '+b.name+'?\n\nPricing, currency and delivery may differ.', { confirmLabel: 'Move order' }))) return;
     S.branch=b; if(ADAPTER.onBranchChange) ADAPTER.onBranchChange(b.id); $('#branchName').textContent=b.name.replace('Bridgetown Optical — ','');
     applyDeliveryDefault();
     /* currency and price visibility follow the account */
@@ -3759,8 +3761,8 @@ $('#btnTraceDemo').addEventListener('click',()=>{
   render();
   toast('Loaded 1471.oma trace sample — shape & dimensions auto-populated');
 });
-$('#btnClearAll').addEventListener('click',()=>{ if(confirm('Clear the whole form?')) { clearAll(); toast('Form cleared'); } });
-$('#discardDraft').addEventListener('click',()=>{ if(confirm('Discard this draft and clear the form?')){ ADAPTER.onDraftDiscarded?.(); clearAll(); toast('Draft discarded'); } });
+$('#btnClearAll').addEventListener('click',async()=>{ if(await inAppConfirm('Clear the whole form?', { confirmLabel: 'Clear', destructive: true })) { clearAll(); toast('Form cleared'); } });
+$('#discardDraft').addEventListener('click',async()=>{ if(await inAppConfirm('Discard this draft and clear the form?', { confirmLabel: 'Discard', destructive: true })){ ADAPTER.onDraftDiscarded?.(); clearAll(); toast('Draft discarded'); } });
 function fillDemo(quiet){
   S.vision='mf'; $$('#visionSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vision==='mf'));
   applyLens('1.60','pg-enh','clear');
@@ -4220,9 +4222,9 @@ $('#drDownload').addEventListener('click',()=>{
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast('Downloaded rx-order-form-FEEDBACK.md');
 });
-$('#drClear').addEventListener('click',()=>{
+$('#drClear').addEventListener('click',async()=>{
   if(!annoNotes.length) return;
-  if(!confirm('Clear all annotate notes? This can\'t be undone.')) return;
+  if(!(await inAppConfirm('Clear all annotate notes? This can\'t be undone.', { confirmLabel: 'Clear', destructive: true }))) return;
   annoNotes.length=0; saveAnnoNotes(); updateAnnoCounts(); renderPins(); renderAnnoDrawerList();
   toast('Notes cleared');
 });
@@ -4250,9 +4252,9 @@ $('#apSave').addEventListener('click',()=>{
   if(annoOn) renderPins();
   toast('Note saved');
 });
-$('#apDel').addEventListener('click',()=>{
+$('#apDel').addEventListener('click',async()=>{
   if(!annoEditId) return;
-  if(!confirm('Delete this note?')) return;
+  if(!(await inAppConfirm('Delete this note?', { confirmLabel: 'Delete', destructive: true }))) return;
   const idx=annoNotes.findIndex(x=>x.id===annoEditId);
   if(idx>-1) annoNotes.splice(idx,1);
   saveAnnoNotes(); updateAnnoCounts(); closeAnnoPop();
