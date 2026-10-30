@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-30 - HR privacy filter (no defect)
+
+New feature, no bug fixed. Known limits: the blur is visual only (figures are still in the page and downloads/PDFs are unaffected); leave decision notes are not blurred.
+
 ## 2026-10-30 - HR phase 3 (no defect) and contact deletes
 
 New features, no bug fixed. Behaviour change: deleting a contact that other records link to used to cascade or null those links silently; it is now refused (single delete shows why, bulk delete and purge skip linked contacts and list them). Known limits: leave days are counted Monday–Friday without public holidays (edit the days on the request); balances before `tracking_from` need an opening adjustment; the tax estimate projects remaining months from the latest payslip and needs pay from before the app entered per employee.

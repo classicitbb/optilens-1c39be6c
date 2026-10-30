@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-30 - Hiding salary figures
+
+On **Finance → Payroll** runs, **Finance → Income tax**, an employee's Compensation, Pay items, Tax and Notes tabs, and on **/me**, pay figures and HR notes are blurred until you click **Show figures**. They stay visible for 30 seconds (the button counts down) and then blur again; click **Hide** to blur them sooner. To edit pay or a note, show the figures first.
+
 ## 2026-10-30 - Leave, income tax and editing payslip deductions
 
 **Leave.** Open **Finance → Leave**. **Record leave** adds leave for anyone (ticked "Record as approved" by default); requests waiting for a decision are on the Requests tab with Approve and Decline. **Balances** shows vacation available and other leave taken this year. **Settings** holds the leave types: entitlement by years of service (e.g. `1:15, 5:20`), carry-over limit, whether pay continues, and notes; and the policy (balance tracking start, working days). The defaults follow Barbados law. On an employee's **Leave** tab, add an opening balance for leave owed before tracking started. Unpaid and NIS-paid leave is taken off that month's pay when the payroll run is created or recalculated.
