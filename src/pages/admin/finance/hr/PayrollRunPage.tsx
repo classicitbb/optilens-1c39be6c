@@ -1,7 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { AlertTriangle, ArrowLeft, Calculator, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Calculator, Check, Pencil, RotateCcw, Trash2, X } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +29,7 @@ import {
   useRecalculatePayrollRun,
   type Adjustment,
   type PayrollRun,
+  type PayslipEdits,
   type PayslipRow,
 } from "@/features/admin/hr/payroll/usePayroll";
 
@@ -42,12 +52,23 @@ const PayslipDialog = ({
   const recalc = useRecalculatePayrollRun();
   const editable = run.status === "draft";
 
-  const saveAdjustments = async (items: Adjustment[]) => {
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+
+  const saveEdit = async (edit: Partial<PayslipEdits>) => {
     try {
-      await recalc.mutateAsync({ run, payslips, adjustments: { employeeId: payslip.employee_id, items } });
+      await recalc.mutateAsync({ run, payslips, edit: { employeeId: payslip.employee_id, ...edit } });
     } catch (error) {
       toast({ title: "Could not update payslip", description: (error as Error).message, variant: "destructive" });
     }
+  };
+  const saveAdjustments = (items: Adjustment[]) => saveEdit({ adjustments: items });
+
+  // null puts the calculated amount back.
+  const saveOverride = (key: string, amount: number | null) => {
+    const overrides = { ...(payslip.overrides ?? {}) };
+    if (amount == null) delete overrides[key];
+    else overrides[key] = amount;
+    return saveEdit({ overrides }).then(() => setEditingKey(null));
   };
 
   const handleAdd = (event: FormEvent<HTMLFormElement>) => {
@@ -68,15 +89,50 @@ const PayslipDialog = ({
           <DialogTitle>{employee ? employeeDisplayName(employee) : "Payslip"} · {periodLabel(run.period_start)}</DialogTitle>
         </DialogHeader>
         <dl className="divide-y text-sm">
-          {payslip.lines.map((line, i) => (
-            <div key={i} className="flex justify-between gap-3 py-1.5">
-              <dt>
-                {line.label}
-                {line.code === "earning" && line.taxable === false && <span className="ml-2 text-xs text-muted-foreground">non-taxable</span>}
-              </dt>
-              <dd className="tabular-nums">{["base", "earning"].includes(line.code) ? money(line.amount) : `−${money(line.amount)}`}</dd>
-            </div>
-          ))}
+          {payslip.lines.map((line, i) => {
+            const key = line.deductionKey;
+            if (key && editingKey === key) {
+              return (
+                <form
+                  key={i}
+                  className="flex items-center justify-between gap-2 py-1"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void saveOverride(key, Number(formValues(event.currentTarget).amount));
+                  }}
+                >
+                  <label htmlFor={`override-${key}`}>{line.label}</label>
+                  <div className="flex items-center gap-1">
+                    <Input id={`override-${key}`} name="amount" type="number" step="0.01" min="0" required autoFocus defaultValue={line.amount} className="h-8 w-28 text-right" />
+                    <Button type="submit" size="icon" className="h-8 w-8" aria-label="Save amount" disabled={recalc.isPending}><Check className="h-4 w-4" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Cancel" onClick={() => setEditingKey(null)}><X className="h-4 w-4" /></Button>
+                  </div>
+                </form>
+              );
+            }
+            return (
+              <div key={i} className="flex items-center justify-between gap-3 py-1.5">
+                <dt>
+                  {line.label}
+                  {line.code === "earning" && line.taxable === false && <span className="ml-2 text-xs text-muted-foreground">non-taxable</span>}
+                  {line.calculated != null && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">edited · calculated {money(line.calculated)}</span>}
+                </dt>
+                <dd className="flex items-center gap-1 tabular-nums">
+                  {["base", "earning"].includes(line.code) ? money(line.amount) : `−${money(line.amount)}`}
+                  {key && editable && (
+                    <>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${line.label}`} onClick={() => setEditingKey(key)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      {line.calculated != null && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Reset ${line.label} to calculated`} disabled={recalc.isPending} onClick={() => void saveOverride(key, null)}>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </dd>
+              </div>
+            );
+          })}
           <div className="flex justify-between gap-3 py-1.5 font-semibold">
             <dt>Net pay</dt>
             <dd className="tabular-nums">{money(payslip.net)}</dd>
@@ -149,6 +205,8 @@ const PayrollRunPage = () => {
   const recalc = useRecalculatePayrollRun();
   const action = usePayrollRunAction();
   const [openId, setOpenId] = useState<string | null>(null);
+  // In-app confirm: window.confirm is silently dismissed in embedded browsers.
+  const [confirming, setConfirming] = useState<{ kind: "approve" | "paid" | "delete"; text: string } | null>(null);
 
   if (error) return <p className="p-4 text-destructive">Could not load payroll run: {(error as Error).message}</p>;
   if (isLoading || !data) return <p className="p-4 text-muted-foreground">Loading…</p>;
@@ -160,8 +218,7 @@ const PayrollRunPage = () => {
   const missing = employees.filter((e) => e.status !== "terminated" && !included.has(e.id));
   const open = payslips.find((p) => p.employee_id === openId);
 
-  const perform = async (kind: "approve" | "paid" | "delete" | "recalc", confirmText?: string) => {
-    if (confirmText && !window.confirm(confirmText)) return;
+  const perform = async (kind: "approve" | "paid" | "delete" | "recalc") => {
     try {
       if (kind === "recalc") {
         const skipped = await recalc.mutateAsync({ run, payslips });
@@ -194,16 +251,28 @@ const PayrollRunPage = () => {
         <Badge variant="outline">{RUN_STATUS_LABELS[run.status]}</Badge>
         {run.status === "draft" && (
           <>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void perform("delete", "Delete this draft payroll run?")}>Delete draft</Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming({ kind: "delete", text: "Delete this draft payroll run?" })}>Delete draft</Button>
             <Button size="sm" variant="outline" disabled={busy} onClick={() => void perform("recalc")}>Recalculate</Button>
             <Button size="sm" disabled={busy || payslips.length === 0}
-              onClick={() => void perform("approve", `Approve ${periodLabel(run.period_start)} payroll? It will be locked and loan balances reduced.`)}>
+              onClick={() => setConfirming({ kind: "approve", text: `Approve ${periodLabel(run.period_start)} payroll? It will be locked and loan balances reduced.` })}>
               Approve
             </Button>
           </>
         )}
-        {run.status === "approved" && <Button size="sm" disabled={busy} onClick={() => void perform("paid", "Mark this payroll run as paid?")}>Mark paid</Button>}
+        {run.status === "approved" && <Button size="sm" disabled={busy} onClick={() => setConfirming({ kind: "paid", text: "Mark this payroll run as paid?" })}>Mark paid</Button>}
       </AdminPageHeader>
+
+      <AlertDialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{confirming?.text}</AlertDialogTitle></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (confirming) void perform(confirming.kind); setConfirming(null); }}>
+              {confirming?.kind === "delete" ? "Delete" : confirming?.kind === "approve" ? "Approve" : "Mark paid"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <p className="text-sm text-muted-foreground">
         Pay date {day(run.pay_date)} · NIS, PAYE and R&amp;R due by {day(remittanceDue(run.period_start))}
