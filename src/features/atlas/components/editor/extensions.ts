@@ -9,6 +9,7 @@ import { Table, TableCell, TableHeader, TableRow, TableView } from "@tiptap/exte
 import Suggestion, { type SuggestionOptions, type SuggestionProps } from "@tiptap/suggestion";
 import StarterKit from "@tiptap/starter-kit";
 import { isBlogColorName } from "@/components/blog/BlogPostRenderer";
+import { inAppPrompt } from "@/lib/inAppDialog";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -479,9 +480,9 @@ const Dropdown = Node.create({
         if (typeof pos === "number") editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, ...attrs }));
       };
 
-      select.addEventListener("change", () => {
+      select.addEventListener("change", async () => {
         if (select.value !== EDIT_OPTIONS) return patch({ value: select.value });
-        const entered = window.prompt("Options, separated by commas", (current.attrs.options as string[]).join(", "));
+        const entered = await inAppPrompt("Options, separated by commas", (current.attrs.options as string[]).join(", "));
         if (entered === null) return fill();
         const options = Array.from(new Set(entered.split(",").map((option) => option.trim()).filter(Boolean)));
         patch({ options, value: options.includes(String(current.attrs.value)) ? current.attrs.value : "" });
