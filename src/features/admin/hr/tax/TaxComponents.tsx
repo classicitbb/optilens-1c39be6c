@@ -22,7 +22,7 @@ const AMOUNT_FIELDS: [keyof TaxClaims, string][] = [
 ];
 
 /** The year's tax estimate for one employee, what they could still claim, and the inputs behind it. */
-export const EmployeeTaxPanel = ({ employee, year }: { employee: Employee; year: number }) => {
+export const EmployeeTaxPanel = ({ employee, year, readOnly = false }: { employee: Employee; year: number; readOnly?: boolean }) => {
   const { toast } = useToast();
   const { data, isLoading, error } = useTaxYearData(year);
   const mutate = useHrMutation("employee_tax_years");
@@ -105,6 +105,9 @@ export const EmployeeTaxPanel = ({ employee, year }: { employee: Employee; year:
         </CardContent>
       </Card>
 
+      {readOnly ? (
+        <p className="text-sm text-muted-foreground">To claim an allowance or correct your pay from before the app, tell HR and they'll update it here.</p>
+      ) : (
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Income, PAYE and claims for {year}</CardTitle></CardHeader>
         <CardContent>
@@ -122,6 +125,7 @@ export const EmployeeTaxPanel = ({ employee, year }: { employee: Employee; year:
           </form>
         </CardContent>
       </Card>
+      )}
       <p className="text-xs text-muted-foreground">An estimate to plan with, not a tax return. Employees file their own return in TAMIS by 30 April; check the figures against BRA guidance.</p>
     </div>
   );

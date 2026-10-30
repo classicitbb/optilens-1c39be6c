@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, ArrowLeft, Settings, GraduationCap, PlayCircle } from
+  BookOpen, User, IdCard, Download, Eye, X, Sun, Moon, Monitor, ArrowLeft, Settings, GraduationCap, PlayCircle } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -348,6 +348,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/profile")} data-navigation-target="/profile" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <User className="h-4 w-4" /> My Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/me")} data-navigation-target="/me" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
+                  <IdCard className="h-4 w-4" /> My payslips &amp; leave
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleInstall} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <Download className="h-4 w-4" /> Install App

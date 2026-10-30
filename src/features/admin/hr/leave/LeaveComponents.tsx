@@ -38,18 +38,20 @@ const statusVariant = (s: LeaveStatus) => (s === "approved" ? "default" : s === 
 
 const fmtDays = (n: number | null) => (n == null ? "—" : `${Number(n.toFixed(2))} day${n === 1 ? "" : "s"}`);
 
-/** New leave request. HR entries are usually recorded already approved. */
+/** New leave request. HR entries are usually recorded already approved; employees can only ask. */
 export const LeaveRequestForm = ({
   employees,
   types,
   policy,
   employeeId,
+  selfService = false,
   onDone,
 }: {
   employees: Employee[];
   types: LeaveType[];
   policy: LeavePolicy | undefined;
   employeeId?: string;
+  selfService?: boolean;
   onDone?: () => void;
 }) => {
   const { toast } = useToast();
@@ -112,11 +114,15 @@ export const LeaveRequestForm = ({
         <Input key={String(suggested)} id="leave-days" name="days" type="number" step="0.5" min="0.5" required defaultValue={suggested} className={fieldInputClass} />
       </Field>
       <Field label="Reason" htmlFor="leave-reason" className="sm:col-span-2 lg:col-span-3"><Input id="leave-reason" name="reason" /></Field>
-      <label htmlFor="leave-approve" className="flex items-center gap-2 text-sm sm:col-span-2">
-        <input id="leave-approve" name="approve" type="checkbox" defaultChecked className="h-4 w-4" /> Record as approved
-        <HelpTip id="hr.leave.recordApproved" />
-      </label>
-      <div className="sm:text-right"><Button type="submit" disabled={mutate.isPending}>Save leave</Button></div>
+      {selfService ? (
+        <p className="text-sm text-muted-foreground sm:col-span-2">HR approves or declines the request. Edit the working days if a public holiday falls in it.</p>
+      ) : (
+        <label htmlFor="leave-approve" className="flex items-center gap-2 text-sm sm:col-span-2">
+          <input id="leave-approve" name="approve" type="checkbox" defaultChecked className="h-4 w-4" /> Record as approved
+          <HelpTip id="hr.leave.recordApproved" />
+        </label>
+      )}
+      <div className="sm:text-right"><Button type="submit" disabled={mutate.isPending}>{selfService ? "Request leave" : "Save leave"}</Button></div>
     </form>
   );
 };
