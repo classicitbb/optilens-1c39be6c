@@ -77,3 +77,5 @@ Atlas sharing SQL regression (local only): scripts/test_atlas_sharing_sql.mjs ex
 PBX agent (2026-10-24, local source): `scripts/pbx-agent/pbx_agent.py` polls `pbx-agent` over HTTPS, starts click-to-call via `asterisk -rx` and uploads recordings made after its first start. `edge_functions_smoke.mjs` treats `pbx-agent` as a no-CORS function. Verified against a stub server and fake `asterisk` only; install and settings in `docs/pbx-calls-setup.md`.
 
 2026-10-28 QA maintenance: retain the legacy admin lens-assistant URL as a redirect to Rx Rules; the smoke harness now checks the current Forgot password button text. Route/source contract tests follow the current explicit aliases and live-data field projections, while launcher pins now forward context-menu trigger props and are found by their disambiguated accessible link names. Validation remains enabled; no gates were removed.
+
+PBX call panel (2026-10-30, local source): the agent reports website calls with the `sync` action (`ringing`, `calling`, `connected`, `ended`) and applies staff controls it receives in the reply. Verified with a fake `asterisk` and stubbed function calls only.

@@ -509,3 +509,5 @@ Store checkout verification (2026-10-28): confirmed card and on-account stock or
 The editor now loads saved rows at the route and supplies them to the reusable panel, avoiding query-provider coupling in other panel contexts.
 
 Fixed the homepage handle covering the hero text on phones. Restored its original rounded style with reserved spacing. Replaced acquisition prompts for approved portal customers with daily actions, using the same portal identity as the header.
+
+Call panel (2026-10-30, local source): no known defects; not exercised against hosted data or a real PBX. Record shows "turned off on the PBX agent" until `PBX_ALLOW_RECORDING=1` is set, by design.

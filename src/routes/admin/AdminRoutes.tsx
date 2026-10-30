@@ -4,6 +4,7 @@ import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 import HrRoute from "@/features/admin/hr/HrRoute";
+import AssetsRoute from "@/features/admin/finance/assets/AssetsRoute";
 import { buildPricelistSelectionPath, type PricelistEditorSection } from "@/features/pricelists/routes";
 import AtlasLegacyRedirect from "@/features/atlas/AtlasLegacyRedirect";
 
@@ -100,6 +101,12 @@ const PayrollRunsPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/Pay
 const PayrollRunPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/PayrollRunPage"));
 const LeavePage = lazyWithRetry(() => import("@/pages/admin/finance/hr/LeavePage"));
 const TaxPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/TaxPage"));
+const AssetsPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetsPage"));
+const AssetDetailPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetDetailPage"));
+const DepreciationRunsPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/DepreciationRunsPage"));
+const DepreciationRunPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/DepreciationRunPage"));
+const AssetReportsPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetReportsPage"));
+const AssetImportPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetImportPage"));
 const StatementDeliveryPreviewPage = lazyWithRetry(() => import("@/pages/admin/StatementDeliveryPreviewPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
@@ -405,6 +412,12 @@ const AdminRoutes = () => (
       <Route path="finance/payroll/:runId" element={<HrRoute><PayrollRunPage /></HrRoute>} />
       <Route path="finance/leave" element={<HrRoute><LeavePage /></HrRoute>} />
       <Route path="finance/tax" element={<HrRoute><TaxPage /></HrRoute>} />
+      <Route path="finance/assets" element={<AssetsRoute><AssetsPage /></AssetsRoute>} />
+      <Route path="finance/assets/runs" element={<AssetsRoute><DepreciationRunsPage /></AssetsRoute>} />
+      <Route path="finance/assets/runs/:runId" element={<AssetsRoute><DepreciationRunPage /></AssetsRoute>} />
+      <Route path="finance/assets/reports" element={<AssetsRoute><AssetReportsPage /></AssetsRoute>} />
+      <Route path="finance/assets/import" element={<AssetsRoute><AssetImportPage /></AssetsRoute>} />
+      <Route path="finance/assets/:assetId" element={<AssetsRoute><AssetDetailPage /></AssetsRoute>} />
       <Route
         path="finance/bank-payment-portals"
         element={

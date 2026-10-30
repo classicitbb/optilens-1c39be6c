@@ -119,3 +119,5 @@ Atlas sharing SQL regression (local only): scripts/test_atlas_sharing_sql.mjs ex
 PBX agent (2026-10-24, local source): to install or debug the FreePBX agent, follow `docs/pbx-calls-setup.md`. Check `journalctl -u pbx-agent`; the dialplan context, dial prefix and recording file names must be confirmed on the real PBX.
 
 2026-10-28 QA maintenance: retain the legacy admin lens-assistant URL as a redirect to Rx Rules; the smoke harness now checks the current Forgot password button text. Route/source contract tests follow the current explicit aliases and live-data field projections, while launcher pins now forward context-menu trigger props and are found by their disambiguated accessible link names. Validation remains enabled; no gates were removed.
+
+PBX call panel (2026-10-30, local source): apply `20261030120000_pbx_call_controls.sql` after the first PBX migration, redeploy `pbx-calls` and `pbx-agent`, and copy the new `pbx_agent.py` to the PBX. Website recording stays off until `PBX_ALLOW_RECORDING=1` in `/etc/pbx-agent.env`.
