@@ -173,7 +173,7 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
 
   return (
     <aside
-      className="admin-overlay-surface h-full shrink-0 min-w-0 border-l border-border"
+      className="admin-overlay-surface flex h-full shrink-0 min-w-0 border-l border-border"
       style={{ width }}
     >
       <div
@@ -193,7 +193,8 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
+        {/* Radix lays the viewport content out as a table, which grows to the widest line; keep it to the panel width. */}
+        <ScrollArea className="flex-1 min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block">
           <div className="p-4 space-y-2">
             {isLoading && <p className="text-xs text-muted-foreground">Loading...</p>}
 
