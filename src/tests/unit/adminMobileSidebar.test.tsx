@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => true }));
+vi.mock("@/hooks/useRolePermissions", () => ({ PATH_FEATURE_MAP: {}, useRolePermissions: () => ({ hasAppAccess: () => true, canView: () => true }) }));
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: undefined }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("@/features/admin/core/hooks/useLauncherPins", () => ({ useLauncherPins: () => ({ isPinned: () => false, toggle: vi.fn() }) }));
