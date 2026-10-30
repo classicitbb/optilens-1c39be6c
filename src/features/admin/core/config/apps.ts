@@ -10,7 +10,7 @@ import {
   Ticket, MessageSquare, UsersRound, ShieldCheck,
   Layout, Palette, UserCircle, Store, Glasses, ShoppingCart,
   BookMarked, ClipboardList, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard, Wallet,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard, Wallet, GraduationCap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -209,6 +209,7 @@ export const ADMIN_APPS = {
       { label: 'API Keys', route: '/admin/settings/api-keys', icon: Key },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
+      { label: 'Tours & Training', route: '/admin/settings/training', icon: GraduationCap },
       { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },
       { label: 'Edge Function Status', route: '/admin/settings/edge-functions', icon: Activity },
     ] satisfies SidebarItem[],

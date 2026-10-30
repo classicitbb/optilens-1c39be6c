@@ -122,6 +122,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/finance/walk-in-payments": "integrations",
   "/admin/settings/runtime-errors": "runtime-errors",
   "/admin/settings/releases": "runtime-errors",
+  "/admin/settings/training": "wiki",
   "/admin/settings/email-previews": "runtime-errors",
   "/admin/settings/edge-functions": "runtime-errors",
   // Legacy paths

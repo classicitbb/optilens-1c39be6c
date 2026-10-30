@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Receipt } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import HelpTip from "@/help/HelpTip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { money } from "@/features/admin/hr/formFields";
 import { employeeDisplayName, useEmployees } from "@/features/admin/hr/useEmployees";
@@ -19,12 +20,13 @@ const TaxPage = () => {
     <div className="flex h-full flex-col gap-4 p-4">
       <AdminPageHeader icon={Receipt} title="Income tax" tooltip="Each employee's estimated income tax for the year against PAYE withheld, and reliefs they haven't claimed.">
         <label htmlFor="tax-year" className="sr-only">Tax year</label>
-        <select id="tax-year" value={year} onChange={(e) => setYear(Number(e.target.value))} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+        <select id="tax-year" data-tour="hr-tax-year" value={year} onChange={(e) => setYear(Number(e.target.value))} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
+        <HelpTip id="hr.tax.year" side="bottom" />
       </AdminPageHeader>
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-md border" data-tour="hr-tax-table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -32,8 +34,8 @@ const TaxPage = () => {
               <TableHead className="text-right">Taxable income</TableHead>
               <TableHead className="text-right">Tax for year</TableHead>
               <TableHead className="text-right">PAYE withheld</TableHead>
-              <TableHead className="text-right">Refund / owed</TableHead>
-              <TableHead>Best unclaimed relief</TableHead>
+              <TableHead className="text-right" data-tour="hr-tax-refund"><span className="inline-flex items-center gap-1">Refund / owed <HelpTip id="hr.tax.refund" /></span></TableHead>
+              <TableHead data-tour="hr-tax-relief"><span className="inline-flex items-center gap-1">Best unclaimed relief <HelpTip id="hr.tax.relief" /></span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

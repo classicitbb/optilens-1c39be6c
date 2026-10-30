@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { useToast } from "@/hooks/use-toast";
 import { employeeDisplayName, useEmployees, type Employee } from "@/features/admin/hr/useEmployees";
 import { day, Field, fieldInputClass, formValues, money } from "@/features/admin/hr/formFields";
+import HelpTip from "@/help/HelpTip";
 import {
   periodLabel,
   remittanceDue,
@@ -135,7 +136,7 @@ const PayslipDialog = ({
             );
           })}
           <div className="flex justify-between gap-3 py-1.5 font-semibold">
-            <dt>Net pay</dt>
+            <dt className="flex items-center gap-1">Net pay {editable && <HelpTip id="hr.payrollRun.deductions" />}</dt>
             <dd className="tabular-nums">{money(payslip.net)}</dd>
           </div>
         </dl>
@@ -160,7 +161,7 @@ const PayslipDialog = ({
         </p>
 
         <div className="space-y-2 border-t pt-3">
-          <p className="text-sm font-medium">One-off items this month</p>
+          <p className="flex items-center gap-1 text-sm font-medium">One-off items this month <HelpTip id="hr.payrollRun.oneOff" /></p>
           {payslip.adjustments.length === 0 && <p className="text-sm text-muted-foreground">None.</p>}
           {payslip.adjustments.map((a, i) => (
             <div key={i} className="flex items-center gap-2 text-sm">
@@ -224,11 +225,11 @@ const ArchiveCard = ({ run, payslips, employees }: { run: PayrollRun; payslips: 
   };
 
   return (
-    <Card>
+    <Card data-tour="hr-run-archive">
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Archive className="h-4 w-4 text-muted-foreground" />
-          <p className="font-medium">Archive pack</p>
+          <p className="flex items-center gap-1 font-medium">Archive pack <HelpTip id="hr.payrollRun.archive" /></p>
           <p className="text-sm text-muted-foreground">
             Locked zip of the register, payslips, statutory and bank schedules. It can't be changed or deleted.
           </p>
@@ -326,15 +327,23 @@ const PayrollRunPage = () => {
         <Badge variant="outline">{RUN_STATUS_LABELS[run.status]}</Badge>
         {run.status === "draft" && (
           <>
+            <HelpTip id="hr.payrollRun.deleteDraft" side="bottom" />
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming({ kind: "delete", text: "Delete this draft payroll run?" })}>Delete draft</Button>
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => void perform("recalc")}>Recalculate</Button>
-            <Button size="sm" disabled={busy || payslips.length === 0}
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => void perform("recalc")} data-tour="hr-run-recalculate">Recalculate</Button>
+            <HelpTip id="hr.payrollRun.recalculate" side="bottom" />
+            <Button size="sm" disabled={busy || payslips.length === 0} data-tour="hr-run-approve"
               onClick={() => setConfirming({ kind: "approve", text: `Approve ${periodLabel(run.period_start)} payroll? It will be locked and loan balances reduced.` })}>
               Approve
             </Button>
+            <HelpTip id="hr.payrollRun.approve" side="bottom" />
           </>
         )}
-        {run.status === "approved" && <Button size="sm" disabled={busy} onClick={() => setConfirming({ kind: "paid", text: "Mark this payroll run as paid?" })}>Mark paid</Button>}
+        {run.status === "approved" && (
+          <>
+            <Button size="sm" disabled={busy} onClick={() => setConfirming({ kind: "paid", text: "Mark this payroll run as paid?" })} data-tour="hr-run-mark-paid">Mark paid</Button>
+            <HelpTip id="hr.payrollRun.markPaid" side="bottom" />
+          </>
+        )}
       </AdminPageHeader>
 
       <AlertDialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
@@ -349,11 +358,12 @@ const PayrollRunPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="flex items-center gap-1 text-sm text-muted-foreground">
         Pay date {day(run.pay_date)} · NIS, PAYE and R&amp;R due by {day(remittanceDue(run.period_start))}
+        <HelpTip id="hr.payrollRun.totals" />
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5" data-tour="hr-run-totals">
         {totals.map((t) => (
           <Card key={t.label}>
             <CardContent className="p-4">
@@ -367,13 +377,13 @@ const PayrollRunPage = () => {
       {run.status !== "draft" && <ArchiveCard run={run} payslips={payslips} employees={employees} />}
 
       {missing.length > 0 && (
-        <p className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400">
+        <p className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400" data-tour="hr-run-missing">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           Not in this run (no monthly salary for the month): {missing.map(employeeDisplayName).join(", ")}
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-md border" data-tour="hr-run-payslips">
         <Table>
           <TableHeader>
             <TableRow>

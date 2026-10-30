@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { employeeDisplayName, useEmployees, useHrMutation, type Employee, type EmployeeStatus } from "@/features/admin/hr/useEmployees";
 import { day, Field, fieldInputClass, formValues, STATUS_LABELS } from "@/features/admin/hr/formFields";
+import HelpTip from "@/help/HelpTip";
 
 const statusVariant = (status: EmployeeStatus) => (status === "active" ? "default" : status === "on_leave" ? "secondary" : "outline");
 
@@ -58,34 +59,41 @@ const EmployeesPage = () => {
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <AdminPageHeader icon={Users} title="People" tooltip="Employee records, pay setup and HR notes. Visible to admins and the office administrator.">
-        <Button size="sm" onClick={() => setAdding(true)}>
-          <Plus className="mr-1 h-4 w-4" /> Add employee
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <HelpTip id="hr.people.add" side="left" />
+          <Button size="sm" onClick={() => setAdding(true)} data-tour="hr-people-add">
+            <Plus className="mr-1 h-4 w-4" /> Add employee
+          </Button>
+        </div>
       </AdminPageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full max-w-xs">
+        <div className="relative w-full max-w-xs" data-tour="hr-people-search">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input aria-label="Search employees" placeholder="Search name, title, number…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
         </div>
-        <Select value={status} onValueChange={(v) => setStatus(v as EmployeeStatus | "all")}>
-          <SelectTrigger className="w-36" aria-label="Status"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={department} onValueChange={setDepartment}>
-          <SelectTrigger className="w-44" aria-label="Department"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All departments</SelectItem>
-            {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <HelpTip id="hr.people.search" />
+        <div className="flex flex-wrap items-center gap-2" data-tour="hr-people-filters">
+          <Select value={status} onValueChange={(v) => setStatus(v as EmployeeStatus | "all")}>
+            <SelectTrigger className="w-36" aria-label="Status"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={department} onValueChange={setDepartment}>
+            <SelectTrigger className="w-44" aria-label="Department"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All departments</SelectItem>
+              {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <HelpTip id="hr.people.status" />
+        </div>
         <span className="ml-auto text-sm text-muted-foreground">{visible.length} of {employees.length}</span>
       </div>
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-md border" data-tour="hr-people-table">
         <Table>
           <TableHeader>
             <TableRow>

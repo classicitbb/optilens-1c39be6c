@@ -112,7 +112,7 @@ export const EmployeeTaxPanel = ({ employee, year, readOnly = false }: { employe
         <CardHeader className="pb-3"><CardTitle className="text-base">Income, PAYE and claims for {year}</CardTitle></CardHeader>
         <CardContent>
           <form key={row?.id ?? "new"} onSubmit={save} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Months paid before the app" htmlFor="opening_months"><Input id="opening_months" name="opening_months" type="number" min="0" max="12" defaultValue={row?.opening_months ?? 0} /></Field>
+            <Field label="Months paid before the app" htmlFor="opening_months" tip="hr.tax.openingMonths"><Input id="opening_months" name="opening_months" type="number" min="0" max="12" defaultValue={row?.opening_months ?? 0} /></Field>
             <Field label="Taxable pay in those months" htmlFor="opening_income"><Input id="opening_income" name="opening_income" type="number" step="0.01" min="0" defaultValue={row?.opening_income ?? 0} /></Field>
             <Field label="PAYE withheld in those months" htmlFor="opening_paye"><Input id="opening_paye" name="opening_paye" type="number" step="0.01" min="0" defaultValue={row?.opening_paye ?? 0} /></Field>
             {AMOUNT_FIELDS.map(([key, label]) => (

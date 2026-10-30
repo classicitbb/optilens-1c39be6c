@@ -131,6 +131,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.knowledge.sops.article", path: "/admin/knowledge/sops/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden", redirectTo: "/atlas/sops/:articleSlug" },
   { id: "admin.website.content", path: "/admin/website/content", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden", redirectTo: "/atlas/website" },
   { id: "admin.settings.releases", path: "/admin/settings/releases", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.settings.training", path: "/admin/settings/training", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.settings.email-previews", path: "/admin/settings/email-previews", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.website.nps", path: "/admin/website/nps", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.settings.edge-functions", path: "/admin/settings/edge-functions", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
