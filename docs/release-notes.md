@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-30 — HR privacy filter
+
+### Release Notes
+- Salary figures, tax estimates and HR notes now start blurred on the payroll run, income tax and employee pages and on /me. **Show figures** reveals them for 30 seconds; they blur again on their own, or straight away on **Hide**, on leaving the page, or on switching browser tab.
+
 ## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
 
 ### Release Notes

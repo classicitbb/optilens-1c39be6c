@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-30 - HR privacy filter
+
+`src/features/admin/hr/privacy.tsx` provides `PrivacyFilterProvider`, `Private` and `PrivacyToggle`. `HrRoute` wraps every HR admin page in the provider and `MyHrPage` wraps itself, so each page load starts hidden. Wrap new salary/tax/notes output in `<Private>` (inline) or `<Private block>` (sections and forms); without a provider `Private` stays hidden. Reveal lasts `REVEAL_SECONDS` (30) and resets on `visibilitychange` to hidden. It is a shoulder-surfing blur only, not access control.
+
 ## 2026-10-30 - HR phase 3: Leave, income tax, deduction overrides, employee contacts
 
 - `/admin/finance/leave` (feature `hr`) and `/admin/finance/tax` (feature `payroll`) sit behind `HrRoute`. The employee page gains Leave and Tax tabs; `?tab=<value>` opens a tab directly.
