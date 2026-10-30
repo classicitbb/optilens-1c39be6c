@@ -4366,6 +4366,333 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_compensation: {
+        Row: {
+          annual_child_allowance: number
+          annual_other_allowance: number
+          annual_personal_allowance: number
+          base_amount: number
+          created_at: string
+          currency: string
+          effective_from: string
+          effective_to: string | null
+          employee_id: string
+          id: string
+          pay_frequency: string
+          pay_type: string
+          reason: string | null
+        }
+        Insert: {
+          annual_child_allowance?: number
+          annual_other_allowance?: number
+          annual_personal_allowance?: number
+          base_amount: number
+          created_at?: string
+          currency?: string
+          effective_from: string
+          effective_to?: string | null
+          employee_id: string
+          id?: string
+          pay_frequency?: string
+          pay_type?: string
+          reason?: string | null
+        }
+        Update: {
+          annual_child_allowance?: number
+          annual_other_allowance?: number
+          annual_personal_allowance?: number
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          employee_id?: string
+          id?: string
+          pay_frequency?: string
+          pay_type?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_compensation_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          category: string
+          created_at: string
+          employee_id: string
+          id: string
+          visibility: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          category?: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          category?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_notes_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_pay_splits: {
+        Row: {
+          active: boolean
+          amount: number | null
+          created_at: string
+          employee_id: string
+          id: string
+          is_remainder: boolean
+          label: string
+          method: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_remainder?: boolean
+          label: string
+          method?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_remainder?: boolean
+          label?: string
+          method?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_pay_splits_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_recurring_items: {
+        Row: {
+          active: boolean
+          amount: number | null
+          created_at: string
+          employee_id: string
+          end_date: string | null
+          id: string
+          kind: string
+          label: string
+          loan_balance: number | null
+          loan_principal: number | null
+          notes: string | null
+          percent: number | null
+          start_date: string | null
+          taxable: boolean
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          employee_id: string
+          end_date?: string | null
+          id?: string
+          kind: string
+          label: string
+          loan_balance?: number | null
+          loan_principal?: number | null
+          notes?: string | null
+          percent?: number | null
+          start_date?: string | null
+          taxable?: boolean
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          employee_id?: string
+          end_date?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          loan_balance?: number | null
+          loan_principal?: number | null
+          notes?: string | null
+          percent?: number | null
+          start_date?: string | null
+          taxable?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_recurring_items_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_sensitive: {
+        Row: {
+          bank_account_no: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          employee_id: string
+          national_registration_no: string | null
+          nis_no: string | null
+          tax_file_no: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          employee_id: string
+          national_registration_no?: string | null
+          nis_no?: string | null
+          tax_file_no?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          employee_id?: string
+          national_registration_no?: string | null
+          nis_no?: string | null
+          tax_file_no?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_sensitive_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          address: string | null
+          created_at: string
+          date_of_birth: string | null
+          department: string | null
+          email: string | null
+          emergency_contacts: Json
+          employee_no: string | null
+          employment_type: string
+          first_name: string
+          hire_date: string | null
+          id: string
+          job_title: string | null
+          last_name: string
+          manager_id: string | null
+          phone: string | null
+          preferred_name: string | null
+          status: string
+          tax_code: string | null
+          termination_date: string | null
+          termination_reason: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          department?: string | null
+          email?: string | null
+          emergency_contacts?: Json
+          employee_no?: string | null
+          employment_type?: string
+          first_name: string
+          hire_date?: string | null
+          id?: string
+          job_title?: string | null
+          last_name: string
+          manager_id?: string | null
+          phone?: string | null
+          preferred_name?: string | null
+          status?: string
+          tax_code?: string | null
+          termination_date?: string | null
+          termination_reason?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          department?: string | null
+          email?: string | null
+          emergency_contacts?: Json
+          employee_no?: string | null
+          employment_type?: string
+          first_name?: string
+          hire_date?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          manager_id?: string | null
+          phone?: string | null
+          preferred_name?: string | null
+          status?: string
+          tax_code?: string | null
+          termination_date?: string | null
+          termination_reason?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finishtypes: {
         Row: {
           abbrev: string
@@ -4662,6 +4989,35 @@ export type Database = {
           },
         ]
       }
+      help_article_shares: {
+        Row: {
+          article_id: string
+          can_edit: boolean
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          can_edit?: boolean
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          can_edit?: boolean
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_article_shares_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_article_versions: {
         Row: {
           article_id: string
@@ -4721,6 +5077,7 @@ export type Database = {
           is_active: boolean
           is_public: boolean | null
           last_edited_by: string | null
+          owner_id: string | null
           page_slug: string
           parent_id: string | null
           published_at: string | null
@@ -4752,6 +5109,7 @@ export type Database = {
           is_active?: boolean
           is_public?: boolean | null
           last_edited_by?: string | null
+          owner_id?: string | null
           page_slug: string
           parent_id?: string | null
           published_at?: string | null
@@ -4783,6 +5141,7 @@ export type Database = {
           is_active?: boolean
           is_public?: boolean | null
           last_edited_by?: string | null
+          owner_id?: string | null
           page_slug?: string
           parent_id?: string | null
           published_at?: string | null
@@ -13895,6 +14254,9 @@ export type Database = {
         }[]
       }
       atlas_open_shared_page: { Args: { p_token: string }; Returns: Json }
+      atlas_personal_can_edit: { Args: { p_article: string }; Returns: boolean }
+      atlas_personal_can_read: { Args: { p_article: string }; Returns: boolean }
+      atlas_personal_owner: { Args: { p_article: string }; Returns: boolean }
       atlas_set_page_sharing: {
         Args: { p_enabled: boolean; p_page_id: string }
         Returns: Json
@@ -13967,6 +14329,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_hr: { Args: { _user_id: string }; Returns: boolean }
       can_write_customer_quote: {
         Args: { p_quote_type: string; p_user_id?: string }
         Returns: boolean
@@ -14520,6 +14883,7 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: boolean
       }
+      is_employee_self: { Args: { _employee_id: string }; Returns: boolean }
       issue_order_extra_invoice: {
         Args: {
           p_kind: string
@@ -15025,6 +15389,25 @@ export type Database = {
         Args: { p_message_id: string }
         Returns: boolean
       }
+      reveal_employee_sensitive: {
+        Args: { _employee_id: string }
+        Returns: {
+          bank_account_no: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          employee_id: string
+          national_registration_no: string | null
+          nis_no: string | null
+          tax_file_no: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_sensitive"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       revert_account_to_master: {
         Args: { p_customer_id: number }
         Returns: undefined
@@ -15042,6 +15425,18 @@ export type Database = {
       rx_order_is_mine: {
         Args: { p_quote_id: string; p_uid: string }
         Returns: boolean
+      }
+      save_employee_sensitive: {
+        Args: {
+          _bank_account_no: string
+          _bank_branch: string
+          _bank_name: string
+          _employee_id: string
+          _national_registration_no: string
+          _nis_no: string
+          _tax_file_no: string
+        }
+        Returns: undefined
       }
       save_rx_order: {
         Args: { p_is_test?: boolean; p_payload: Json; p_quote_id: string }
@@ -15421,7 +15816,7 @@ export type Database = {
     }
     Enums: {
       activity_task_channel: "todo" | "agent_todo"
-      app_role: "admin" | "operator" | "office_admin" | "viewer" | "customer"
+      app_role: "admin" | "operator" | "viewer" | "customer" | "office_admin"
       shipment_status: "draft" | "reviewed" | "locked"
       store_variant_mode:
         | "none"
@@ -15557,7 +15952,7 @@ export const Constants = {
   public: {
     Enums: {
       activity_task_channel: ["todo", "agent_todo"],
-      app_role: ["admin", "operator", "office_admin", "viewer", "customer"],
+      app_role: ["admin", "operator", "viewer", "customer", "office_admin"],
       shipment_status: ["draft", "reviewed", "locked"],
       store_variant_mode: [
         "none",
