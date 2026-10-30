@@ -2,7 +2,7 @@
 
 ## 2026-10-30 - HR phase 2: Payroll runs
 
-`/admin/finance/payroll` and `/admin/finance/payroll/:runId` sit behind `HrRoute`; the sidebar link maps to the `payroll` feature. `src/features/admin/hr/payroll/engine.ts` is a pure monthly payslip calculator (integer cents, half-up rounding) driven by the dated `STATUTORY_RULES` table: add a row when BRA/NIS change a rate, never edit a past row. `usePayroll.ts` loads employees, compensation, recurring items and splits, calculates in the browser and replaces a draft run's payslips on every create/recalculate (one-off adjustments are carried over). Approval goes through the `approve_payroll_run` RPC; DB triggers lock approved/paid runs.
+`/admin/finance/payroll` and `/admin/finance/payroll/:runId` sit behind `HrRoute`; the sidebar link maps to the `payroll` feature. `src/features/admin/hr/payroll/engine.ts` is a pure monthly payslip calculator (integer cents, half-up rounding) driven by the dated `STATUTORY_RULES` table: add a row when BRA/NIS change a rate, never edit a past row. `usePayroll.ts` loads employees, compensation, recurring items and splits, calculates in the browser and replaces a draft run's payslips on every create/recalculate (one-off adjustments are carried over). Approval goes through the `approve_payroll_run` RPC; DB triggers lock approved/paid runs. Run actions confirm through an `AlertDialog`, not `window.confirm` (embedded browsers dismiss native dialogs silently).
 
 ## 2026-10-29 - HR phase 1: People module and office_admin role
 

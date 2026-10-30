@@ -2,6 +2,15 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { AlertTriangle, ArrowLeft, Calculator, Trash2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -149,6 +158,8 @@ const PayrollRunPage = () => {
   const recalc = useRecalculatePayrollRun();
   const action = usePayrollRunAction();
   const [openId, setOpenId] = useState<string | null>(null);
+  // In-app confirm: window.confirm is silently dismissed in embedded browsers.
+  const [confirming, setConfirming] = useState<{ kind: "approve" | "paid" | "delete"; text: string } | null>(null);
 
   if (error) return <p className="p-4 text-destructive">Could not load payroll run: {(error as Error).message}</p>;
   if (isLoading || !data) return <p className="p-4 text-muted-foreground">Loading…</p>;
@@ -160,8 +171,7 @@ const PayrollRunPage = () => {
   const missing = employees.filter((e) => e.status !== "terminated" && !included.has(e.id));
   const open = payslips.find((p) => p.employee_id === openId);
 
-  const perform = async (kind: "approve" | "paid" | "delete" | "recalc", confirmText?: string) => {
-    if (confirmText && !window.confirm(confirmText)) return;
+  const perform = async (kind: "approve" | "paid" | "delete" | "recalc") => {
     try {
       if (kind === "recalc") {
         const skipped = await recalc.mutateAsync({ run, payslips });
@@ -194,16 +204,28 @@ const PayrollRunPage = () => {
         <Badge variant="outline">{RUN_STATUS_LABELS[run.status]}</Badge>
         {run.status === "draft" && (
           <>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void perform("delete", "Delete this draft payroll run?")}>Delete draft</Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming({ kind: "delete", text: "Delete this draft payroll run?" })}>Delete draft</Button>
             <Button size="sm" variant="outline" disabled={busy} onClick={() => void perform("recalc")}>Recalculate</Button>
             <Button size="sm" disabled={busy || payslips.length === 0}
-              onClick={() => void perform("approve", `Approve ${periodLabel(run.period_start)} payroll? It will be locked and loan balances reduced.`)}>
+              onClick={() => setConfirming({ kind: "approve", text: `Approve ${periodLabel(run.period_start)} payroll? It will be locked and loan balances reduced.` })}>
               Approve
             </Button>
           </>
         )}
-        {run.status === "approved" && <Button size="sm" disabled={busy} onClick={() => void perform("paid", "Mark this payroll run as paid?")}>Mark paid</Button>}
+        {run.status === "approved" && <Button size="sm" disabled={busy} onClick={() => setConfirming({ kind: "paid", text: "Mark this payroll run as paid?" })}>Mark paid</Button>}
       </AdminPageHeader>
+
+      <AlertDialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{confirming?.text}</AlertDialogTitle></AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (confirming) void perform(confirming.kind); setConfirming(null); }}>
+              {confirming?.kind === "delete" ? "Delete" : confirming?.kind === "approve" ? "Approve" : "Mark paid"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <p className="text-sm text-muted-foreground">
         Pay date {day(run.pay_date)} · NIS, PAYE and R&amp;R due by {day(remittanceDue(run.period_start))}

@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-30 - Payroll Delete draft / Approve / Mark paid did nothing
+
+The payroll run page asked for confirmation with `window.confirm`, which embedded browsers (the Claude desktop browser pane) dismiss silently, so the click returned without acting. The page now uses an in-app `AlertDialog` for all three actions.
+
 ## 2026-10-30 - HR phase 2 payroll (no defect)
 
 New feature, no bug fixed. Known limits: only monthly salaries are calculated (hourly or other frequencies are left out of a run and listed); PAYE uses each employee's allowances in the app, which differ from the figures the 2026 workbook was keyed with, so HR should check allowances against TAMIS before the first live run.
