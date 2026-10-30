@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-30 - HR phase 2: Payroll runs
+
+`/admin/finance/payroll` and `/admin/finance/payroll/:runId` sit behind `HrRoute`; the sidebar link maps to the `payroll` feature. `src/features/admin/hr/payroll/engine.ts` is a pure monthly payslip calculator (integer cents, half-up rounding) driven by the dated `STATUTORY_RULES` table: add a row when BRA/NIS change a rate, never edit a past row. `usePayroll.ts` loads employees, compensation, recurring items and splits, calculates in the browser and replaces a draft run's payslips on every create/recalculate (one-off adjustments are carried over). Approval goes through the `approve_payroll_run` RPC; DB triggers lock approved/paid runs.
+
 ## 2026-10-29 - HR phase 1: People module and office_admin role
 
 `AppRole` gains `office_admin` (staff access, canEdit, `canHr`). `/admin/finance/people` and `/admin/finance/people/:employeeId` are wrapped in `HrRoute` (realRole admin or office_admin, mirroring `can_hr()`); the Finance sidebar hides links whose `PATH_FEATURE_MAP` feature is `hr`/`payroll` when the role lacks `can_view`. Data hooks live in `src/features/admin/hr/useEmployees.ts`; sensitive IDs are fetched only on an explicit "Show details" click via `reveal_employee_sensitive`, which writes an audit_log row.

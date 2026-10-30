@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-30 — HR phase 2: Payroll runs
+
+### Release Notes
+- New **Finance → Payroll**: start a monthly payroll run and every active employee's payslip is worked out from their pay setup — NIS (11% up to $5,360/month), PAYE (BRA monthly method, 11.5%/27.5% from April 2026) and the R&R levy (0.25%) — with totals and the 15th-of-next-month remittance date.
+- Open a payslip to see each line, how net pay is split, and to add one-off earnings or deductions (bonus, adjustment) while the run is a draft.
+- Approving locks the run and takes loan repayments off loan balances; then mark it paid. Employees can mark themselves R&R-exempt on their profile (Job section).
+
+### Technical Changelog
+- `src/features/admin/hr/payroll/engine.ts`: pure payslip calculation in integer cents with dated statutory rules; unit tests use BRA Policy Note OGC No. 001/2026 worked examples.
+- Migration `20261030120000_hr_payroll_runs.sql` (applied live 2026-10-30): `employees.rr_levy_exempt`, tables payroll_runs and payslips with RLS (HR full access; employees read their own approved payslips), lock triggers, `approve_payroll_run` RPC that draws down loan balances.
+- `scripts/hr/export_workbook_parity.py` + `payrollWorkbookParity.test.ts`: local-only check of the engine against the salary workbook (NIS exact, R&R within 1 cent of the workbook's inconsistent half-cent rounding); skipped in CI.
+
 ## 2026-10-29 — HR phase 1: Office admin role and employee records
 
 ### Release Notes

@@ -1,5 +1,9 @@
 # Automation Bug Reports
 
+## 2026-10-30 — Workbook parity check (no defect)
+
+New check, no bug fixed. Findings: the 2026 workbook rounds exact half-cent R&R amounts inconsistently (up in some months, down in others), and CV-02's R&R column holds a flat non-levy amount, so the check allows one cent on R&R and skips CV-02's R&R.
+
 ## 2026-10-29 — Salary importer (no defect)
 
 New script, no bug fixed. Note: the importer's first run skipped every sheet because a text-value heuristic treated employee names as the next label; it now stops only on known label words.

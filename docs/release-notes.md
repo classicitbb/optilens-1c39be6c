@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-30 — HR phase 2: Payroll runs
+
+### Release Notes
+- New Finance → Payroll: monthly payroll runs that work out NIS, PAYE and R&R levy per employee, allow one-off adjustments, and lock on approval with loan balances drawn down.
+
 ## 2026-10-29 — HR phase 1: Office admin role and employee records
 
 ### Release Notes

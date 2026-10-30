@@ -1,5 +1,5 @@
 import {
-  DollarSign, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
+  DollarSign, Users, Calculator, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
   ListChecks, Camera,
   FileEdit, FileCheck2,
@@ -138,6 +138,7 @@ export const ADMIN_APPS = {
       { label: 'Walk-in Payments', route: '/admin/finance/walk-in-payments', icon: Landmark },
       { label: 'Bank Payment Portals', route: '/admin/finance/bank-payment-portals', icon: Landmark },
       { label: 'People', route: '/admin/finance/people', icon: Users },
+      { label: 'Payroll', route: '/admin/finance/payroll', icon: Calculator },
     ] satisfies SidebarItem[],
   },
   website: {

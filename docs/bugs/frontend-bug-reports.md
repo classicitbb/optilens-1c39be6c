@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-30 - HR phase 2 payroll (no defect)
+
+New feature, no bug fixed. Known limits: only monthly salaries are calculated (hourly or other frequencies are left out of a run and listed); PAYE uses each employee's allowances in the app, which differ from the figures the 2026 workbook was keyed with, so HR should check allowances against TAMIS before the first live run.
+
 ## 2026-10-29 - HR phase 1 (no defect)
 
 New feature, no bug fixed. Known gap: older SQL policies that hardcode `role IN ('admin','operator')` instead of calling `has_role`/`has_edit_role` do not yet admit office_admin; those surfaces behave like viewer access for that role until updated.

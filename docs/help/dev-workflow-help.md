@@ -1,5 +1,9 @@
 # Developer Workflow Help
 
+## 2026-10-30 — Checking payroll against the salary workbook
+
+Run `python scripts/hr/export_workbook_parity.py "<workbook.xlsx>" "<path outside the repo>.json"`, then `HR_PARITY_JSON=<that file> HR_PARITY_REPORT=<report path> npx vitest run --coverage=false src/tests/unit/payrollWorkbookParity.test.ts`. Both files hold pay figures: keep them outside the repo and delete them afterwards.
+
 ## 2026-10-29 — Seeding HR from the salary workbook
 
 Apply both HR migrations live first (git push does not run them). Then `pip install --user openpyxl`, run `python scripts/hr/import_salary_xlsx.py "<workbook.xlsx>" "<path outside the repo>.sql" --year 2026`, apply the SQL through the Lovable MCP `query_database` tool, and delete the file: it contains NRN/NIS numbers and pay.
