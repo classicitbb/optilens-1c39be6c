@@ -4628,6 +4628,7 @@ export type Database = {
           manager_id: string | null
           phone: string | null
           preferred_name: string | null
+          rr_levy_exempt: boolean
           status: string
           tax_code: string | null
           termination_date: string | null
@@ -4652,6 +4653,7 @@ export type Database = {
           manager_id?: string | null
           phone?: string | null
           preferred_name?: string | null
+          rr_levy_exempt?: boolean
           status?: string
           tax_code?: string | null
           termination_date?: string | null
@@ -4676,6 +4678,7 @@ export type Database = {
           manager_id?: string | null
           phone?: string | null
           preferred_name?: string | null
+          rr_levy_exempt?: boolean
           status?: string
           tax_code?: string | null
           termination_date?: string | null
@@ -8813,6 +8816,129 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payroll_runs: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          paid_at: string | null
+          pay_date: string | null
+          period_start: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          pay_date?: string | null
+          period_start: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          pay_date?: string | null
+          period_start?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payslips: {
+        Row: {
+          adjustments: Json
+          annual_allowances: number
+          base_pay: number
+          created_at: string
+          employee_id: string
+          gross: number
+          id: string
+          lines: Json
+          net: number
+          nis: number
+          other_deductions: number
+          paye: number
+          rr_levy: number
+          rules_source: string | null
+          run_id: string
+          splits: Json
+          taxable: number
+          updated_at: string
+          warnings: Json
+        }
+        Insert: {
+          adjustments?: Json
+          annual_allowances?: number
+          base_pay: number
+          created_at?: string
+          employee_id: string
+          gross: number
+          id?: string
+          lines?: Json
+          net: number
+          nis: number
+          other_deductions: number
+          paye: number
+          rr_levy: number
+          rules_source?: string | null
+          run_id: string
+          splits?: Json
+          taxable: number
+          updated_at?: string
+          warnings?: Json
+        }
+        Update: {
+          adjustments?: Json
+          annual_allowances?: number
+          base_pay?: number
+          created_at?: string
+          employee_id?: string
+          gross?: number
+          id?: string
+          lines?: Json
+          net?: number
+          nis?: number
+          other_deductions?: number
+          paye?: number
+          rr_levy?: number
+          rules_source?: string | null
+          run_id?: string
+          splits?: Json
+          taxable?: number
+          updated_at?: string
+          warnings?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portal_account_audit_events: {
         Row: {
@@ -14232,6 +14358,7 @@ export type Database = {
         Args: { p_contact_id: string; p_finding_ids: string[] }
         Returns: number
       }
+      approve_payroll_run: { Args: { _run_id: string }; Returns: undefined }
       approve_pending_payment: {
         Args: { p_order_id: string }
         Returns: undefined
@@ -14884,6 +15011,7 @@ export type Database = {
         Returns: boolean
       }
       is_employee_self: { Args: { _employee_id: string }; Returns: boolean }
+      is_paid_in_run: { Args: { _run_id: string }; Returns: boolean }
       issue_order_extra_invoice: {
         Args: {
           p_kind: string
@@ -15054,6 +15182,7 @@ export type Database = {
         Returns: string
       }
       payment_secret_encryption_key: { Args: never; Returns: string }
+      payroll_run_released: { Args: { _run_id: string }; Returns: boolean }
       place_customer_order: {
         Args: {
           p_actor_user_id?: string
