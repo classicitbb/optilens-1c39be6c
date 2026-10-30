@@ -136,7 +136,7 @@ const PayslipDialog = ({
             );
           })}
           <div className="flex justify-between gap-3 py-1.5 font-semibold">
-            <dt>Net pay</dt>
+            <dt className="flex items-center gap-1">Net pay {editable && <HelpTip id="hr.payrollRun.deductions" />}</dt>
             <dd className="tabular-nums">{money(payslip.net)}</dd>
           </div>
         </dl>
@@ -225,11 +225,11 @@ const ArchiveCard = ({ run, payslips, employees }: { run: PayrollRun; payslips: 
   };
 
   return (
-    <Card>
+    <Card data-tour="hr-run-archive">
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Archive className="h-4 w-4 text-muted-foreground" />
-          <p className="font-medium">Archive pack</p>
+          <p className="flex items-center gap-1 font-medium">Archive pack <HelpTip id="hr.payrollRun.archive" /></p>
           <p className="text-sm text-muted-foreground">
             Locked zip of the register, payslips, statutory and bank schedules. It can't be changed or deleted.
           </p>

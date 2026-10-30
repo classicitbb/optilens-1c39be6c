@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { employeeDisplayName, useHrMutation, type Employee } from "@/features/admin/hr/useEmployees";
 import { day, Field, fieldInputClass, formValues } from "@/features/admin/hr/formFields";
+import HelpTip from "@/help/HelpTip";
 import {
   leaveBalance,
   workingDaysBetween,
@@ -106,13 +107,14 @@ export const LeaveRequestForm = ({
       <Field label="Last day" htmlFor="leave-end">
         <Input id="leave-end" name="end_date" type="date" required min={start || undefined} value={end} onChange={(e) => setEnd(e.target.value)} className={fieldInputClass} />
       </Field>
-      <Field label="Working days" htmlFor="leave-days">
+      <Field label="Working days" htmlFor="leave-days" tip="hr.leave.workingDays">
         {/* Keyed on the suggestion so it refills when the dates change; edit it for public holidays or half days. */}
         <Input key={String(suggested)} id="leave-days" name="days" type="number" step="0.5" min="0.5" required defaultValue={suggested} className={fieldInputClass} />
       </Field>
       <Field label="Reason" htmlFor="leave-reason" className="sm:col-span-2 lg:col-span-3"><Input id="leave-reason" name="reason" /></Field>
       <label htmlFor="leave-approve" className="flex items-center gap-2 text-sm sm:col-span-2">
         <input id="leave-approve" name="approve" type="checkbox" defaultChecked className="h-4 w-4" /> Record as approved
+        <HelpTip id="hr.leave.recordApproved" />
       </label>
       <div className="sm:text-right"><Button type="submit" disabled={mutate.isPending}>Save leave</Button></div>
     </form>
@@ -305,7 +307,7 @@ export const LeaveAdjustmentForm = ({ employeeId, types }: { employeeId: string;
           {types.filter((t) => t.basis === "per_year").map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </Field>
-      <Field label="Days (+ or −)" htmlFor="adj-days"><Input id="adj-days" name="days" type="number" step="0.5" required className={fieldInputClass} /></Field>
+      <Field label="Days (+ or −)" htmlFor="adj-days" tip="hr.leave.adjustDays"><Input id="adj-days" name="days" type="number" step="0.5" required className={fieldInputClass} /></Field>
       <Field label="Effective" htmlFor="adj-date"><Input id="adj-date" name="effective_date" type="date" required defaultValue={today()} className={fieldInputClass} /></Field>
       <Field label="Reason" htmlFor="adj-reason"><Input id="adj-reason" name="reason" required placeholder="Opening balance" className={fieldInputClass} /></Field>
       <div className="lg:col-span-4 lg:text-right"><Button type="submit" variant="outline" disabled={mutate.isPending}>Adjust balance</Button></div>
@@ -376,23 +378,23 @@ export const LeaveSettings = ({ types, policy }: { types: LeaveType[]; policy: L
     <form key={t?.id ?? "new"} onSubmit={saveType(t?.id ?? null)} className="grid gap-3 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
       <Field label="Name" htmlFor={`name-${t?.id ?? "new"}`}><Input id={`name-${t?.id ?? "new"}`} name="name" required defaultValue={t?.name} className={fieldInputClass} /></Field>
       <Field label="Code" htmlFor={`code-${t?.id ?? "new"}`}><Input id={`code-${t?.id ?? "new"}`} name="code" required defaultValue={t?.code} className={fieldInputClass} /></Field>
-      <Field label="Entitlement" htmlFor={`basis-${t?.id ?? "new"}`}>
+      <Field label="Entitlement" htmlFor={`basis-${t?.id ?? "new"}`} tip="hr.leave.basis">
         <select id={`basis-${t?.id ?? "new"}`} name="basis" defaultValue={t?.basis ?? "per_year"} className={selectClass}>
           {Object.entries(BASIS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </Field>
-      <Field label="Pay during leave" htmlFor={`effect-${t?.id ?? "new"}`}>
+      <Field label="Pay during leave" htmlFor={`effect-${t?.id ?? "new"}`} tip="hr.leave.payEffect">
         <select id={`effect-${t?.id ?? "new"}`} name="payroll_effect" defaultValue={t?.payroll_effect ?? "paid"} className={selectClass}>
           {Object.entries(PAYROLL_EFFECT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </Field>
-      <Field label="Days by years of service (years:days, …)" htmlFor={`tiers-${t?.id ?? "new"}`}>
+      <Field label="Days by years of service (years:days, …)" htmlFor={`tiers-${t?.id ?? "new"}`} tip="hr.leave.tiers">
         <Input id={`tiers-${t?.id ?? "new"}`} name="tiers" defaultValue={t ? tiersToText(t) : ""} placeholder="1:15, 5:20" />
       </Field>
-      <Field label="Carry over at most (days, blank = all)" htmlFor={`carry-${t?.id ?? "new"}`}>
+      <Field label="Carry over at most (days, blank = all)" htmlFor={`carry-${t?.id ?? "new"}`} tip="hr.leave.carryOver">
         <Input id={`carry-${t?.id ?? "new"}`} name="carry_over_max_days" type="number" step="0.5" min="0" defaultValue={t?.carry_over_max_days ?? ""} />
       </Field>
-      <Field label="Certificate after (days)" htmlFor={`cert-${t?.id ?? "new"}`}>
+      <Field label="Certificate after (days)" htmlFor={`cert-${t?.id ?? "new"}`} tip="hr.leave.certificate">
         <Input id={`cert-${t?.id ?? "new"}`} name="certificate_after_days" type="number" min="0" defaultValue={t?.certificate_after_days ?? ""} />
       </Field>
       <Field label="Legal basis" htmlFor={`law-${t?.id ?? "new"}`}><Input id={`law-${t?.id ?? "new"}`} name="legal_basis" defaultValue={t?.legal_basis ?? ""} /></Field>
@@ -408,7 +410,7 @@ export const LeaveSettings = ({ types, policy }: { types: LeaveType[]; policy: L
     <div className="space-y-4">
       {policy && (
         <form key={`${policy.tracking_from}-${policy.work_days.join()}`} onSubmit={savePolicy} className="grid gap-3 rounded-md border p-4 sm:grid-cols-2">
-          <Field label="Track balances from" htmlFor="tracking_from">
+          <Field label="Track balances from" htmlFor="tracking_from" tip="hr.leave.trackingFrom">
             <Input id="tracking_from" name="tracking_from" type="date" required defaultValue={policy.tracking_from} className={fieldInputClass} />
           </Field>
           <fieldset className="space-y-1.5">
