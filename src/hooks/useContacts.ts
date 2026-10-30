@@ -137,12 +137,25 @@ export const useSaveContact = () => {
   });
 };
 
+export interface ContactDeleteResult {
+  deleted: number;
+  skipped: { id: string; name: string | null; links: string[] }[];
+}
+
+/** Deletes the contacts no other record links to; linked ones are skipped and reported. */
+export const deleteUnlinkedContacts = async (ids: string[]) => {
+  const { data, error } = await (supabase as any).rpc("delete_unlinked_contacts", { _ids: ids });
+  if (error) throw error;
+  return data as ContactDeleteResult;
+};
+
 export const useDeleteContact = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("contacts") as any).delete().eq("id", id);
-      if (error) throw error;
+      const result = await deleteUnlinkedContacts([id]);
+      const skipped = result.skipped[0];
+      if (skipped) throw new Error(`Linked to ${skipped.links.join(", ")}, so it can't be deleted. Archive it instead.`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
   });

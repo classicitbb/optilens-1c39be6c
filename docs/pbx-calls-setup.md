@@ -14,7 +14,8 @@ Website (contact > Calls tab)        FreePBX (office LAN)
   activities (CRM timeline)
 ```
 
-- **Click-to-call:** `pbx-calls` queues a row in `call_requests` for the signed-in staff member's extension (`staff_extensions`). The agent claims it and runs an Asterisk `channel originate`: the staff phone rings first, then the customer is dialled. Audio never goes through the browser. Requests older than 2 minutes are expired, not dialled.
+- **Click-to-call:** `pbx-calls` queues a row in `call_requests` for the signed-in staff member's extension (`staff_extensions`). The agent claims it and runs an Asterisk `channel originate PJSIP/<ext> extension <number>@<context>`: the staff phone itself rings first (not the extension's dialplan, so an unanswered call can't go to voicemail and then dial the customer into it), then the customer is dialled. The agent refuses to start a call on a phone that is already on one. Audio never goes through the browser. Requests older than 2 minutes are expired, not dialled.
+- **Call panel (2026-10-30):** after Call, the Calls tab shows the call's progress (phone ringing, dialling the customer, connected with a timer, ended) and **Hang up**, **Record** and **Stop recording** buttons. The agent reports progress with the `sync` action every few seconds from `core show channels concise` and carries out the buttons with `channel request hangup`, `mixmonitor start` and `mixmonitor stop` on the staff phone's channel. Panel recordings use FreePBX's `out-<number>-<ext>-…` naming in the monitor folder, so they upload and link like any other. Record asks the staff member to confirm they told the customer. The agent ignores Record unless `PBX_ALLOW_RECORDING=1` (see "Before recording customers").
 - **Recording:** only calls staff choose to record. Set every staff extension to **On Demand** (or Never) in FreePBX, never Always; staff press the on-demand recording code during a call. The agent uploads new files from the monitor directory to the private `call-recordings` bucket. On first start it only uploads files created after it started, never the backlog.
 - **After upload:** `pbx-agent` links the recording to a contact (the website click if there was one, otherwise the phone number, and only if exactly one contact has it), transcribes and summarises it, and, if a contact was found, adds a completed Call activity to the CRM timeline. Unmatched recordings are kept, with no contact link and no activity.
 - **Playback:** the Calls tab opens a 5-minute signed link; every playback is written to the security audit log. Recordings and transcripts are visible to admin and operator roles only.
@@ -23,7 +24,7 @@ Transcription and summaries go through the same AI gateway as `voice-transcribe`
 
 ## One-time setup
 
-1. Apply `supabase/migrations/20261024120000_pbx_calls.sql` (Lovable SQL editor).
+1. Apply `supabase/migrations/20261024120000_pbx_calls.sql`, then `20261030120000_pbx_call_controls.sql` (Lovable SQL editor).
 2. Add the edge-function secret `PBX_AGENT_TOKEN` (a long random string; `openssl rand -hex 32`). `LOVABLE_API_KEY` is already used by `voice-transcribe`.
 3. Deploy `pbx-calls` and `pbx-agent`, then run `npm run qa:edge-smoke`.
 4. Give each of the 6 staff an extension: `insert into staff_extensions (user_id, extension) values ('<auth user id>', '2001');`
@@ -34,6 +35,7 @@ Transcription and summaries go through the same AI gateway as `voice-transcribe`
    PBX_AGENT_URL=https://xstmeirxhfbiyayrrsob.supabase.co/functions/v1/pbx-agent
    PBX_AGENT_TOKEN=<the same secret>
    PBX_DIAL_PREFIX=
+   PBX_ALLOW_RECORDING=0
    EOF
    chmod 600 /etc/pbx-agent.env
    ```
@@ -64,3 +66,13 @@ Transcription and summaries go through the same AI gateway as `voice-transcribe`
 - Play or say a "this call is being recorded" notice whenever recording starts; many overseas jurisdictions need every party's consent. Have counsel confirm Barbados and the countries you call.
 - Add a retention period and a deletion process (none is implemented here).
 - Never record while taking card details.
+- Only then set `PBX_ALLOW_RECORDING=1` in `/etc/pbx-agent.env` and restart the agent; until then the website's Record button reports that recording is turned off.
+
+## Next step: browser softphone (not built)
+
+Staff talking through a headset in the browser instead of a desk phone (WebRTC). It needs PBX changes that need the office's approval first:
+
+- Asterisk's secure WebSocket (port 8089) is closed today; it has to be enabled (Settings > Advanced Settings, TLS for the mini-HTTP server).
+- The PBX certificate is self-signed (`freepbx.sangoma.local`); browsers refuse a secure WebSocket to it from the website. It needs a hostname with a trusted certificate (FreePBX Certificate Manager), resolvable on the office LAN.
+- Each staff extension needs WebRTC turned on (or a separate WebRTC extension per person), which changes how its phone registers.
+- It only works on the office LAN unless the WebSocket port is exposed to the internet, which is not recommended (the PBX already accepts SIP from outside for extension 2230).

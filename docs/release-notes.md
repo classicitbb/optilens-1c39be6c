@@ -2,6 +2,21 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
+
+### Release Notes
+- New **Finance → Leave**: record or approve leave, see every employee's balances, and set up leave types. Defaults follow Barbados law: vacation 3 weeks after each year of service and 4 weeks from the fifth year (Holidays with Pay Act, 2017), maternity 14 weeks and paternity 3 weeks (Family Leave Act, 2025), sick leave tracked (NIS sickness benefit), unpaid leave. Entitlements, carry-over, working days and how each type is paid are all editable. Each employee has a Leave tab with balances, history and opening-balance adjustments.
+- Unpaid and NIS-paid leave comes off pay automatically in that month's payroll run.
+- New **Finance → Income tax**: each employee's estimated 2026 income tax (11.5% on the first $50,000, 27.5% above, after the $25,000 allowance) against PAYE withheld, the expected refund or amount owed, and reliefs they haven't claimed (spouse allowance, medical examination from 40, trade union dues) with what each would save. Each employee has a Tax tab to enter pay from before the app and their claims.
+- Payroll: NIS, PAYE and R&R now round to the nearest dollar (halves up). On a draft payslip every deduction can be edited; edits are marked with the calculated figure, survive Recalculate, and can be reset.
+- Employees can be linked to a CRM contact (or have one created from their details). A contact that an employee, customer account, portal account, opportunity, helpdesk ticket, order, walk-in payment or call points to can no longer be deleted; bulk delete and purge skip those and say which were kept.
+- Employee notes can be edited.
+
+## 2026-10-30 — FreePBX call panel with hang up and record (local source)
+
+### Release Notes
+- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
+
 ## 2026-10-30 — In-app confirm dialogs across the admin
 
 ### Release Notes

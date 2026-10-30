@@ -1,5 +1,12 @@
 # Frontend Bug Reports
 
+## 2026-10-30 - HR phase 3 (no defect) and contact deletes
+
+New features, no bug fixed. Behaviour change: deleting a contact that other records link to used to cascade or null those links silently; it is now refused (single delete shows why, bulk delete and purge skip linked contacts and list them). Known limits: leave days are counted Monday–Friday without public holidays (edit the days on the request); balances before `tracking_from` need an opening adjustment; the tax estimate projects remaining months from the latest payslip and needs pay from before the app entered per employee.
+
+## 2026-10-30 - Payroll Delete draft / Approve / Mark paid did nothing
+
+The payroll run page asked for confirmation with `window.confirm`, which embedded browsers (the Claude desktop browser pane) dismiss silently, so the click returned without acting. The page now uses an in-app `AlertDialog` for all three actions.
 ## 2026-10-30 - Confirm buttons did nothing in embedded browsers
 
 Symptom: delete/approve/release buttons that asked "Are you sure?" did nothing in the Claude desktop browser pane. Cause: those embedded browsers dismiss `window.confirm`/`prompt` silently (returning false/null). Fix: all admin and portal call sites now use in-app dialogs; `no-alert` lint prevents regressions. Not converted: three unreachable `prompt` calls after an early `return` in legacy Doc Studio (saveLetter/saveSig/savePost).
@@ -502,3 +509,5 @@ Store checkout verification (2026-10-28): confirmed card and on-account stock or
 The editor now loads saved rows at the route and supplies them to the reusable panel, avoiding query-provider coupling in other panel contexts.
 
 Fixed the homepage handle covering the hero text on phones. Restored its original rounded style with reserved spacing. Replaced acquisition prompts for approved portal customers with daily actions, using the same portal identity as the header.
+
+Call panel (2026-10-30, local source): no known defects; not exercised against hosted data or a real PBX. Record shows "turned off on the PBX agent" until `PBX_ALLOW_RECORDING=1` is set, by design.

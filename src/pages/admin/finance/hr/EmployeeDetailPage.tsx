@@ -1,7 +1,9 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Link, useParams } from "react-router";
-import { ArrowLeft, Eye, Trash2, UserRound } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Eye, Pencil, Trash2, UserRound } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
+  createContactForEmployee,
   employeeDisplayName,
   revealEmployeeSensitive,
   saveEmployeeSensitive,
@@ -18,11 +21,15 @@ import {
   useEmployees,
   useHrMutation,
   type Compensation,
+  type Employee,
   type EmployeeNote,
   type EmployeeSensitive,
   type PaySplit,
   type RecurringItem,
 } from "@/features/admin/hr/useEmployees";
+import { LeaveAdjustmentForm, LeaveBalanceCards, LeaveRequestForm, LeaveRequestTable } from "@/features/admin/hr/leave/LeaveComponents";
+import { EmployeeTaxPanel } from "@/features/admin/hr/tax/TaxComponents";
+import { useLeaveAdjustments, useLeavePolicy, useLeaveRequests, useLeaveTypes } from "@/features/admin/hr/leave/useLeave";
 import { day, EMPLOYMENT_TYPE_LABELS, Field, fieldInputClass, formValues, money, STATUS_LABELS } from "@/features/admin/hr/formFields";
 import HelpTip from "@/help/HelpTip";
 
@@ -55,6 +62,49 @@ const Section = ({ title, children }: { title: string; children: ReactNode }) =>
     <CardContent className="space-y-4">{children}</CardContent>
   </Card>
 );
+
+const ContactLink = ({ employee }: { employee: Employee }) => {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const update = useHrMutation("employees");
+  const [creating, setCreating] = useState(false);
+
+  const link = async (contactId: string) => {
+    try {
+      await update.mutateAsync({ update: { id: employee.id, values: { contact_id: contactId || null } } });
+      toast({ title: contactId ? "Contact linked" : "Contact unlinked" });
+    } catch (error) {
+      toast({ title: "Could not link contact", description: (error as Error).message, variant: "destructive" });
+    }
+  };
+
+  const create = async () => {
+    setCreating(true);
+    try {
+      await createContactForEmployee(employee);
+      await qc.invalidateQueries({ queryKey: ["hr"] });
+      toast({ title: "Contact created and linked" });
+    } catch (error) {
+      toast({ title: "Could not create contact", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <Section title="CRM contact">
+      <p className="text-sm text-muted-foreground">A linked contact can't be deleted from the CRM while this employee record points to it.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="w-full max-w-sm"><ContactPickerSelect value={employee.contact_id ?? ""} onValueChange={(id) => void link(id)} placeholder="Link a contact" /></div>
+        {employee.contact_id ? (
+          <Button asChild variant="outline" size="sm"><Link to={`/admin/crm/contacts?contact=${employee.contact_id}`}>Open contact</Link></Button>
+        ) : (
+          <Button variant="outline" size="sm" disabled={creating} onClick={() => void create()}>Create contact from employee</Button>
+        )}
+      </div>
+    </Section>
+  );
+};
 
 const ProfileTab = ({ employeeId }: { employeeId: string }) => {
   const { data: employee } = useEmployee(employeeId);
@@ -110,7 +160,6 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
     </form>
   );
 };
-
 const CompensationTab = ({ employeeId }: { employeeId: string }) => {
   const { data: rows = [] } = useEmployeeRows<Compensation>("employee_compensation", employeeId, "effective_from");
   const mutate = useHrMutation("employee_compensation");
@@ -309,10 +358,14 @@ const IdentityTab = ({ employeeId }: { employeeId: string }) => {
   );
 };
 
+const NOTE_CATEGORIES = { general: "General", check_in: "Check-in", commendation: "Commendation", disciplinary: "Disciplinary" };
+const NOTE_VISIBILITY = { hr_only: "HR only", shared: "Shared with employee" };
+
 const NotesTab = ({ employeeId }: { employeeId: string }) => {
   const { data: notes = [] } = useEmployeeRows<EmployeeNote>("employee_notes", employeeId);
   const mutate = useHrMutation("employee_notes");
   const submit = useSubmit();
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
     <Section title="Notes">
@@ -323,30 +376,89 @@ const NotesTab = ({ employeeId }: { employeeId: string }) => {
         }}
         className="grid gap-3 sm:grid-cols-3"
       >
-        <Field label="Category" htmlFor="category" tip="hr.notes.category"><NativeSelect id="category" name="category" options={{ general: "General", check_in: "Check-in", commendation: "Commendation", disciplinary: "Disciplinary" }} /></Field>
-        <Field label="Visibility" htmlFor="visibility" tip="hr.notes.visibility"><NativeSelect id="visibility" name="visibility" options={{ hr_only: "HR only", shared: "Shared with employee" }} /></Field>
+        <Field label="Category" htmlFor="category" tip="hr.notes.category"><NativeSelect id="category" name="category" options={NOTE_CATEGORIES} /></Field>
+        <Field label="Visibility" htmlFor="visibility" tip="hr.notes.visibility"><NativeSelect id="visibility" name="visibility" options={NOTE_VISIBILITY} /></Field>
         <Field label="Note" htmlFor="body" className="sm:col-span-3"><Textarea id="body" name="body" required rows={3} className={fieldInputClass} /></Field>
         <div className="sm:col-span-3 sm:text-right"><Button type="submit" disabled={mutate.isPending}>Add note</Button></div>
       </form>
       <ul className="divide-y text-sm">
-        {notes.map((n) => (
-          <li key={n.id} className="space-y-1 py-3">
-            <div className="flex gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">{n.category.replace("_", "-")}</Badge>
-              <span>{day(n.created_at)}</span>
-              {n.visibility === "shared" && <span>· shared</span>}
-            </div>
-            <p className="whitespace-pre-wrap">{n.body}</p>
-          </li>
-        ))}
+        {notes.map((n) =>
+          editingId === n.id ? (
+            <li key={n.id} className="py-3">
+              <form
+                onSubmit={(event) => {
+                  const v = formValues(event.currentTarget);
+                  return submit(() => mutate.mutateAsync({ update: { id: n.id, values: v } }), "Note updated", () => setEditingId(null))(event);
+                }}
+                className="grid gap-3 sm:grid-cols-3"
+              >
+                <Field label="Category" htmlFor={`category-${n.id}`}><NativeSelect id={`category-${n.id}`} name="category" defaultValue={n.category} options={NOTE_CATEGORIES} /></Field>
+                <Field label="Visibility" htmlFor={`visibility-${n.id}`}><NativeSelect id={`visibility-${n.id}`} name="visibility" defaultValue={n.visibility} options={NOTE_VISIBILITY} /></Field>
+                <Field label="Note" htmlFor={`body-${n.id}`} className="sm:col-span-3"><Textarea id={`body-${n.id}`} name="body" required rows={3} defaultValue={n.body} className={fieldInputClass} /></Field>
+                <div className="flex justify-end gap-2 sm:col-span-3">
+                  <Button type="button" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                  <Button type="submit" disabled={mutate.isPending}>Save note</Button>
+                </div>
+              </form>
+            </li>
+          ) : (
+            <li key={n.id} className="space-y-1 py-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Badge variant="outline">{n.category.replace("_", "-")}</Badge>
+                <span>{day(n.created_at)}</span>
+                {n.updated_at && <span>· edited {day(n.updated_at)}</span>}
+                {n.visibility === "shared" && <span>· shared</span>}
+                <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" aria-label="Edit note" onClick={() => setEditingId(n.id)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <p className="whitespace-pre-wrap">{n.body}</p>
+            </li>
+          ),
+        )}
       </ul>
     </Section>
+  );
+};
+
+const LeaveTab = ({ employee }: { employee: Employee }) => {
+  const { data: employees = [] } = useEmployees();
+  const { data: types = [] } = useLeaveTypes();
+  const { data: policy } = useLeavePolicy();
+  const { data: requests = [] } = useLeaveRequests(employee.id);
+  const { data: adjustments = [] } = useLeaveAdjustments(employee.id);
+
+  return (
+    <div className="space-y-4">
+      <LeaveBalanceCards employee={employee} types={types} policy={policy} requests={requests} adjustments={adjustments} />
+      <Section title="Record leave">
+        <LeaveRequestForm employees={employees} types={types} policy={policy} employeeId={employee.id} />
+      </Section>
+      <Section title="Leave history">
+        <LeaveRequestTable requests={requests} employees={employees} types={types} showEmployee={false} />
+      </Section>
+      <Section title="Balance adjustments">
+        <ul className="divide-y text-sm">
+          {adjustments.map((a) => (
+            <li key={a.id} className="flex flex-wrap gap-3 py-2">
+              <span>{day(a.effective_date)}</span>
+              <span className="font-medium tabular-nums">{a.days > 0 ? "+" : ""}{Number(a.days)} days</span>
+              <span>{types.find((t) => t.id === a.leave_type_id)?.name}</span>
+              <span className="text-muted-foreground">{a.reason}</span>
+            </li>
+          ))}
+          {adjustments.length === 0 && <li className="py-2 text-muted-foreground">None. Add an opening balance for leave owed before tracking started.</li>}
+        </ul>
+        <LeaveAdjustmentForm employeeId={employee.id} types={types} />
+      </Section>
+    </div>
   );
 };
 
 const EmployeeDetailPage = () => {
   const { employeeId = "" } = useParams();
   const { data: employee, isLoading } = useEmployee(employeeId);
+  const [searchParams] = useSearchParams();
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Loading…</div>;
   if (!employee) return <div className="p-4">Employee not found. <Link to="/admin/finance/people" className="underline">Back to People</Link></div>;
@@ -363,17 +475,24 @@ const EmployeeDetailPage = () => {
         </div>
       </AdminPageHeader>
 
-      <Tabs defaultValue="profile">
+      <Tabs defaultValue={searchParams.get("tab") ?? "profile"}>
         <TabsList className="flex h-auto flex-wrap justify-start" data-tour="hr-employee-tabs">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="pay" data-tour="hr-employee-tab-pay">Compensation</TabsTrigger>
           <TabsTrigger value="items" data-tour="hr-employee-tab-items">Pay items</TabsTrigger>
+          <TabsTrigger value="leave" data-tour="hr-employee-tab-leave">Leave</TabsTrigger>
+          <TabsTrigger value="tax" data-tour="hr-employee-tab-tax">Tax</TabsTrigger>
           <TabsTrigger value="ids" data-tour="hr-employee-tab-ids">IDs & bank</TabsTrigger>
           <TabsTrigger value="notes" data-tour="hr-employee-tab-notes">Notes</TabsTrigger>
         </TabsList>
-        <TabsContent value="profile"><ProfileTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="profile" className="space-y-4">
+          <ProfileTab employeeId={employeeId} />
+          <ContactLink employee={employee} />
+        </TabsContent>
         <TabsContent value="pay"><CompensationTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="items"><PayItemsTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
+        <TabsContent value="tax"><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></TabsContent>
         <TabsContent value="ids"><IdentityTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="notes"><NotesTab employeeId={employeeId} /></TabsContent>
       </Tabs>

@@ -1,12 +1,21 @@
 # Frontend Help Docs
 
+## 2026-10-30 - Leave, income tax and editing payslip deductions
+
+**Leave.** Open **Finance → Leave**. **Record leave** adds leave for anyone (ticked "Record as approved" by default); requests waiting for a decision are on the Requests tab with Approve and Decline. **Balances** shows vacation available and other leave taken this year. **Settings** holds the leave types: entitlement by years of service (e.g. `1:15, 5:20`), carry-over limit, whether pay continues, and notes; and the policy (balance tracking start, working days). The defaults follow Barbados law. On an employee's **Leave** tab, add an opening balance for leave owed before tracking started. Unpaid and NIS-paid leave is taken off that month's pay when the payroll run is created or recalculated.
+
+**Income tax.** **Finance → Income tax** lists each employee's estimated tax for the year, PAYE withheld and the expected refund or amount owed. Open an employee's **Tax** tab to enter pay and PAYE from months paid before the app, and claims such as trade union dues, a medical examination (40+), charitable gifts or a non-earning spouse. "Ways to pay less tax" shows reliefs not yet claimed and roughly what each saves.
+
+**Editing deductions.** On a draft payroll run, open a payslip and click the pencil next to NIS, PAYE, the R&R levy or a recurring deduction to type a different amount. Edited lines say "edited" with the calculated figure; the reset arrow puts the calculation back. NIS, PAYE and R&R are rounded to the nearest dollar.
+
+**Contacts and notes.** On an employee's Profile tab, link a CRM contact or create one from their details. Contacts linked to employees, customers, orders, tickets and similar records can't be deleted; archive them instead. Employee notes have a pencil to edit them.
 ## 2026-10-30 - Confirmation dialogs
 
 When you delete, revoke, release or cancel something in the admin, a confirmation box now opens inside the page. Click the highlighted button to go ahead, or **Cancel** (or press Esc) to back out. Doc Studio asks for names and links in the same kind of box.
 
 ## 2026-10-30 - Payroll in Finance
 
-Open **Finance → Payroll** and click **New payroll run**, pick the month and pay date. Each active employee with a monthly salary gets a payslip showing NIS, PAYE, R&R levy, other deductions and net pay; totals and the remittance due date (15th of the next month) are at the top. Click an employee to see their payslip lines and add one-off items such as a bonus while the run is a draft. Change someone's pay or pay items, then click **Recalculate**. **Approve** locks the run and reduces loan balances; **Mark paid** once the money has gone out. R&R levy exemption is a tick box in the employee's Job details.
+Open **Finance → Payroll** and click **New payroll run**, pick the month and pay date. Each active employee with a monthly salary gets a payslip showing NIS, PAYE, R&R levy, other deductions and net pay; totals and the remittance due date (15th of the next month) are at the top. Click an employee to see their payslip lines and add one-off items such as a bonus while the run is a draft. Change someone's pay or pay items, then click **Recalculate**. **Approve** locks the run and reduces loan balances; **Mark paid** once the money has gone out. R&R levy exemption is a tick box in the employee's Job details. **Delete draft**, **Approve** and **Mark paid** each ask you to confirm in a dialog first.
 
 ## 2026-10-29 - People (HR) in Finance
 
@@ -425,3 +434,5 @@ Store checkout verification (2026-10-28): confirmed card and on-account stock or
 The edit page loads the saved order before the stock entry panel opens.
 
 On the homepage, pull the rounded handle down or tap it to open shortcuts. Pull it up, tap outside, or press Escape to close. Scroll the list normally; swiping up again at the end closes it. Approved customers get Start an Rx order, Check my orders and Buy supplies.
+
+Call panel (2026-10-30, local source): after you press Call, the Calls tab shows whether your phone is ringing, the customer is being dialled or you are connected, with Hang up, Record and Stop recording buttons. Tell the customer before recording and stop while they give card details.
