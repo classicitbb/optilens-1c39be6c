@@ -1,5 +1,16 @@
 # Project Status
 
+## Fixed asset register phase 1 - 2026-10-30
+
+Branch `finance-asset-register`, local source. Adds Finance → Fixed Assets and Depreciation Runs under `/admin/finance/assets/*`, limited to admin and office admin. The register covers:
+- assets with an accounting book
+- monthly depreciation runs (draft, approved, posted) with a per-class QBO journal CSV
+- disposals and write-offs with gain or loss
+- the opening-balance CSV import, which reconciles against QBO to the cent
+- the IAS 16 roll-forward, the register at a date, and the one-off reclass journal
+
+Migration `20261030200000_asset_register.sql` is **not applied** to the live database; it needs the Lovable MCP. The engine and import have unit tests, routes have an accessibility test, and the app typecheck and build pass. All pages were rendered locally on a temporary dev bench with sample data. They have not been run against real data or a signed-in session. Plan and decisions: docs/ASSET_REGISTER_PLAN.md. Every Markdown file is served publicly through `/repo-health`, so the plan contains no money figures.
+
 ## Admin mobile sidebar handle edge - 2026-10-29
 
 The workspace theme's unlayered `.admin-tool button` rule overrides Tailwind radius utilities, so `rounded-l-none` alone did not square the edge. Set the two left corner radii inline on the trigger while preserving right-side rounding, contrast and sizing. Focused verification pending; see HANDOFF.md.

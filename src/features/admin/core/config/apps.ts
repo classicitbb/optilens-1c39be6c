@@ -139,6 +139,8 @@ export const ADMIN_APPS = {
       { label: 'Bank Payment Portals', route: '/admin/finance/bank-payment-portals', icon: Landmark },
       { label: 'People', route: '/admin/finance/people', icon: Users },
       { label: 'Payroll', route: '/admin/finance/payroll', icon: Calculator },
+      { label: 'Fixed Assets', route: '/admin/finance/assets', icon: Building2 },
+      { label: 'Depreciation Runs', route: '/admin/finance/assets/runs', icon: ScrollText },
     ] satisfies SidebarItem[],
   },
   website: {
