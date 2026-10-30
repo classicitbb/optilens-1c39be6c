@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { AlertTriangle, ArrowLeft, Calculator, Check, Pencil, RotateCcw, Trash2, X } from "lucide-react";
+import { AlertTriangle, Archive, ArrowLeft, Calculator, Check, Download, Pencil, RotateCcw, Trash2, X } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import {
   AlertDialog,
@@ -32,8 +32,9 @@ import {
   type PayslipEdits,
   type PayslipRow,
 } from "@/features/admin/hr/payroll/usePayroll";
+import { downloadPayrollArchive, useCreatePayrollArchive, usePayrollArchives } from "@/features/admin/hr/payroll/useArchives";
 
-const sum = (rows: PayslipRow[], key: keyof PayslipRow) => rows.reduce((total, r) => total + Number(r[key]), 0);
+const sum =(rows: PayslipRow[], key: keyof PayslipRow) => rows.reduce((total, r) => total + Number(r[key]), 0);
 
 const PayslipDialog = ({
   run,
@@ -196,6 +197,71 @@ const PayslipDialog = ({
   );
 };
 
+const ArchiveCard = ({ run, payslips, employees }: { run: PayrollRun; payslips: PayslipRow[]; employees: Employee[] }) => {
+  const { toast } = useToast();
+  const { data: archives = [], isLoading } = usePayrollArchives(run.id);
+  const create = useCreatePayrollArchive();
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  const download = async (archive: (typeof archives)[number]) => {
+    setDownloading(archive.id);
+    try {
+      await downloadPayrollArchive(archive);
+    } catch (error) {
+      toast({ title: "Download failed", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const createPack = async () => {
+    try {
+      await create.mutateAsync({ runId: run.id, payslips, employees });
+      toast({ title: "Archive pack created" });
+    } catch (error) {
+      toast({ title: "Could not create archive pack", description: (error as Error).message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Archive className="h-4 w-4 text-muted-foreground" />
+          <p className="font-medium">Archive pack</p>
+          <p className="text-sm text-muted-foreground">
+            Locked zip of the register, payslips, statutory and bank schedules. It can't be changed or deleted.
+          </p>
+        </div>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : archives.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-amber-700 dark:text-amber-400">No archive pack for this run yet.</p>
+            <Button size="sm" variant="outline" disabled={create.isPending} onClick={() => void createPack()}>
+              {create.isPending ? "Creating…" : "Create archive pack"}
+            </Button>
+          </div>
+        ) : (
+          <ul className="divide-y text-sm">
+            {archives.map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center gap-3 py-2">
+                <Badge variant="outline">v{a.version}</Badge>
+                <span>{day(a.created_at)}</span>
+                <span className="text-muted-foreground">{(a.size_bytes / 1024).toFixed(0)} KB</span>
+                <span className="font-mono text-xs text-muted-foreground" title={`SHA-256 ${a.sha256}`}>{a.sha256.slice(0, 12)}</span>
+                <Button size="sm" variant="outline" className="ml-auto" disabled={downloading === a.id} onClick={() => void download(a)}>
+                  <Download className="mr-1 h-4 w-4" /> {downloading === a.id ? "Downloading…" : "Download"}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const PayrollRunPage = () => {
   const { runId } = useParams();
   const navigate = useNavigate();
@@ -204,6 +270,7 @@ const PayrollRunPage = () => {
   const { data: employees = [] } = useEmployees();
   const recalc = useRecalculatePayrollRun();
   const action = usePayrollRunAction();
+  const createArchive = useCreatePayrollArchive();
   const [openId, setOpenId] = useState<string | null>(null);
   // In-app confirm: window.confirm is silently dismissed in embedded browsers.
   const [confirming, setConfirming] = useState<{ kind: "approve" | "paid" | "delete"; text: string } | null>(null);
@@ -227,13 +294,21 @@ const PayrollRunPage = () => {
         await action.mutateAsync({ runId: run.id, action: kind });
         if (kind === "delete") navigate("/admin/finance/payroll");
         else toast({ title: kind === "approve" ? "Payroll approved" : "Marked as paid" });
+        if (kind === "approve") {
+          try {
+            await createArchive.mutateAsync({ runId: run.id, payslips, employees });
+            toast({ title: "Archive pack created" });
+          } catch (error) {
+            toast({ title: "Payroll approved, but the archive pack failed", description: `${(error as Error).message}. Use Create archive pack to try again.`, variant: "destructive" });
+          }
+        }
       }
     } catch (error) {
       toast({ title: "Action failed", description: (error as Error).message, variant: "destructive" });
     }
   };
 
-  const busy = recalc.isPending || action.isPending;
+  const busy = recalc.isPending || action.isPending || createArchive.isPending;
   const totals = [
     { label: "Gross pay", value: sum(payslips, "gross") },
     { label: "NIS (employee)", value: sum(payslips, "nis") },
@@ -288,6 +363,8 @@ const PayrollRunPage = () => {
           </Card>
         ))}
       </div>
+
+      {run.status !== "draft" && <ArchiveCard run={run} payslips={payslips} employees={employees} />}
 
       {missing.length > 0 && (
         <p className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400">
