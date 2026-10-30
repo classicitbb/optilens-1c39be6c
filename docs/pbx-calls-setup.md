@@ -54,12 +54,21 @@ Transcription and summaries go through the same AI gateway as `voice-transcribe`
    ```
    Then `systemctl enable --now pbx-agent`. The `asterisk` user must be able to run `asterisk -rx` and read `/var/spool/asterisk/monitor`, and write `/var/lib/pbx-agent`.
 
-## To confirm against the real PBX (not yet known)
+## PBX findings (2026-10-30, Asterisk CLI output pasted by the user; read-only)
 
-- The dialplan context and outside-line prefix: defaults are `from-internal` and none (`PBX_DIAL_CONTEXT`, `PBX_DIAL_PREFIX`). Check with `asterisk -rx "dialplan show from-internal"` and the outbound routes.
-- Recording file names: the parser assumes FreePBX's default `out-<dialed>-<ext>-YYYYMMDD-HHMMSS-<uniqueid>.wav` and `in-<did>-<callerid>-…`. If yours differ, recordings are still stored but not linked to a contact; adjust `parseRecordingName` in `supabase/functions/_shared/pbx/calls.ts`.
-- Whether outbound calls from the Local channel are recorded under the on-demand setting you use.
-- Barbados numbers are dialled as `1246…`. Overseas routing depends on the PBX outbound routes and the Telnyx trunk, which this change does not configure.
+- Asterisk 16.30.0. The first migration (`20261024120000_pbx_calls.sql`) is already live: the three tables and the bucket exist, with no rows. `20261030120000_pbx_call_controls.sql` is not applied.
+- Staff phones are PJSIP endpoints named by extension (2221-2228, 2248, 2249 online; 2230 remote; 2231, 2252, 2253, 2260, 2270, 2271 offline), context `from-internal`, so their calls are `PJSIP/<ext>-…` channels, as the agent expects. `webrtc` is `no` (2221 checked).
+- Outbound routes, in order: `outrt-5` (not shown; presumably the Iris route), LandLine `_NXXXXXX` (caller-ID match 2226 only), Classic `_NXXXXXX` (everyone), both to trunk 1 with the office's 433 numbers as caller ID; OverseasCalls `_1NXXNXXXXXX` to trunk 2, **with a route password**. Trunk 1 is presumably FlowSIP and trunk 2 Telnyx (inferred from the caller IDs and route names). No prefix is used, so `PBX_DIAL_PREFIX` stays empty.
+- So the website now dials Barbados numbers as 7 digits (local route) and other North American numbers as `1` + 10 digits. A `1246…` number would have gone out the overseas route and asked for its password. Other international numbers have no route (they reach `bad-number`), so the website does not dial them.
+- Website calls to non-Barbados North American numbers will ask the staff member for the overseas route password after they pick up. That is the PBX's existing control; it is not bypassed.
+- `mixmonitor start|stop` exists on the CLI. Endpoints have `one_touch_recording` on with `apprecord`, so phone-based on-demand recording also works.
+- Staff for each extension: the website holds no extension data (HR employees are not linked to logins). Take the names from FreePBX Applications > Extensions. Known: 2221 = Elizabeth Ward (login liz@).
+
+## Still to confirm on the real PBX
+
+- Recording file names and folder layout (needs a shell): the parser assumes FreePBX's default `out-<dialed>-<ext>-YYYYMMDD-HHMMSS-<uniqueid>.wav` and `in-<did>-<callerid>-…`. If yours differ, recordings are still stored but not linked to a contact; adjust `parseRecordingName` in `supabase/functions/_shared/pbx/calls.ts`.
+- Python 3 on the PBX and the user Asterisk runs as (needs a shell).
+- Caller ID of a website call: `channel originate PJSIP/<ext>` from the CLI sets no caller ID on the staff leg, so FreePBX may not know which extension is calling. The Classic route still sets the office number, but the LandLine route's 2226 match would not apply. Check in the first test call.
 
 ## Before recording customers
 

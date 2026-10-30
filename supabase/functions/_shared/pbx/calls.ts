@@ -3,14 +3,16 @@
 
 export const digitsOnly = (value: string | null | undefined) => (value ?? "").replace(/\D+/g, "");
 
-// Dial strings are digits only; the PBX agent adds its own outside-line prefix.
-// 7-digit numbers are local Barbados numbers (+1 246), so they get 1246.
+// Dial strings in the form the FreePBX outbound routes match (checked 2026-10-30):
+// Barbados numbers as 7 digits (local routes, FlowSIP), other North American
+// numbers as 1 + 10 digits (OverseasCalls route). The PBX has no route for other
+// international numbers, so those are not dialled.
 export function toDialDigits(raw: string | null | undefined): string | null {
   const digits = digitsOnly(raw);
-  if (digits.length === 7) return `1246${digits}`;
-  if (digits.length === 10) return `1${digits}`;
-  if (digits.length >= 11 && digits.length <= 15) return digits;
-  return null;
+  const nanp = digits.length === 10 ? `1${digits}` : digits.length === 11 && digits.startsWith("1") ? digits : null;
+  if (digits.length === 7) return digits;
+  if (nanp?.startsWith("1246")) return nanp.slice(4);
+  return nanp;
 }
 
 // Two numbers match when their trailing digits agree: ten when both have that

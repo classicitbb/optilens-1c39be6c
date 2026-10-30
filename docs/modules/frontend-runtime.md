@@ -477,3 +477,5 @@ The edit route owns loading the saved submission and passes it into the stock pa
 Homepage quick-start reserves 44px below the fixed header. Its original rounded handle supports captured pointer drags; outside pointer events, Escape and keyboard focus leaving dismiss it. Homepage customer actions reuse the resolved portal identity and staff role; this is presentation only.
 
 FreePBX call panel (2026-10-30, local source): `ContactCalls` polls its `call_requests` row every 2 s while the call is live and sends Hang up / Record / Stop through `pbx-calls` `control`; Record confirms in an `AlertDialog`. See `docs/pbx-calls-setup.md`.
+
+PBX dial format (2026-10-30, local source): `toDialDigits` (shared by `pbx-calls`) returns 7 digits for Barbados numbers and `1` + 10 digits for other North American numbers, matching the FreePBX outbound routes; other international numbers return null and `pbx-calls` answers 422.

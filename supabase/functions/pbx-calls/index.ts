@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     const requested = typeof body.phone === "string" ? body.phone : "";
     const chosen = requested && contactHasPhone(contact.phone, requested) ? requested : numbers[0];
     const destination = toDialDigits(chosen);
-    if (!destination) return json(422, { error: "This contact has no phone number that can be dialled." });
+    if (!destination) return json(422, { error: "This contact has no number the office phone system can dial (Barbados and North American numbers only)." });
 
     const { data: mapping } = await admin.from("staff_extensions").select("extension").eq("user_id", user.id).maybeSingle();
     if (!mapping) return json(422, { error: "You don't have a phone extension assigned yet. Ask an admin to add one." });

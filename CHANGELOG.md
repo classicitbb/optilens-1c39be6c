@@ -3,10 +3,10 @@
 ## 2026-10-30 — FreePBX call panel with hang up and record (local source)
 
 ### Release Notes
-- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
+- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Barbados numbers are now dialled as 7 digits, which the PBX's local routes expect (`1246…` went to the password-protected overseas route); other international numbers are not dialled because the PBX has no route for them. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
 
 ### Technical Changelog
-- Add `call_requests` progress columns (`recording`, `control`, `connected_at`, `ended_at`, `updated_at`) and new statuses; `pbx-agent` `sync` action; `pbx-calls` `control` action and a live-call guard; agent tracks channels from `core show channels concise` and uses `channel request hangup` / `mixmonitor start|stop`, gated by `PBX_ALLOW_RECORDING`. Agent logic exercised against fakes only; app TypeScript passes.
+- Add `call_requests` progress columns (`recording`, `control`, `connected_at`, `ended_at`, `updated_at`) and new statuses; `pbx-agent` `sync` action; `pbx-calls` `control` action and a live-call guard; agent tracks channels from `core show channels concise` and uses `channel request hangup` / `mixmonitor start|stop`, gated by `PBX_ALLOW_RECORDING`. `toDialDigits` matches the real outbound routes found by read-only discovery (findings in `docs/pbx-calls-setup.md`). Agent logic exercised against fakes only; app TypeScript passes.
 
 ## 2026-10-30 — In-app confirm dialogs across the admin
 
