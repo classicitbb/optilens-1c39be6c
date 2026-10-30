@@ -6,6 +6,7 @@ import { recordAiSpend } from "../_shared/aiSpend.ts";
 // polls this function over HTTPS (outbound only, no ports opened on the PBX):
 //   claim        take the next queued click-to-call
 //   report       say whether the PBX accepted it
+//   sync         report call progress, collect hang up / record buttons
 //   upload-url   get a one-time URL to upload a recording the staff chose to make
 //   finish       link the uploaded recording to a contact, log it, transcribe it
 // Auth is a shared secret (PBX_AGENT_TOKEN), not a user session.
@@ -13,6 +14,7 @@ import { recordAiSpend } from "../_shared/aiSpend.ts";
 const RECORDING_BUCKET = "call-recordings";
 const MAX_TRANSCRIBE_BYTES = 24 * 1024 * 1024;
 const STALE_REQUEST_MS = 2 * 60_000;
+const SYNC_STATUSES = new Set(["ringing", "calling", "connected", "ended"]);
 
 const json = (status: number, payload: unknown) =>
   new Response(JSON.stringify(payload), { status, headers: { "Content-Type": "application/json" } });
@@ -141,6 +143,37 @@ Deno.serve(async (req) => {
         .eq("id", body.id);
     }
     return json(200, { ok: true });
+  }
+
+  if (body?.action === "sync") {
+    // Progress of calls the agent started; the reply carries any button the staff
+    // member pressed since (hang up, record, stop recording), each handed out once.
+    const calls = Array.isArray(body.calls) ? body.calls.slice(0, 20) : [];
+    const controls: Record<string, string> = {};
+    for (const call of calls) {
+      if (typeof call?.id !== "string" || !SYNC_STATUSES.has(call.status)) continue;
+      const now = new Date().toISOString();
+      const { data: row } = await admin
+        .from("call_requests")
+        .update({
+          status: call.status,
+          recording: call.recording === true,
+          updated_at: now,
+          ...(call.status === "ended" ? { ended_at: now, control: null } : {}),
+          ...(call.error ? { error: String(call.error).slice(0, 500) } : {}),
+        })
+        .eq("id", call.id)
+        .select("control,connected_at")
+        .maybeSingle();
+      if (call.status === "connected" && row && !row.connected_at) {
+        await admin.from("call_requests").update({ connected_at: now }).eq("id", call.id);
+      }
+      if (row?.control) {
+        await admin.from("call_requests").update({ control: null }).eq("id", call.id).eq("control", row.control);
+        controls[call.id] = row.control;
+      }
+    }
+    return json(200, { controls });
   }
 
   if (body?.action === "upload-url") {
