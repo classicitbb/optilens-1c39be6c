@@ -9,6 +9,9 @@
 **Editing deductions.** On a draft payroll run, open a payslip and click the pencil next to NIS, PAYE, the R&R levy or a recurring deduction to type a different amount. Edited lines say "edited" with the calculated figure; the reset arrow puts the calculation back. NIS, PAYE and R&R are rounded to the nearest dollar.
 
 **Contacts and notes.** On an employee's Profile tab, link a CRM contact or create one from their details. Contacts linked to employees, customers, orders, tickets and similar records can't be deleted; archive them instead. Employee notes have a pencil to edit them.
+## 2026-10-30 - Confirmation dialogs
+
+When you delete, revoke, release or cancel something in the admin, a confirmation box now opens inside the page. Click the highlighted button to go ahead, or **Cancel** (or press Esc) to back out. Doc Studio asks for names and links in the same kind of box.
 
 ## 2026-10-30 - Payroll in Finance
 

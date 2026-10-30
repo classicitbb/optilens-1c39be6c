@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { inAppConfirm, inAppPrompt } from "@/lib/inAppDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -150,23 +151,23 @@ export default function OrgChartPage() {
     });
   };
 
-  const onAddChild = (parentId: string | null) => {
-    const title = window.prompt("Seat title", "New Seat");
+  const onAddChild = async (parentId: string | null) => {
+    const title = await inAppPrompt("Seat title", "New Seat");
     if (!title) return;
-    const department = window.prompt("Department", "Operations") ?? "Operations";
+    const department = (await inAppPrompt("Department", "Operations")) ?? "Operations";
     addOrgSeat(parentId, { title, department });
   };
 
-  const onEdit = (seat: OrgChartSeat) => {
-    const title = window.prompt("Edit seat title", seat.title);
+  const onEdit = async (seat: OrgChartSeat) => {
+    const title = await inAppPrompt("Edit seat title", seat.title);
     if (!title) return;
-    const department = window.prompt("Edit department", seat.department);
+    const department = await inAppPrompt("Edit department", seat.department);
     if (!department) return;
     updateOrgSeat(seat.id, { title, department });
   };
 
-  const onDelete = (id: string) => {
-    if (!window.confirm("Remove this seat and all child seats?")) return;
+  const onDelete = async (id: string) => {
+    if (!(await inAppConfirm("Remove this seat and all child seats?", { confirmLabel: "Remove", destructive: true }))) return;
     deleteOrgSeat(id);
   };
 

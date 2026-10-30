@@ -9,6 +9,11 @@ Summarized release outcomes for each major date-stamped update.
 - Finance → Income tax: annual tax estimate per employee against PAYE, refund/owed, and unclaimed reliefs with their saving.
 - Payroll deductions round to the nearest dollar and can be edited on draft payslips; employees link to CRM contacts, and linked contacts can't be deleted; employee notes are editable.
 
+## 2026-10-30 — In-app confirm dialogs across the admin
+
+### Release Notes
+- Admin confirmations and prompts now use in-app dialogs, so they work in embedded browsers that silently block native pop-ups.
+
 ## 2026-10-30 — HR phase 2: Payroll runs
 
 ### Release Notes

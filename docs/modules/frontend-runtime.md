@@ -7,6 +7,9 @@
 - Payroll engine: `statutoryRounding` (default `dollar`, halves up; tests use `cent` for BRA's examples) and `overrides` keyed by `deductionKey` (`nis`, `paye`, `rr_levy`, `item:<recurring item id>`). Overridden lines keep `calculated`; overrides live in `payslips.overrides` and are carried through recalculation with adjustments.
 - `src/features/admin/hr/tax/annualTax.ts` holds dated `TAX_YEAR_RULES` (add a row per year, never edit a past one); `useTax.estimateYear` adds opening figures from `employee_tax_years`, the year's payslips (drafts included) and projects the remaining months from the latest payslip.
 - Contacts: deletes go through the `delete_unlinked_contacts` RPC (`deleteUnlinkedContacts` in `useContacts.ts`); the `contacts_delete_guard` trigger also blocks direct deletes of linked contacts. `ContactPickerSelect` is reused on the employee profile.
+## 2026-10-30 - In-app confirm dialogs
+
+Native `window.confirm/alert/prompt` are banned by ESLint `no-alert`. React code uses `useConfirm()` from `src/hooks/useConfirm.tsx`: render `{confirmDialog}` once in the component and `if (!(await confirm({ title }))) return;`. Vanilla engines bundled by Vite use `inAppConfirm`/`inAppPrompt` from `src/lib/inAppDialog.ts`; static scripts under `public/ds` use `window.__cvDialog` from `public/ds/in-app-dialog.js`. The pricelist editor's capture-phase link guard now always cancels the click and re-navigates after the dialog resolves.
 
 ## 2026-10-30 - HR phase 2: Payroll runs
 

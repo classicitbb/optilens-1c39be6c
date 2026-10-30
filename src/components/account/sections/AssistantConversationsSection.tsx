@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { useConfirm } from "@/hooks/useConfirm";
 
 type ConversationRow = { id: string; title: string; audience: string; created_at: string; updated_at: string };
 
 const AssistantConversationsSection = () => {
+  const { confirm, confirmDialog } = useConfirm();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { loadConversation } = useCompanionAssistant();
@@ -34,7 +36,7 @@ const AssistantConversationsSection = () => {
   };
 
   const deleteConversation = async (id: string) => {
-    if (!window.confirm("Delete this saved assistant chat?")) return;
+    if (!(await confirm({ title: "Delete this saved assistant chat?", confirmLabel: "Delete", destructive: true }))) return;
     const { error } = await (supabase as any).from("assistant_conversations").delete().eq("id", id);
     if (!error) await queryClient.invalidateQueries({ queryKey: ["assistant-conversations", user?.id] });
   };
@@ -51,6 +53,7 @@ const AssistantConversationsSection = () => {
 
   return (
     <Card>
+      {confirmDialog}
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl"><MessageSquare className="h-5 w-5" />Saved assistant chats</CardTitle>
         <CardDescription>Chats you chose to save for later reference.</CardDescription>

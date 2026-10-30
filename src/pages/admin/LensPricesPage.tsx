@@ -15,6 +15,7 @@ import PricelistVersionsSection from "@/components/admin/PricelistVersionsSectio
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import MaterialUpgradesGrid from "@/components/admin/MaterialUpgradesGrid";
 import MatrixExportBar from "@/components/admin/MatrixExportBar";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const BLUE = "hsl(215 65% 50%)";
 
@@ -25,6 +26,7 @@ const LensPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
 
   const [activeSheetTab, setActiveSheetTab] = useState<string | null>(null);
   const [contentTab, setContentTab] = useState<ContentTab>("matrix");
@@ -88,8 +90,8 @@ const LensPricesPage = () => {
     );
   };
 
-  const handleDelete = (sheet: PricingSheet) => {
-    if (!confirm(`Delete "${sheet.name}"? This cannot be undone.`)) return;
+  const handleDelete = async (sheet: PricingSheet) => {
+    if (!(await confirm({ title: `Delete "${sheet.name}"?`, description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     deleteMutation.mutate(sheet.id, {
       onSuccess: () => {
         if (resolvedTab === sheet.id) setActiveSheetTab(null);
@@ -111,6 +113,7 @@ const LensPricesPage = () => {
 
   return (
     <div className="p-4 space-y-4">
+      {confirmDialog}
       {/* Page title + sheet manager */}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Lens Prices</h1>

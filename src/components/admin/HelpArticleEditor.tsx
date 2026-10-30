@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const PAGE_SLUGS = [
   { value: "all", label: "All Pages" },
@@ -33,6 +34,7 @@ const PAGE_SLUGS = [
 const HelpArticleEditor = () => {
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const { upsertArticle, deleteArticle, refetchAll, allArticles } = useHelpArticles();
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState<Partial<HelpArticle> | null>(null);
@@ -69,7 +71,7 @@ const HelpArticleEditor = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this help article?")) return;
+    if (!(await confirm({ title: "Delete this help article?", confirmLabel: "Delete", destructive: true }))) return;
     try {
       await deleteArticle(id);
       toast({ title: "Article deleted" });
@@ -158,6 +160,7 @@ const HelpArticleEditor = () => {
 
   return (
     <ScrollArea className="flex-1">
+      {confirmDialog}
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">Help Articles</h3>

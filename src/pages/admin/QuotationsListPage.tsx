@@ -20,6 +20,7 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import { format } from "date-fns";
 import { useStockOrderDrafts } from "@/hooks/useStockOrderBuilder";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const statusColors: Record<string, string> = {
   Draft: "hsl(215 15% 50%)",
@@ -35,6 +36,7 @@ const QuotationsListPage = () => {
   const { data: stockDrafts = [] } = useStockOrderDrafts();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
@@ -66,8 +68,8 @@ const QuotationsListPage = () => {
     );
   };
 
-  const handleDelete = (quote: Quote) => {
-    if (!confirm(`Delete ${quote.status} quote ${quote.quote_number}? This cannot be undone.`)) return;
+  const handleDelete = async (quote: Quote) => {
+    if (!(await confirm({ title: `Delete ${quote.status} quote ${quote.quote_number}?`, description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     deleteMutation.mutate(quote.id, {
       onSuccess: () => toast({ title: "Quote deleted" }),
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -110,6 +112,7 @@ const QuotationsListPage = () => {
 
   return (
     <div className="p-4 space-y-4">
+      {confirmDialog}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AdminPageHeader icon={FileText} title="Quotations" />

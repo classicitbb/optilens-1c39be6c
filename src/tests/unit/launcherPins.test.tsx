@@ -21,7 +21,8 @@ vi.mock("@/features/admin/core/hooks/useLauncherPins", () => ({
 }));
 
 vi.mock("@/hooks/useRolePermissions", () => ({
-  useRolePermissions: () => ({ hasAppAccess: () => true }),
+  PATH_FEATURE_MAP: {},
+  useRolePermissions: () => ({ hasAppAccess: () => true, canView: () => true }),
 }));
 
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Pencil, Trash2, Landmark, ExternalLink, Search, Building2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 
 type BankPaymentPortal = {
   bank_name: string;
@@ -27,6 +28,7 @@ function isHttpUrl(value: string) {
 
 const BankPaymentPortalsPage = () => {
   const { toast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
   const [rows, setRows] = useState<BankPaymentPortal[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -100,7 +102,7 @@ const BankPaymentPortalsPage = () => {
   }
 
   async function handleDelete(bankName: string) {
-    if (!confirm(`Remove the payment portal mapping for "${bankName}"?`)) return;
+    if (!(await confirm({ title: `Remove the payment portal mapping for "${bankName}"?`, confirmLabel: "Remove", destructive: true }))) return;
     const { error } = await supabase.from("bank_payment_portals").delete().eq("bank_name", bankName);
     if (error) toast({ title: "Delete failed", description: error.message, variant: "destructive" });
     else { toast({ title: "Removed" }); load(); }
@@ -108,6 +110,7 @@ const BankPaymentPortalsPage = () => {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col space-y-4">
+      {confirmDialog}
       <div className="flex items-center justify-between">
         <AdminPageHeader icon={Landmark} title="Bank Payment Portals" />
         <Button

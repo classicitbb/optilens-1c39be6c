@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { sanitizeRichTextHtml } from "@/lib/sanitizeRichTextHtml";
+import { useConfirm } from "@/hooks/useConfirm";
 import { docStudioApi } from "./api";
 import {
   BILLING_DOCUMENT_TYPES,
@@ -904,6 +905,7 @@ function FilesPanel({
 
 const NativeDocStudio = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { confirm, confirmDialog } = useConfirm();
   const [tab, setTab] = useState<StudioTab>("files");
   const [draft, setDraft] = useState<StudioDraft>(() => defaultDraft("email"));
   const [files, setFiles] = useState<StudioFileSummary[]>([]);
@@ -1133,9 +1135,11 @@ const NativeDocStudio = () => {
 
   const removeFile = async (file: StudioFileSummary) => {
     if (
-      !window.confirm(
-        `Delete ${file.fileName ?? file.documentName ?? "this file"}?`,
-      )
+      !(await confirm({
+        title: `Delete ${file.fileName ?? file.documentName ?? "this file"}?`,
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
     )
       return;
     try {
@@ -1185,6 +1189,7 @@ const NativeDocStudio = () => {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#e9e5da] text-[#0b1e35]">
+      {confirmDialog}
       <style>{`@media print {
         .ds-native-no-print { display: none !important; }
         .ds-native-print { max-width: none !important; border: 0 !important; box-shadow: none !important; }
