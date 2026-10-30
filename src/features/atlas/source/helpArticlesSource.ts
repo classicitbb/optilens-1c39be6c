@@ -268,9 +268,10 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
         ...(spaceColumn ? { space: input.spaceId } : {}),
       };
       if (input.spaceId === PERSONAL_SPACE) {
-        // Stored privately: the policy requires the author to be the owner. Without the space column
-        // the page would land in the wiki, so refuse rather than publish something meant to be private.
-        if (!spaceColumn) throw new Error("Personal pages are not available on this backend yet.");
+        // Stored privately: the policy requires the author to be the owner. `space` is always written here, not
+        // gated on the probed flag (which is reset when the source is rebuilt): if the column were missing the
+        // insert fails outright instead of landing the page in the wiki.
+        payload.space = PERSONAL_SPACE;
         const { data: session } = await supabase.auth.getSession();
         const ownerId = session.session?.user.id;
         if (!ownerId) throw new Error("Sign in to create a personal page.");
@@ -405,20 +406,26 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
       await snapshot(id, version.title, version.doc, next, `Rollback to v${version.number}`);
     },
 
-    async searchPeople(query) {
+    async searchPeople(query, options) {
       const term = query.replace(/[,()%*]/g, " ").trim();
       if (!term) return [];
       const { data } = await (supabase.from("profiles") as any)
-        .select("id, full_name, display_name")
+        .select("id, user_id, full_name, display_name")
         .or(`full_name.ilike.%${term}%,display_name.ilike.%${term}%`)
-        .limit(5);
-      return ((data ?? []) as Row[])
-        .map((person) => ({ id: person.id as string, name: (person.full_name || person.display_name || "") as string }))
-        .filter((person) => person.name);
+        .limit(options?.staffOnly ? 20 : 5);
+      const rows = (data ?? []) as Row[];
+      const name = (person: Row) => (person.full_name || person.display_name || "") as string;
+      if (!options?.staffOnly) return rows.map((person) => ({ id: person.id as string, name: name(person) })).filter((person) => person.name);
+      // Personal pages can only be shared with staff (the share policy checks it), so customers are not offered.
+      // Shares reference the sign-in account, which is `profiles.user_id` (not `profiles.id`).
+      const people = rows.filter((person) => person.user_id && name(person)).map((person) => ({ id: person.user_id as string, name: name(person) }));
+      const staff = await Promise.all(people.map(async (person) => ((await (supabase as any).rpc("has_staff_role", { _user_id: person.id })).data === true ? person : null)));
+      return staff.filter((person): person is { id: string; name: string } => person !== null).slice(0, 8);
     },
 
     async personName(id) {
-      const { data } = await (supabase.from("profiles") as any).select("full_name, display_name, email").eq("id", id).maybeSingle();
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+      const { data } = await (supabase.from("profiles") as any).select("full_name, display_name, email").or(`id.eq.${id},user_id.eq.${id}`).limit(1).maybeSingle();
       return ((data?.full_name || data?.display_name || data?.email || null) as string | null) ?? null;
     },
 

@@ -39,7 +39,7 @@ const PersonalSharing = ({ page, source }: Props) => {
     }
     let active = true;
     const timer = window.setTimeout(() => {
-      source.searchPeople(q).then(
+      source.searchPeople(q, { staffOnly: true }).then(
         (found) => active && setResults(found.filter((person) => person.id !== user?.id && !shares.some((share) => share.userId === person.id)).slice(0, 6)),
         () => active && setResults([]),
       );
@@ -57,7 +57,8 @@ const PersonalSharing = ({ page, source }: Props) => {
       await action();
       await load();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not change sharing.");
+      const detail = (error as { message?: unknown } | null)?.message;
+      setMessage(typeof detail === "string" && detail ? detail : "Could not change sharing.");
     } finally {
       setBusy(false);
     }

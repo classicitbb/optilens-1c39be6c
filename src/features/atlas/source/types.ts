@@ -186,7 +186,7 @@ export interface AtlasSource {
   listVersions(id: string): Promise<AtlasVersion[]>;
   restoreVersion(id: string, version: AtlasVersion): Promise<void>;
   /** People who can be @-mentioned or shown as owners. */
-  searchPeople(query: string): Promise<{ id: string; name: string }[]>;
+  searchPeople(query: string, options?: { staffOnly?: boolean }): Promise<{ id: string; name: string }[]>;
   personName(id: string): Promise<string | null>;
   /** Title, summary and body search over pages the caller can read. */
   search(query: string, options?: { spaceIds?: string[]; limit?: number }): Promise<AtlasHit[]>;

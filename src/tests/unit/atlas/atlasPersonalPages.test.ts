@@ -61,10 +61,14 @@ describe("atlas personal space", () => {
     expect(inserts.some((entry) => entry.table === "help_article_contexts")).toBe(false);
   });
 
-  it("refuses to create a personal page when the space column is unavailable or nobody is signed in", async () => {
+  it("always stores a personal page in the personal space, even on a source that has not listed pages yet", async () => {
     const fresh = source();
-    await expect(fresh.createPage({ spaceId: "personal", title: "Mine", slug: "mine" })).rejects.toThrow(/not available/);
-    await fresh.listPages();
+    await fresh.createPage({ spaceId: "personal", title: "Mine", slug: "mine" });
+    expect(inserts.find((entry) => entry.table === "help_articles")!.payload).toMatchObject({ space: "personal", owner_id: "user-1" });
+  });
+
+  it("refuses to create a personal page when nobody is signed in", async () => {
+    const fresh = source();
     session = null;
     await expect(fresh.createPage({ spaceId: "personal", title: "Mine", slug: "mine" })).rejects.toThrow(/Sign in/);
     expect(inserts.some((entry) => entry.table === "help_articles")).toBe(false);
