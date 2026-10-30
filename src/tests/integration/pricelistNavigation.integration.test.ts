@@ -42,7 +42,8 @@ describe("pricelist navigation", () => {
     expect(editor).toContain('hidden={section !== "stock"}');
     expect(editor).toContain('hidden={section !== "supplies"}');
     expect(editor).toContain('window.addEventListener("beforeunload"');
-    expect(editor).toContain("window.confirm(LEAVE_WARNING)");
+    expect(editor).toContain("confirm(LEAVE_WARNING)");
+    expect(editor).not.toContain("window.confirm");
     expect(editor).not.toContain("versions[0]");
   });
 

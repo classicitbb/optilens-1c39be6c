@@ -52,9 +52,9 @@ describe("FillFromPhoto", () => {
   });
 
   it("asks before replacing what is already entered, and stops if they decline", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     const { onFilled, choose } = setup({ hasEntries: true });
     choose(photo());
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     await Promise.resolve();
     expect(mocks.create).not.toHaveBeenCalled();
     expect(onFilled).not.toHaveBeenCalled();

@@ -73,7 +73,6 @@ describe("Rx Orders workspace", () => {
 
   it("releases only the selected orders, each to its own sender, after a confirmation", async () => {
     load([sub("1"), sub("2", { dispatch_provider: "gatekeeper" }), sub("3")]);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     mocks.approve.mockResolvedValue(undefined);
     show();
     fireEvent.mouseDown(screen.getByRole("tab", { name: /Ready to release/ }));
@@ -81,6 +80,7 @@ describe("Rx Orders workspace", () => {
     fireEvent.click(screen.getByLabelText("Select Q-1"));
     fireEvent.click(screen.getByLabelText("Select Q-2"));
     fireEvent.click(screen.getByRole("button", { name: /Release selected/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Release" }));
     await waitFor(() => expect(mocks.approve).toHaveBeenCalledTimes(2));
     expect(mocks.approve).toHaveBeenCalledWith({ id: "1", provider: "innovations" });
     expect(mocks.approve).toHaveBeenCalledWith({ id: "2", provider: "gatekeeper" });
@@ -88,12 +88,12 @@ describe("Rx Orders workspace", () => {
 
   it("does not release anything when the confirmation is declined", async () => {
     load([sub("1")]);
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     show();
     fireEvent.mouseDown(screen.getByRole("tab", { name: /Ready to release/ }));
     await waitFor(() => screen.getByLabelText("Select Q-1"));
     fireEvent.click(screen.getByLabelText("Select Q-1"));
     fireEvent.click(screen.getByRole("button", { name: /Release selected/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(mocks.approve).not.toHaveBeenCalled();
   });
 
