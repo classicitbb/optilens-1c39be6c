@@ -5,6 +5,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import { recordAiSpend } from "../_shared/aiSpend.ts";
+import { checkOutreachDraft } from "../_shared/crm/outreachGate.ts";
+import { buildLeadProfile } from "../_shared/crm/leadProfile.ts";
+import { psychologyPrompt } from "../_shared/crm/outreachPsychology.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -52,7 +55,7 @@ serve(async (req) => {
 
     const { data: contact, error: cErr } = await supabase
       .from("contacts")
-      .select("name,business_name,city,country,website,stage,pipeline,notes")
+      .select("name,business_name,city,country,website,stage,pipeline,notes,instagram_handle,google_rating,google_reviews_count,phone,email,is_customer")
       .eq("id", contact_id)
       .single();
     if (cErr || !contact) return json({ error: `Contact not found: ${cErr?.message ?? ""}` }, 404);
@@ -71,6 +74,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY is not configured" }, 500);
 
+    // Order health is optional: the feed may not be flowing, so a failure just means no rhythm signal.
+    const { data: healthRow } = await supabase
+      .from("customer_order_health")
+      .select("health,quiet_days,avg_gap_days")
+      .eq("contact_id", contact_id)
+      .maybeSingle();
+    const profile = buildLeadProfile(contact, healthRow ?? null);
+
     const intent = STAGE_INTENT[String(contact.stage)] ?? STAGE_INTENT.target;
     const who = contact.business_name || contact.name;
     const channelRule =
@@ -85,35 +96,56 @@ ${contact.notes ? `What we know: ${contact.notes}.` : ""}
 Pipeline stage: ${contact.stage}. Intent for this step: ${intent}
 ${step.body_template ? `Draft guidance / template to build from: ${step.body_template}` : ""}
 ${channelRule}
+${psychologyPrompt(contact.stage)}
+Buyer persona: ${profile.persona}. ${profile.summary} Suggested angle: ${profile.angle.lead} Use only facts given here; do not mention the persona label itself.
 Return ONLY a JSON object: {"subject": string, "body": string}. For WhatsApp use an empty subject.`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: CV_CONTEXT },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    const generate = async (extraInstruction: string) => {
+      const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: CV_CONTEXT },
+            { role: "user", content: extraInstruction ? `${userPrompt}
+${extraInstruction}` : userPrompt },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
 
-    const metering = aiRes.ok ? await aiRes.clone().json().catch(() => null) : null;
-    await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "crm-draft-outreach", model: "google/gemini-3-flash-preview", httpStatus: aiRes.status, usage: metering?.usage });
-    if (!aiRes.ok) {
-      const status = aiRes.status === 429 ? 429 : aiRes.status === 402 ? 402 : 502;
-      return json({ error: `AI gateway error (${aiRes.status})` }, status);
-    }
+      const metering = aiRes.ok ? await aiRes.clone().json().catch(() => null) : null;
+      await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "crm-draft-outreach", model: "google/gemini-3-flash-preview", httpStatus: aiRes.status, usage: metering?.usage });
+      if (!aiRes.ok) return { error: aiRes.status } as const;
 
-    const completion = await aiRes.json();
-    const content = completion?.choices?.[0]?.message?.content ?? "{}";
-    let parsed: { subject?: string; body?: string };
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = { subject: "", body: String(content) };
+      const completion = await aiRes.json();
+      const content = completion?.choices?.[0]?.message?.content ?? "{}";
+      try {
+        return { parsed: JSON.parse(content) as { subject?: string; body?: string } } as const;
+      } catch {
+        return { parsed: { subject: "", body: String(content) } } as const;
+      }
+    };
+
+    const fail = (status: number) => json({ error: `AI gateway error (${status})` }, status === 429 ? 429 : status === 402 ? 402 : 502);
+
+    const result = await generate("");
+    if ("error" in result) return fail(result.error);
+    let parsed = result.parsed;
+    let gate = checkOutreachDraft({ subject: parsed.subject, body: parsed.body ?? "" }, step.channel);
+
+    // One corrective retry that names the failed checks; if it still fails, the
+    // draft is saved anyway and the reasons travel with the response for review.
+    if (!gate.ok) {
+      const retry = await generate(`Your previous draft failed these checks: ${gate.reasons.join(" ")} Rewrite it so every check passes.`);
+      if (!("error" in retry)) {
+        const retryGate = checkOutreachDraft({ subject: retry.parsed.subject, body: retry.parsed.body ?? "" }, step.channel);
+        if (retryGate.ok || retryGate.reasons.length < gate.reasons.length) {
+          parsed = retry.parsed;
+          gate = retryGate;
+        }
+      }
     }
 
     const subject = step.channel === "email" ? (parsed.subject ?? step.subject ?? "") : null;
@@ -134,7 +166,7 @@ Return ONLY a JSON object: {"subject": string, "body": string}. For WhatsApp use
       .single();
     if (iErr) return json({ error: `Could not save draft: ${iErr.message}` }, 500);
 
-    return json({ draft });
+    return json({ draft, gate });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }

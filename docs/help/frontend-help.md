@@ -1,8 +1,16 @@
 # Frontend Help Docs
 
-## 2026-10-30 - Hiding salary figures
+## 2026-11-01 - Hiding salary figures
 
 On **Finance → Payroll** runs, **Finance → Income tax**, an employee's Compensation, Pay items, Tax and Notes tabs, and on **/me**, pay figures and HR notes are blurred until you click **Show figures**. They stay visible for 30 seconds (the button counts down) and then blur again; click **Hide** to blur them sooner. To edit pay or a note, show the figures first.
+
+## 2026-11-01 - Verify email
+
+Open a contact, go to the **Email** tab and click **Verify email**. Each address shows Verified, Catch-all (the mail server accepts anything, so it cannot be confirmed), Invalid or Unknown. Addresses checked in the last 90 days are skipped. This does not send anything.
+
+## 2026-11-01 - Outreach warnings and persona badges
+
+**Outbox.** If a draft shows an amber warning (for example "No clear ask" or "Contains banned phrase"), edit it until the warning clears. The warnings guide you; they do not block sending. **Pipeline.** Each contact card has a small persona badge. Hover it to see why the contact got that persona and what to lead with.
 
 ## 2026-10-30 - Leave, income tax and editing payslip deductions
 

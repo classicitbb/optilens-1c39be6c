@@ -1,7 +1,7 @@
 {
   "semanticVersion": "0.32.0",
-  "sourceEntry": "2026-10-30 — HR privacy filter",
-  "releaseDateTimeUtc": "2026-10-30T00:00:00.000Z",
+  "sourceEntry": "2026-11-01 — HR privacy filter",
+  "releaseDateTimeUtc": "2026-11-01T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
     "Salary figures, tax estimates and HR notes now start blurred on the payroll run, income tax and employee pages and on /me. **Show figures** reveals them for 30 seconds; they blur again on their own, or straight away on **Hide**, on leaving the page, or on switching browser tab."
