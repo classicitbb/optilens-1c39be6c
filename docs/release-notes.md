@@ -2,6 +2,15 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-01 — CRM email verification button
+
+### Release Notes
+- Contact editor, Email tab: a **Verify email** button checks each address on the contact and shows Verified, Catch-all, Invalid or Unknown beside it. Nothing is blocked or sent because of the result yet.
+- Needs the `contact_email_checks` migration applied and a `REOON_API_KEY` secret; until then the list shows "Not checked" and the button reports the missing setup.
+
+### Technical Changelog
+- `ContactEmailVerify` (`src/features/admin/crm/`) calls `crm-email-verify` and reads `contact_email_checks`. Migration `20261101120000_contact_email_checks.sql` is written, not applied. Not deployed.
+
 ## 2026-11-01 — CRM outreach quality and lead profiles
 
 ### Release Notes

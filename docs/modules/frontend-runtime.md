@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-01 - CRM email verification button
+
+- `ContactEmailVerify` renders on the contact editor's Email tab. It parses `contacts.email` with `parseEmailList`, reads `contact_email_checks` (errors read as no results, so it renders before the migration), and invokes `crm-email-verify` for stale or unchecked addresses.
+
 ## 2026-11-01 - CRM outreach quality and lead profiles
 
 - `buildLeadProfile` (`supabase/functions/_shared/crm/leadProfile.ts`) derives a persona, evidence signals, suggested angle and channel from contact fields and `customer_order_health`. It is pure and stores nothing. The pipeline board renders it; `crm-draft-outreach` feeds it into the prompt.
