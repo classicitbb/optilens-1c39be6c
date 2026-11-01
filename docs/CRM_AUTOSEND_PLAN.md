@@ -43,7 +43,7 @@ All follow the existing RLS style: `has_any_role` to read, `has_edit_role` to wr
 
 **M2 `outreach_outbox` send columns**: `to_email`, `send_at`, `claimed_at`, `provider_message_id`, `rfc_message_id`, `in_reply_to`, `gate_reasons jsonb`, `approved_by`, `attempts int`. Widen the status check to add `scheduled` and `sending`. Unique (`enrollment_id`, `step_order`) as the double-send guard (`step_order` is added too; nullable for ad-hoc drafts).
 
-**M3 `outreach_settings`** (single row): `sending_paused` (default true), `require_approval` (default true), `daily_cap`, `send_window_start/end`, `timezone`, `bounce_rate_pause_threshold`, `allow_catch_all`, `link_domains text[]`, `physical_address`. Defaults are the safe ones; nothing sends until a person flips `sending_paused`.
+**M3 `outreach_settings`** (single row): `sending_paused` (default true), `require_approval` (default true), `daily_cap`, `send_window_start/end`, `timezone`, `bounce_rate_pause_threshold`, `allow_catch_all`, `allowed_countries text[]`, `link_domains text[]`, `physical_address`. Defaults are the safe ones; nothing sends until a person flips `sending_paused`.
 
 **M4 `outreach_replies`**: `outbox_id`, `contact_id`, `from_email`, `received_at`, `rfc_message_id`, `in_reply_to`, `body`, `intent` (`interested` | `question` | `objection` | `not_interested` | `out_of_office` | `wrong_person` | `unsubscribe` | `bounce`), `handled_at`. Unique on `rfc_message_id`.
 
@@ -62,15 +62,33 @@ All follow the existing RLS style: `has_any_role` to read, `has_edit_role` to wr
 - Contact card: email status chip (verified / catch-all / invalid).
 - Settings: the M3 fields. Turning `require_approval` off needs typing a confirmation word and is logged.
 
-## Decisions needed from you
+## Decisions (2026-11-01)
 
-| # | Question | Recommendation |
-|---|---|---|
-| D1 | Which mailbox sends cold outreach? The managed transport sends from the main brand domain; cold mail there puts transactional deliverability (orders, statements, password resets) at risk, and the managed service's terms for cold outreach are unconfirmed. | A dedicated secondary domain and mailbox on a normal mail provider, warmed first. Keep managed email for transactional mail only. |
-| D2 | Which verifier? | One with a free tier to start (Reoon, ZeroBounce or Hunter); you create the key, it goes in as a secret, never in chat. |
-| D3 | How do replies reach the system? | Poll the outreach mailbox (IMAP or provider API) from `crm-outreach-replies`, separate from the support inbound webhook. |
-| D4 | Rules for recipients (Barbados, wider Caribbean, US, UK)? | Confirm with whoever advises on this. The plan carries an unsubscribe line and a physical address on every message, but this is not legal advice. |
-| D5 | Daily cap and send window to start. | A low cap that rises weekly during warm-up. |
+| # | Decision |
+|---|---|
+| D1 | Cold outreach sends from a dedicated secondary domain and mailbox on a normal mail provider, never the main brand domain. The mailbox is warmed up for 2 to 4 weeks first (a warmup service exchanges real two-way mail with other inboxes to build reputation). Sender is a named person (`firstname@`), with Reply-To set to the same address. Never `noreply@`, `info@`, `sales@` or `support@`. **Still to choose:** the sender's name and the secondary domain. |
+| D2 | Verifier: Reoon. It has a single GET endpoint (`/api/v1/verify` with `email`, `key`, `mode`), the simplest to integrate, and a free tier (its own page advertises 600 credits a month; one review says 100, so confirm at signup). "Unknown" results and errors are not charged. Key supplied as a secret by the owner. |
+| D3 | Replies: poll the outreach mailbox from `crm-outreach-replies`, separate from the helpdesk webhook. |
+| D4 | Rules for recipients: see "Recipient rules" below. |
+| D5 | Daily cap: start at 6 and allow up to 8 a day from one mailbox (`daily_cap = 8`, first week capped at 6). |
+
+## Recipient rules (researched 2026-11-01, not legal advice)
+
+Findings come from secondary sources (law-firm guides, compliance sites, vendor blogs); several disagree on details. Have a local adviser check the primary texts before the first send.
+
+- **Every message:** a clear sender identity, a postal address, and a working opt-out honoured promptly. Opt-outs go to `suppressed_emails` and are never re-contacted. These satisfy the US CAN-SPAM Act and match the UK rules.
+- **United States:** CAN-SPAM requires an opt-out, accurate headers and a postal address. Sources disagree on whether business-to-business mail has any exemption, so treat it as covered.
+- **United Kingdom:** PECR consent rules do not apply to corporate subscribers (limited companies and similar), but sole traders and some partnerships count as individuals and need consent. A named person's address is still personal data under UK GDPR, so a lawful basis, privacy information and a way to object are needed.
+- **Barbados:** the Data Protection Act 2019 regulates direct marketing and gives people a right to object (sources cite a 21-day window to stop). Which provisions are in force, and whether it treats B2B contacts differently, were not confirmed.
+- **Jamaica:** the Data Protection Act 2020 says personal data may not be processed for direct marketing without the person's consent, with a possible exception for existing customers. Treat named Jamaican contacts as consent-required.
+- **Trinidad and Tobago:** the Act is only partly proclaimed and sources found no specific direct-marketing or electronic-marketing rule. Provisional.
+- **Bahamas and other islands:** not verified.
+
+What this changes in the build:
+- `outreach_settings` gains `allowed_countries text[]` (default: Barbados only, plus any country the owner explicitly adds). The sender refuses a contact whose country is not on the list.
+- Jamaican contacts, and any contact who is a sole trader or an individual rather than a company, stay manual (draft only) until consent is confirmed.
+- Each message carries the postal address and a plain "reply STOP" line; a reply of STOP, "unsubscribe" or similar is classified as `unsubscribe` and suppressed.
+- Opt-outs are honoured at send time, not only at approval time.
 
 ## Rollout order
 
