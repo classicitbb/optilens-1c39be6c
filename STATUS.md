@@ -1,3 +1,7 @@
+## CRM outreach quality and lead profiles - 2026-11-01
+
+Branch `crm-harvey-psychology`, local source. Borrows ideas from the Harvey sales agent. `crm-draft-outreach` now adds a marketing-psychology principle per pipeline stage plus a buyer persona and suggested angle, runs a deterministic quality gate (banned phrases, length, links, placeholders, a clear ask), retries once on failure and returns the gate result. The Outbox shows live gate warnings while a draft is edited. Pipeline cards show a persona badge with its evidence in a tooltip. Shared logic: `supabase/functions/_shared/crm/{outreachGate,outreachPsychology,leadProfile}.ts`. No migration, no new service and no sending change; drafts still go through human approval. Unit tests, app TypeScript and lint pass. Not checked: Deno type-check, the edge function against the live AI gateway, or the pages in a signed-in browser. Not deployed. Next, each needing approval: email verification, reply handling, approval-gated automated sending.
+
 # Project Status
 
 ## Fixed asset register phase 1 - 2026-10-30

@@ -2,6 +2,17 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-01 — CRM outreach quality and lead profiles
+
+### Release Notes
+- CRM outreach drafts now follow one marketing-psychology principle per pipeline stage, tuned to a buyer persona (for example, a word-of-mouth shop gets a short WhatsApp with one easy question).
+- Every draft is checked for spam and AI-sounding phrases, length, unfilled placeholders, more than one link and a missing ask. A failing draft is rewritten once. The Outbox shows live warnings while you edit.
+- Pipeline cards show a persona badge; hover it to see the evidence and the suggested angle.
+- Sending is unchanged: every draft still waits for staff approval.
+
+### Technical Changelog
+- Shared modules `supabase/functions/_shared/crm/outreachGate.ts`, `outreachPsychology.ts` and `leadProfile.ts` (re-exported at `src/features/admin/crm/leadProfile.ts`). `crm-draft-outreach` returns `{ draft, gate }`. No migration or new service; not deployed.
+
 ## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
 
 ### Release Notes

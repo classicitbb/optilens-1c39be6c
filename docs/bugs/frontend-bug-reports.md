@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-11-01 - CRM outreach quality and lead profiles (no defect)
+
+New features, no bug fixed. Not checked: the edge function under Deno, a live AI gateway call, or the pages in a signed-in browser.
+
 ## 2026-10-30 - HR phase 3 (no defect) and contact deletes
 
 New features, no bug fixed. Behaviour change: deleting a contact that other records link to used to cascade or null those links silently; it is now refused (single delete shows why, bulk delete and purge skip linked contacts and list them). Known limits: leave days are counted Monday–Friday without public holidays (edit the days on the request); balances before `tracking_from` need an opening adjustment; the tax estimate projects remaining months from the latest payslip and needs pay from before the app entered per employee.

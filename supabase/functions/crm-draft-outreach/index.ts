@@ -6,6 +6,7 @@ import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowed
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import { recordAiSpend } from "../_shared/aiSpend.ts";
 import { checkOutreachDraft } from "../_shared/crm/outreachGate.ts";
+import { buildLeadProfile } from "../_shared/crm/leadProfile.ts";
 import { psychologyPrompt } from "../_shared/crm/outreachPsychology.ts";
 
 const corsPolicy = createCorsPolicy();
@@ -54,7 +55,7 @@ serve(async (req) => {
 
     const { data: contact, error: cErr } = await supabase
       .from("contacts")
-      .select("name,business_name,city,country,website,stage,pipeline,notes")
+      .select("name,business_name,city,country,website,stage,pipeline,notes,instagram_handle,google_rating,google_reviews_count,phone,email,is_customer")
       .eq("id", contact_id)
       .single();
     if (cErr || !contact) return json({ error: `Contact not found: ${cErr?.message ?? ""}` }, 404);
@@ -73,6 +74,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY is not configured" }, 500);
 
+    // Order health is optional: the feed may not be flowing, so a failure just means no rhythm signal.
+    const { data: healthRow } = await supabase
+      .from("customer_order_health")
+      .select("health,quiet_days,avg_gap_days")
+      .eq("contact_id", contact_id)
+      .maybeSingle();
+    const profile = buildLeadProfile(contact, healthRow ?? null);
+
     const intent = STAGE_INTENT[String(contact.stage)] ?? STAGE_INTENT.target;
     const who = contact.business_name || contact.name;
     const channelRule =
@@ -88,6 +97,7 @@ Pipeline stage: ${contact.stage}. Intent for this step: ${intent}
 ${step.body_template ? `Draft guidance / template to build from: ${step.body_template}` : ""}
 ${channelRule}
 ${psychologyPrompt(contact.stage)}
+Buyer persona: ${profile.persona}. ${profile.summary} Suggested angle: ${profile.angle.lead} Use only facts given here; do not mention the persona label itself.
 Return ONLY a JSON object: {"subject": string, "body": string}. For WhatsApp use an empty subject.`;
 
     const generate = async (extraInstruction: string) => {
