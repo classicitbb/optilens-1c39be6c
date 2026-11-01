@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useContacts } from "@/hooks/useContacts";
 import { useGenerateDueSteps, useOutbox, useUpdateOutbox, type OutboxDraft } from "@/features/admin/crm/hooks/useCadences";
 import { useToast } from "@/hooks/use-toast";
+import { checkOutreachDraft } from "../../../../supabase/functions/_shared/crm/outreachGate";
 
 type StatusFilter = OutboxDraft["status"] | "all";
 
@@ -84,6 +85,10 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
   const [body, setBody] = useState(draft.body ?? "");
   const dirty = subject !== (draft.subject ?? "") || body !== (draft.body ?? "");
   const editable = draft.status === "draft" || draft.status === "approved";
+  const gate = useMemo(
+    () => (editable ? checkOutreachDraft({ subject, body }, draft.channel === "whatsapp" ? "whatsapp" : "email") : null),
+    [editable, subject, body, draft.channel],
+  );
 
   const save = async () => {
     await onUpdate({ id: draft.id, patch: { subject, body } });
@@ -126,6 +131,12 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" className="h-8 text-xs" disabled={!editable} />
         ) : null}
         <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} className="text-xs" disabled={!editable} />
+
+        {gate && !gate.ok ? (
+          <ul className="space-y-0.5 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-900 dark:text-amber-200" aria-label="Draft quality warnings">
+            {gate.reasons.map((r) => <li key={r}>{r}</li>)}
+          </ul>
+        ) : null}
 
         <div className="flex flex-wrap gap-1">
           {editable ? (

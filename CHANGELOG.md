@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-11-01 — CRM email verification button
+
+### Release Notes
+- Contact editor, Email tab: a **Verify email** button checks each address on the contact and shows Verified, Catch-all, Invalid or Unknown beside it. Nothing is blocked or sent because of the result yet.
+- Needs the `contact_email_checks` migration applied and a `REOON_API_KEY` secret; until then the list shows "Not checked" and the button reports the missing setup.
+
+### Technical Changelog
+- `ContactEmailVerify` (`src/features/admin/crm/`) calls `crm-email-verify` and reads `contact_email_checks`. Migration `20261101120000_contact_email_checks.sql` is written, not applied. Not deployed.
+
+## 2026-11-01 — CRM outreach quality and lead profiles
+
+### Release Notes
+- CRM outreach drafts now follow one marketing-psychology principle per pipeline stage, tuned to a buyer persona (for example, a word-of-mouth shop gets a short WhatsApp with one easy question).
+- Every draft is checked for spam and AI-sounding phrases, length, unfilled placeholders, more than one link and a missing ask. A failing draft is rewritten once. The Outbox shows live warnings while you edit.
+- Pipeline cards show a persona badge; hover it to see the evidence and the suggested angle.
+- Sending is unchanged: every draft still waits for staff approval.
+
+### Technical Changelog
+- Shared modules `supabase/functions/_shared/crm/outreachGate.ts`, `outreachPsychology.ts` and `leadProfile.ts` (re-exported at `src/features/admin/crm/leadProfile.ts`). `crm-draft-outreach` returns `{ draft, gate }`. No migration or new service; not deployed.
+
 ## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
 
 ### Release Notes

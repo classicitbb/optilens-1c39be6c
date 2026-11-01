@@ -1,5 +1,13 @@
 # Frontend Help Docs
 
+## 2026-11-01 - Verify email
+
+Open a contact, go to the **Email** tab and click **Verify email**. Each address shows Verified, Catch-all (the mail server accepts anything, so it cannot be confirmed), Invalid or Unknown. Addresses checked in the last 90 days are skipped. This does not send anything.
+
+## 2026-11-01 - Outreach warnings and persona badges
+
+**Outbox.** If a draft shows an amber warning (for example "No clear ask" or "Contains banned phrase"), edit it until the warning clears. The warnings guide you; they do not block sending. **Pipeline.** Each contact card has a small persona badge. Hover it to see why the contact got that persona and what to lead with.
+
 ## 2026-10-30 - Leave, income tax and editing payslip deductions
 
 **Leave.** Open **Finance → Leave**. **Record leave** adds leave for anyone (ticked "Record as approved" by default); requests waiting for a decision are on the Requests tab with Approve and Decline. **Balances** shows vacation available and other leave taken this year. **Settings** holds the leave types: entitlement by years of service (e.g. `1:15, 5:20`), carry-over limit, whether pay continues, and notes; and the policy (balance tracking start, working days). The defaults follow Barbados law. On an employee's **Leave** tab, add an opening balance for leave owed before tracking started. Unpaid and NIS-paid leave is taken off that month's pay when the payroll run is created or recalculated.
