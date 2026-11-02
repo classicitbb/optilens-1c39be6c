@@ -296,7 +296,7 @@ const ShipmentDetailPage = () => {
 
   const isLocked = shipment?.status === "locked";
   const editable = canEdit && !isLocked;
-  const LENS_CODES = ["lens", "stklens", "osrxlens"];
+  const LENS_CODES = ["lens", "stklens", "osrxlens", "stock lens", "outsource lens"];
   const isLensShipment = LENS_CODES.includes(shipment?.type ?? "");
 
   const totals = useMemo(() => {
@@ -531,6 +531,33 @@ const ShipmentDetailPage = () => {
     upsertLine.mutate({ id: line.id, ...updates });
   }, [upsertLine]);
 
+  // Link a lens line to an Innovations order: its lens-only sell total fixes Sell (BBD) and markup is derived.
+  const linkInnovationsOrder = useCallback(async (line: ShipmentLine, raw: string) => {
+    const text = raw.trim();
+    if (!text) {
+      upsertLine.mutate({ id: line.id, innovations_order_id: null, linked_sell_total_bbd: null });
+      return;
+    }
+    if (!/^\d+$/.test(text)) {
+      toast({ title: "Order number not valid", description: "Enter the numeric Innovations order number.", variant: "destructive" });
+      return;
+    }
+    const { data, error } = await (supabase.rpc as any)("lookup_innovations_order_lens_total", { p_order_id: Number(text) });
+    const result = Array.isArray(data) ? data[0] : data;
+    if (error || !result || !result.lens_lines) {
+      toast({ title: "No lens lines found", description: error?.message ?? `Innovations order ${text} has no lens lines.`, variant: "destructive" });
+      return;
+    }
+    const total = Number(result.lens_total_bbd);
+    const { markupPercent } = computeLineCosts({ ...line, linked_sell_total_bbd: total }, totals.exchangeRate || shipment?.exchange_rate || 1, totals.multiplier);
+    upsertLine.mutate({
+      id: line.id,
+      innovations_order_id: Number(text),
+      linked_sell_total_bbd: total,
+      markup_percent: Math.round(markupPercent * 100) / 100,
+    });
+  }, [upsertLine, toast, totals.exchangeRate, totals.multiplier, shipment?.exchange_rate]);
+
   if (loading || !shipment) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
 
   const xr = totals.exchangeRate || shipment.exchange_rate || 1;
@@ -646,8 +673,9 @@ const ShipmentDetailPage = () => {
       <div className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(320px,520px)_minmax(460px,1fr)_minmax(280px,360px)] 2xl:items-start">
         <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] 2xl:contents">
 
-      {/* Shipment fields */}
-      <div className="grid min-w-0 grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:grid-cols-2 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1">
+      {/* Shipment fields, with the invoice check beside the figures it verifies */}
+      <div className="flex min-w-0 flex-col gap-3 2xl:col-start-1 2xl:row-start-1">
+      <div className="grid min-w-0 grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:grid-cols-2">
         <h2 className="col-span-full text-sm font-semibold text-foreground">Shipment details</h2>
         <Field label="Supplier *">
           <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
@@ -739,8 +767,22 @@ const ShipmentDetailPage = () => {
         </Field>
       </div>
 
+      <div className={`rounded-lg border p-3 shadow-sm ${invoiceReconciled ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/40 bg-destructive/5"}`}>
+        <div className="flex items-center gap-2 text-xs font-semibold">
+          {invoiceReconciled ? <CircleCheck className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-destructive" />}
+          {invoiceReconciled ? "Invoice reconciled" : "Invoice mismatch"}
+        </div>
+        <div className="mt-2 space-y-1 text-xs">
+          <CostCheck label="Lines" value={`${shipment.currency} ${fmt(supplierLinesTotal)}`} />
+          <CostCheck label="Invoice" value={`${shipment.currency} ${fmt(shipment.invoice_total_foreign)}`} />
+          <CostCheck label="Variance" value={`${invoiceVariance < 0 ? "-" : ""}${shipment.currency} ${fmt(Math.abs(invoiceVariance))}`} emphasize />
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">FXF is separate from the supplier invoice and never resolves a line mismatch.</p>
+      </div>
+      </div>
+
       {/* Computed summary */}
-        <details open className="min-w-0 space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:self-start 2xl:col-start-3 2xl:row-span-2 2xl:row-start-1">
+        <details open className="min-w-0 space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:self-start 2xl:col-start-3 2xl:row-start-1">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Landed cost story</h2>
@@ -758,18 +800,6 @@ const ShipmentDetailPage = () => {
             <CostStoryRow label="Other landed charges excl. recoverable VAT" value={fmt(otherLandedChargesBbd)} suffix="BBD" />
             <CostStoryRow label="Current total landed" value={fmt(totals.totalLandedBbd)} suffix="BBD" strong />
             <CostStoryRow label="Current landed multiplier" value={totals.multiplier.toFixed(4)} suffix="×" strong />
-          </div>
-          <div className={`rounded-md border p-3 ${invoiceReconciled ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/40 bg-destructive/5"}`}>
-            <div className="flex items-center gap-2 text-xs font-semibold">
-              {invoiceReconciled ? <CircleCheck className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-destructive" />}
-              {invoiceReconciled ? "Invoice reconciled" : "Invoice mismatch"}
-            </div>
-            <div className="mt-3 space-y-1 text-xs">
-              <CostCheck label="Lines" value={`${shipment.currency} ${fmt(supplierLinesTotal)}`} />
-              <CostCheck label="Invoice" value={`${shipment.currency} ${fmt(shipment.invoice_total_foreign)}`} />
-              <CostCheck label="Variance" value={`${invoiceVariance < 0 ? "-" : ""}${shipment.currency} ${fmt(Math.abs(invoiceVariance))}`} emphasize />
-            </div>
-            <p className="mt-3 text-[11px] text-muted-foreground">FXF is separate from the supplier invoice and never resolves a line mismatch.</p>
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground">FXF is persisted on save from CIF at the configured rate; FCA settlement is exempt. Overrides require a reviewed revision.</p>
@@ -815,10 +845,10 @@ const ShipmentDetailPage = () => {
           />
         </section>
 
-      {/* On wide desktops, working tabs span the header and document-review columns. */}
+      {/* On wide desktops, working tabs span all three columns. */}
         <Tabs
           defaultValue="lines"
-          className="min-w-0 border-t pt-3 2xl:col-span-2 2xl:col-start-1 2xl:row-start-2"
+          className="min-w-0 border-t pt-3 2xl:col-span-3 2xl:col-start-1 2xl:row-start-2"
         >
           <TabsList className="h-8">
             <TabsTrigger value="lines" className="text-xs">Invoice items ({lines.length})</TabsTrigger>
@@ -935,6 +965,7 @@ const ShipmentDetailPage = () => {
                     <TableHead className="h-8 w-[80px]">Type</TableHead>
                     <TableHead className="h-8 w-[160px]">Product</TableHead>
                     <TableHead className="h-8 w-[150px]">Description</TableHead>
+                    <TableHead className="h-8 w-[110px]">Innovations order</TableHead>
                     <TableHead className="h-8 text-right w-[60px]">Qty</TableHead>
                     <TableHead className="h-8 text-right w-[100px]">Unit FOB ({shipment.currency})</TableHead>
                     <TableHead className="h-8 text-right w-[100px]">Line FOB ({shipment.currency})</TableHead>
@@ -958,15 +989,10 @@ const ShipmentDetailPage = () => {
                           <Select value={l.product_type} disabled={!editable} onValueChange={(v) => handleProductTypeChange(l, v)}>
                             <SelectTrigger className="h-7 text-xs border-0 shadow-none w-full"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {isLensShipment ? (
-                                <SelectItem value="lens">Lens</SelectItem>
-                              ) : (
-                                <>
-                                  <SelectItem value="supply">Supply</SelectItem>
-                                  <SelectItem value="addon">Add-On</SelectItem>
-                                  <SelectItem value="free">Free</SelectItem>
-                                </>
-                              )}
+                              {isLensShipment && <SelectItem value="lens">Lens</SelectItem>}
+                              <SelectItem value="supply">Supply</SelectItem>
+                              <SelectItem value="addon">Add-On</SelectItem>
+                              <SelectItem value="free">Free</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
@@ -987,6 +1013,14 @@ const ShipmentDetailPage = () => {
                             onChange={(v) => updateLine(l, { description: v })} />
                         </TableCell>
                         <TableCell className="py-1">
+                          {l.product_type === "lens" ? (
+                            <TextInput value={l.innovations_order_id != null ? String(l.innovations_order_id) : ""} disabled={!editable} className="h-7 text-xs w-full"
+                              onChange={(v) => { void linkInnovationsOrder(l, v); }} />
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-1">
                           <NumericInput value={l.quantity} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(qty) => updateLine(l, { quantity: qty, line_fob_foreign: l.unit_fob_foreign * qty })} />
                         </TableCell>
@@ -999,8 +1033,15 @@ const ShipmentDetailPage = () => {
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.landedUnitBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateLine(l, { markup_percent: v })} onAdvance={() => { void addLineAndFocusProduct(); }} />
+                          {computed.linked ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild><span tabIndex={0} className="block cursor-help text-right font-mono underline decoration-dotted underline-offset-2">{computed.markupPercent.toFixed(1)}</span></TooltipTrigger>
+                              <TooltipContent className="max-w-64 text-xs">Derived from the linked Innovations order's lens total (BBD {fmt(l.linked_sell_total_bbd ?? 0)}) against landed cost per unit. Clear the order number to enter markup by hand.</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-full"
+                              onChange={(v) => updateLine(l, { markup_percent: v })} onAdvance={() => { void addLineAndFocusProduct(); }} />
+                          )}
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.sellBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.sellUsd)}</TableCell>
@@ -1015,7 +1056,7 @@ const ShipmentDetailPage = () => {
                     );
                   })}
                   {lines.length === 0 && (
-                    <TableRow><TableCell colSpan={13} className="text-center text-xs py-4 text-muted-foreground">No line items</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={14} className="text-center text-xs py-4 text-muted-foreground">No line items</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -1059,7 +1100,7 @@ const ShipmentDetailPage = () => {
                     product_type: l.product_type, description: l.description, quantity: l.quantity,
                     unit_fob_foreign: l.unit_fob_foreign, line_fob_foreign: l.line_fob_foreign,
                     line_fob_bbd: c.lineFobBbd.toFixed(2), landed_unit_bbd: c.landedUnitBbd.toFixed(2),
-                    landed_unit_usd: c.landedUnitUsd.toFixed(2), markup_percent: l.markup_percent,
+                    landed_unit_usd: c.landedUnitUsd.toFixed(2), innovations_order_id: l.innovations_order_id ?? "", markup_percent: c.markupPercent.toFixed(2),
                     sell_bbd: c.sellBbd.toFixed(2), sell_usd: c.sellUsd.toFixed(2),
                   };
                 }), `lines-${shipment.invoice_number}.csv`);

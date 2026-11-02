@@ -66,6 +66,9 @@ export interface ShipmentLine {
   unit_fob_foreign: number;
   line_fob_foreign: number;
   markup_percent: number;
+  /** Innovations Rx order this line was bought for; its lens-only sell total fixes Sell (BBD). */
+  innovations_order_id?: number | null;
+  linked_sell_total_bbd?: number | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -241,17 +244,4 @@ export const computeShipmentTotals = (
   settings?: { import_costing_fx_rates?: Record<string, number> | null } | null
 ) => computeShipmentDerivedTotals(shipment, charges, settings);
 
-export const computeLineCosts = (
-  line: Pick<ShipmentLine, "line_fob_foreign" | "quantity" | "markup_percent">,
-  xr: number,
-  multiplier: number
-) => {
-  const lineFobBbd = line.line_fob_foreign * xr;
-  const landedLineBbd = lineFobBbd * multiplier;
-  const landedUnitBbd = line.quantity > 0 ? landedLineBbd / line.quantity : 0;
-  const landedUnitUsd = xr > 0 ? landedUnitBbd / xr : 0;
-  const markup = (line.markup_percent || 0) / 100;
-  const sellBbd = landedUnitBbd * (1 + markup);
-  const sellUsd = xr > 0 ? sellBbd / xr : 0;
-  return { lineFobBbd, landedLineBbd, landedUnitBbd, landedUnitUsd, sellBbd, sellUsd };
-};
+export { computeLineCosts } from "@/lib/importCostings";
