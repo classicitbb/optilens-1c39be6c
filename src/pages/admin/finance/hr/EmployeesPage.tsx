@@ -1,16 +1,18 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { Plus, Search, Users } from "lucide-react";
+import { List, Network, Plus, Search, Users } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { employeeDisplayName, useEmployees, useHrMutation, type Employee, type EmployeeStatus } from "@/features/admin/hr/useEmployees";
 import { day, Field, fieldInputClass, formValues, STATUS_LABELS } from "@/features/admin/hr/formFields";
+import OrgChart from "@/features/admin/hr/OrgChart";
 import HelpTip from "@/help/HelpTip";
 
 const statusVariant = (status: EmployeeStatus) => (status === "active" ? "default" : status === "on_leave" ? "secondary" : "outline");
@@ -24,21 +26,24 @@ const EmployeesPage = () => {
   const [status, setStatus] = useState<EmployeeStatus | "all">("active");
   const [department, setDepartment] = useState("all");
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<"list" | "chart">("list");
 
   const departments = useMemo(
     () => [...new Set(employees.map((e) => e.department).filter((d): d is string => !!d))].sort(),
     [employees],
   );
 
-  const visible = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return employees.filter(
-      (e) =>
-        (status === "all" || e.status === status) &&
-        (department === "all" || e.department === department) &&
-        (!term || [e.first_name, e.last_name, e.preferred_name, e.job_title, e.employee_no, e.email].some((v) => v?.toLowerCase().includes(term))),
-    );
-  }, [employees, search, status, department]);
+  const scoped = useMemo(
+    () => employees.filter((e) => (status === "all" || e.status === status) && (department === "all" || e.department === department)),
+    [employees, status, department],
+  );
+
+  const term = search.trim().toLowerCase();
+  const matchesSearch = (e: Employee) =>
+    !term || [e.first_name, e.last_name, e.preferred_name, e.job_title, e.employee_no, e.email].some((v) => v?.toLowerCase().includes(term));
+  const visible = useMemo(() => scoped.filter(matchesSearch), [scoped, term]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The chart keeps everyone in scope so reporting lines stay intact, and dims non-matches.
+  const highlightIds = useMemo(() => (term ? new Set(visible.map((e) => e.id)) : undefined), [term, visible]);
 
   const managerName = (id: string | null) => {
     const m = id ? employees.find((e) => e.id === id) : null;
@@ -90,8 +95,22 @@ const EmployeesPage = () => {
           </Select>
           <HelpTip id="hr.people.status" />
         </div>
-        <span className="ml-auto text-sm text-muted-foreground">{visible.length} of {employees.length}</span>
+        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "list" | "chart")} variant="outline" size="sm" className="ml-auto" aria-label="View">
+          <ToggleGroupItem value="list" aria-label="List view"><List className="mr-1 h-4 w-4" /> List</ToggleGroupItem>
+          <ToggleGroupItem value="chart" aria-label="Org chart view"><Network className="mr-1 h-4 w-4" /> Org chart</ToggleGroupItem>
+        </ToggleGroup>
+        <span className="text-sm text-muted-foreground">{visible.length} of {employees.length}</span>
       </div>
+
+      {view === "chart" ? (
+        error ? (
+          <div className="rounded-md border p-6 text-center text-destructive">Could not load employees: {(error as Error).message}</div>
+        ) : isLoading ? (
+          <div className="rounded-md border p-6 text-center text-muted-foreground">Loading…</div>
+        ) : (
+          <OrgChart employees={scoped} highlightIds={highlightIds} onOpen={(e) => navigate(`/admin/finance/people/${e.id}`)} />
+        )
+      ) : (
 
       <div className="overflow-x-auto rounded-md border" data-tour="hr-people-table">
         <Table>
@@ -132,6 +151,7 @@ const EmployeesPage = () => {
           </TableBody>
         </Table>
       </div>
+      )}
 
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent>
