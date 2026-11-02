@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
+
+### Release Notes
+- Shipment costing: per-line **Landed/unit** and the **Sell** price and markup beside it were overstated on non-BBD shipments (about double for USD) because the exchange rate was applied twice. Line landed costs now add up to the shipment's landed total. Saved shipment totals are unchanged; the line figures on screen and in the Lines CSV export change.
+- Shipment lines can be linked to an Innovations order; the order's lens total then fixes the sell price and markup is derived.
+- The binder cover now shows the supplier name, VAT, total landed cost, the multiplier and each line's landed cost, and continues onto further pages when a shipment is long.
+- HR: employee assessments, departments and manager reporting lines.
+- Copilot: updated composer and push-to-talk.
+
+### Technical Changelog
+- Landed-cost math now lives in `supabase/functions/_shared/shipments/landedCost.ts`; `src/lib/importCostings.ts` re-exports it and `shipment-binder` imports it. `computeLineCosts` moved there from `useShipments.ts` (still re-exported).
+- Migrations written, not applied: `20261101140000_hr_assessments`, `20261101150000_hr_departments_managers`, `20261101160000_shipment_line_innovations_order_link`. `shipment-binder` not deployed.
+- Proposed shipment document-intake design recorded in `docs/architecture/adr-001-shipment-intake-pipeline.md`; no intake code yet.
+
 ## 2026-11-01 — CRM email verification button
 
 ### Release Notes
