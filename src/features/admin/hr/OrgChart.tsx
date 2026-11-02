@@ -1,106 +1,91 @@
-import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { employeeDisplayName, type Employee } from "./useEmployees";
 import { STATUS_LABELS } from "./formFields";
-import { branchIds, buildOrgTree, countDescendants, type OrgNode } from "./orgTree";
+import OrgTreeView from "./OrgTreeView";
+import { buildOrgTree, buildPositionTree, type PositionItem } from "./orgTree";
+import type { EmployeePosition, Position } from "./usePositions";
 
-interface OrgChartProps {
-  employees: Employee[];
-  /** Employees matching the page search; the rest are dimmed. Omit for no highlighting. */
+interface ChartProps {
+  /** Ids to keep at full strength (search matches); the rest are dimmed. Omit for no dimming. */
   highlightIds?: Set<string>;
   onOpen: (employee: Employee) => void;
 }
 
-interface NodeProps {
-  node: OrgNode;
-  collapsed: Set<string>;
-  highlightIds?: Set<string>;
-  onToggle: (id: string) => void;
-  onOpen: (employee: Employee) => void;
-}
+const cardClass = "w-52 rounded-md border bg-card p-2.5 text-center shadow-sm transition-opacity";
 
-const Line = ({ className }: { className: string }) => <span aria-hidden className={cn("absolute bg-border", className)} />;
-
-const OrgNodeView = ({ node, collapsed, highlightIds, onToggle, onOpen }: NodeProps) => {
-  const { employee: e, reports } = node;
-  const isCollapsed = collapsed.has(e.id);
-  const dimmed = highlightIds && !highlightIds.has(e.id);
-  const total = countDescendants(node);
-
-  return (
-    <li className="relative flex flex-col items-center">
-      <div className={cn("w-52 rounded-md border bg-card p-2.5 text-center shadow-sm transition-opacity", dimmed && "opacity-40")}>
-        <button type="button" onClick={() => onOpen(e)} className="block w-full truncate text-sm font-medium hover:underline" title={employeeDisplayName(e)}>
-          {employeeDisplayName(e)}
-        </button>
-        <div className="truncate text-xs text-muted-foreground">{e.job_title ?? "No job title"}</div>
-        <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
-          {e.department && <Badge variant="outline" className="max-w-full truncate text-[10px]">{e.department}</Badge>}
-          {e.status !== "active" && <Badge variant="secondary" className="text-[10px]">{STATUS_LABELS[e.status]}</Badge>}
-        </div>
-        {reports.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onToggle(e.id)}
-            aria-expanded={!isCollapsed}
-            aria-label={`${isCollapsed ? "Show" : "Hide"} ${reports.length} direct report${reports.length === 1 ? "" : "s"} of ${employeeDisplayName(e)}`}
-            className="mt-1.5 inline-flex items-center gap-0.5 rounded px-1 text-xs text-muted-foreground hover:bg-muted"
-          >
-            {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            {reports.length} direct{total > reports.length ? ` · ${total} total` : ""}
-          </button>
-        )}
-      </div>
-
-      {reports.length > 0 && !isCollapsed && (
-        <>
-          <span aria-hidden className="h-4 w-px bg-border" />
-          <ul className="flex items-start">
-            {reports.map((child, i) => (
-              <li key={child.employee.id} className="relative flex flex-col items-center px-2 pt-4">
-                {reports.length > 1 && <Line className={cn("top-0 h-px", i === 0 ? "left-1/2 right-0" : i === reports.length - 1 ? "left-0 right-1/2" : "left-0 right-0")} />}
-                <Line className="left-1/2 top-0 h-4 w-px" />
-                <OrgNodeView node={child} collapsed={collapsed} highlightIds={highlightIds} onToggle={onToggle} onOpen={onOpen} />
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </li>
-  );
-};
-
-const OrgChart = ({ employees, highlightIds, onOpen }: OrgChartProps) => {
+/** Reporting lines from each employee's manager. Used until positions are defined. */
+export const OrgChart = ({ employees, highlightIds, onOpen }: ChartProps & { employees: Employee[] }) => {
   const tree = useMemo(() => buildOrgTree(employees), [employees]);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-  const toggle = (id: string) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
-
-  if (tree.length === 0) return <div className="rounded-md border p-6 text-center text-sm text-muted-foreground">No employees match.</div>;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={() => setCollapsed(new Set())}>Expand all</Button>
-        <Button size="sm" variant="outline" onClick={() => setCollapsed(new Set(branchIds(tree)))}>Collapse all</Button>
-      </div>
-      <div className="overflow-auto rounded-md border p-4" data-tour="hr-people-orgchart">
-        <ul className="mx-auto flex w-max items-start gap-4">
-          {tree.map((node) => (
-            <OrgNodeView key={node.employee.id} node={node} collapsed={collapsed} highlightIds={highlightIds} onToggle={toggle} onOpen={onOpen} />
-          ))}
-        </ul>
-      </div>
-    </div>
+    <OrgTreeView<Employee>
+      nodes={tree}
+      idOf={(e) => e.id}
+      labelOf={employeeDisplayName}
+      emptyText="No employees match."
+      tourId="hr-people-orgchart"
+      renderCard={(e) => (
+        <div className={cn(cardClass, highlightIds && !highlightIds.has(e.id) && "opacity-40")}>
+          <button type="button" onClick={() => onOpen(e)} className="block w-full truncate text-sm font-medium hover:underline" title={employeeDisplayName(e)}>
+            {employeeDisplayName(e)}
+          </button>
+          <div className="truncate text-xs text-muted-foreground">{e.job_title ?? "No job title"}</div>
+          <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
+            {e.department && <Badge variant="outline" className="max-w-full truncate text-[10px]">{e.department}</Badge>}
+            {e.status !== "active" && <Badge variant="secondary" className="text-[10px]">{STATUS_LABELS[e.status]}</Badge>}
+          </div>
+        </div>
+      )}
+    />
   );
 };
 
-export default OrgChart;
+/**
+ * Reporting lines between positions. A person who holds several positions appears on each,
+ * so working across departments or answering to two managers is just two seats.
+ */
+export const PositionChart = ({
+  positions,
+  assignments,
+  employees,
+  highlightIds,
+  onOpen,
+}: ChartProps & { positions: Position[]; assignments: EmployeePosition[]; employees: Employee[] }) => {
+  const tree = useMemo(() => buildPositionTree(positions, assignments, employees), [positions, assignments, employees]);
+  const rolesOf = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of assignments) counts.set(a.employee_id, (counts.get(a.employee_id) ?? 0) + 1);
+    return counts;
+  }, [assignments]);
+
+  return (
+    <OrgTreeView<PositionItem>
+      nodes={tree}
+      idOf={(i) => i.position.id}
+      labelOf={(i) => i.position.title}
+      emptyText="No positions match."
+      tourId="hr-people-orgchart"
+      renderCard={({ position, holders }) => {
+        const vacancies = Math.max(position.headcount - holders.length, 0);
+        const dimmed = highlightIds && !highlightIds.has(position.id) && !holders.some((h) => highlightIds.has(h.id));
+        return (
+          <div className={cn(cardClass, "w-56", dimmed && "opacity-40", !position.active && "border-dashed")}>
+            <div className="truncate text-sm font-medium" title={position.title}>{position.title}</div>
+            <Badge variant="outline" className="mt-1 max-w-full truncate text-[10px]">{position.department}</Badge>
+            <ul className="mt-1.5 space-y-0.5 text-xs">
+              {holders.map((h) => (
+                <li key={h.id} className="truncate">
+                  <button type="button" onClick={() => onOpen(h)} className="hover:underline" title={employeeDisplayName(h)}>{employeeDisplayName(h)}</button>
+                  {(rolesOf.get(h.id) ?? 0) > 1 && <span className="ml-1 text-muted-foreground">· {rolesOf.get(h.id)} roles</span>}
+                </li>
+              ))}
+              {vacancies > 0 && <li className="text-muted-foreground">{vacancies > 1 ? `${vacancies} vacancies` : "Vacant"}</li>}
+            </ul>
+          </div>
+        );
+      }}
+    />
+  );
+};

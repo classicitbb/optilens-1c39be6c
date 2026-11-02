@@ -31,7 +31,7 @@ export const hrTours: TourDefinition[] = [
     matchPath: /^\/admin\/finance\/people\/[^/]+$/,
     startHint: "Open any employee from the list and the tour will start.",
     steps: [
-      { target: "hr-employee-tabs", title: "Seven tabs", body: "Everything about one person lives on this page. Each tab saves on its own." },
+      { target: "hr-employee-tabs", title: "Nine tabs", body: "Everything about one person lives on this page. Each tab saves on its own." },
       { target: "hr-employee-profile-save", title: "Profile", body: "Personal and job details. Changes here are only kept when you press Save profile." },
       { target: "hr-employee-tab-pay", title: "Compensation", body: "Set the monthly salary and yearly PAYE allowances. A pay change starts on its Effective from date and closes the old record for you." },
       { target: "hr-employee-tab-items", title: "Pay items", body: "Recurring earnings and deductions such as health insurance or a staff loan, plus how net pay is split across bank accounts." },

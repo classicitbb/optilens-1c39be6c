@@ -31,38 +31,11 @@ import { LeaveAdjustmentForm, LeaveBalanceCards, LeaveRequestForm, LeaveRequestT
 import { EmployeeTaxPanel } from "@/features/admin/hr/tax/TaxComponents";
 import { useLeaveAdjustments, useLeavePolicy, useLeaveRequests, useLeaveTypes } from "@/features/admin/hr/leave/useLeave";
 import { day, EMPLOYMENT_TYPE_LABELS, Field, fieldInputClass, formValues, money, STATUS_LABELS } from "@/features/admin/hr/formFields";
+import { NativeSelect, Section, useSubmit } from "@/features/admin/hr/formBits";
+import EmployeePositionsTab from "@/features/admin/hr/EmployeePositionsTab";
+import EmployeeContractsTab from "@/features/admin/hr/EmployeeContractsTab";
 import HelpTip from "@/help/HelpTip";
 import { linkEmployeeLogin, useEmployeeLoginEmail } from "@/features/admin/hr/self/useMyHr";
-
-// Native selects keep these forms plain FormData posts.
-const NativeSelect = ({ id, name, defaultValue, options }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string> }) => (
-  <select id={id} name={name} defaultValue={defaultValue ?? undefined} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-    {Object.entries(options).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-  </select>
-);
-
-const useSubmit = () => {
-  const { toast } = useToast();
-  return (action: () => Promise<unknown>, success: string, onDone?: () => void) => async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    try {
-      await action();
-      toast({ title: success });
-      form.reset();
-      onDone?.();
-    } catch (error) {
-      toast({ title: "Save failed", description: (error as Error).message, variant: "destructive" });
-    }
-  };
-};
-
-const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-  <Card>
-    <CardHeader className="pb-3"><CardTitle className="text-base">{title}</CardTitle></CardHeader>
-    <CardContent className="space-y-4">{children}</CardContent>
-  </Card>
-);
 
 const ContactLink = ({ employee }: { employee: Employee }) => {
   const { toast } = useToast();
@@ -538,6 +511,8 @@ const EmployeeDetailPage = () => {
           <TabsTrigger value="leave" data-tour="hr-employee-tab-leave">Leave</TabsTrigger>
           <TabsTrigger value="tax" data-tour="hr-employee-tab-tax">Tax</TabsTrigger>
           <TabsTrigger value="ids" data-tour="hr-employee-tab-ids">IDs & bank</TabsTrigger>
+          <TabsTrigger value="positions" data-tour="hr-employee-tab-positions">Positions</TabsTrigger>
+          <TabsTrigger value="contracts" data-tour="hr-employee-tab-contracts">Contracts</TabsTrigger>
           <TabsTrigger value="notes" data-tour="hr-employee-tab-notes">Notes</TabsTrigger>
         </TabsList>
         <TabsContent value="profile" className="space-y-4">
@@ -550,6 +525,8 @@ const EmployeeDetailPage = () => {
         <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
         <TabsContent value="tax"><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></TabsContent>
         <TabsContent value="ids"><IdentityTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="positions"><EmployeePositionsTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="contracts"><EmployeeContractsTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="notes"><NotesTab employeeId={employeeId} /></TabsContent>
       </Tabs>
     </div>

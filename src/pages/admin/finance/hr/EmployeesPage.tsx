@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { List, Network, Plus, Search, Users } from "lucide-react";
+import { Briefcase, List, Network, Plus, Search, Users } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { employeeDisplayName, useEmployees, useHrMutation, type Employee, type EmployeeStatus } from "@/features/admin/hr/useEmployees";
 import { day, Field, fieldInputClass, formValues, STATUS_LABELS } from "@/features/admin/hr/formFields";
-import OrgChart from "@/features/admin/hr/OrgChart";
+import { OrgChart, PositionChart } from "@/features/admin/hr/OrgChart";
+import PositionsPanel from "@/features/admin/hr/PositionsPanel";
+import { useEmployeePositions, usePositions } from "@/features/admin/hr/usePositions";
 import HelpTip from "@/help/HelpTip";
 
 const statusVariant = (status: EmployeeStatus) => (status === "active" ? "default" : status === "on_leave" ? "secondary" : "outline");
@@ -26,16 +28,38 @@ const EmployeesPage = () => {
   const [status, setStatus] = useState<EmployeeStatus | "all">("active");
   const [department, setDepartment] = useState("all");
   const [adding, setAdding] = useState(false);
-  const [view, setView] = useState<"list" | "chart">("list");
+  const [view, setView] = useState<"list" | "chart" | "positions">("list");
+  const { data: positions = [] } = usePositions();
+  const { data: assignments = [] } = useEmployeePositions();
 
   const departments = useMemo(
-    () => [...new Set(employees.map((e) => e.department).filter((d): d is string => !!d))].sort(),
-    [employees],
+    () => [...new Set([...employees.map((e) => e.department), ...positions.map((p) => p.department)].filter((d): d is string => !!d))].sort(),
+    [employees, positions],
   );
 
+  // Someone who works across departments matches the filter through any position they hold.
+  const heldDepartments = useMemo(() => {
+    const byPosition = new Map(positions.map((p) => [p.id, p.department]));
+    const out = new Map<string, Set<string>>();
+    for (const a of assignments) {
+      const dept = byPosition.get(a.position_id);
+      if (dept) out.set(a.employee_id, (out.get(a.employee_id) ?? new Set()).add(dept));
+    }
+    return out;
+  }, [positions, assignments]);
+
   const scoped = useMemo(
-    () => employees.filter((e) => (status === "all" || e.status === status) && (department === "all" || e.department === department)),
-    [employees, status, department],
+    () =>
+      employees.filter(
+        (e) =>
+          (status === "all" || e.status === status) &&
+          (department === "all" || e.department === department || !!heldDepartments.get(e.id)?.has(department)),
+      ),
+    [employees, status, department, heldDepartments],
+  );
+  const scopedPositions = useMemo(
+    () => (department === "all" ? positions : positions.filter((p) => p.department === department)),
+    [positions, department],
   );
 
   const term = search.trim().toLowerCase();
@@ -43,7 +67,13 @@ const EmployeesPage = () => {
     !term || [e.first_name, e.last_name, e.preferred_name, e.job_title, e.employee_no, e.email].some((v) => v?.toLowerCase().includes(term));
   const visible = useMemo(() => scoped.filter(matchesSearch), [scoped, term]); // eslint-disable-line react-hooks/exhaustive-deps
   // The chart keeps everyone in scope so reporting lines stay intact, and dims non-matches.
-  const highlightIds = useMemo(() => (term ? new Set(visible.map((e) => e.id)) : undefined), [term, visible]);
+  const highlightIds = useMemo(
+    () =>
+      term
+        ? new Set([...visible.map((e) => e.id), ...scopedPositions.filter((p) => p.title.toLowerCase().includes(term)).map((p) => p.id)])
+        : undefined,
+    [term, visible, scopedPositions],
+  );
 
   const managerName = (id: string | null) => {
     const m = id ? employees.find((e) => e.id === id) : null;
@@ -95,20 +125,28 @@ const EmployeesPage = () => {
           </Select>
           <HelpTip id="hr.people.status" />
         </div>
-        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "list" | "chart")} variant="outline" size="sm" className="ml-auto" aria-label="View">
+        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "list" | "chart" | "positions")} variant="outline" size="sm" className="ml-auto" aria-label="View">
           <ToggleGroupItem value="list" aria-label="List view"><List className="mr-1 h-4 w-4" /> List</ToggleGroupItem>
           <ToggleGroupItem value="chart" aria-label="Org chart view"><Network className="mr-1 h-4 w-4" /> Org chart</ToggleGroupItem>
+          <ToggleGroupItem value="positions" aria-label="Positions view"><Briefcase className="mr-1 h-4 w-4" /> Positions</ToggleGroupItem>
         </ToggleGroup>
         <span className="text-sm text-muted-foreground">{visible.length} of {employees.length}</span>
       </div>
 
-      {view === "chart" ? (
+      {view === "positions" ? (
+        <PositionsPanel positions={positions} assignments={assignments} employees={employees} departments={departments} />
+      ) : view === "chart" ? (
         error ? (
           <div className="rounded-md border p-6 text-center text-destructive">Could not load employees: {(error as Error).message}</div>
         ) : isLoading ? (
           <div className="rounded-md border p-6 text-center text-muted-foreground">Loading…</div>
+        ) : positions.length > 0 ? (
+          <PositionChart positions={scopedPositions} assignments={assignments} employees={scoped} highlightIds={highlightIds} onOpen={(e) => navigate(`/admin/finance/people/${e.id}`)} />
         ) : (
-          <OrgChart employees={scoped} highlightIds={highlightIds} onOpen={(e) => navigate(`/admin/finance/people/${e.id}`)} />
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">Showing each person's manager. Define positions to chart people who work in several departments.</p>
+            <OrgChart employees={scoped} highlightIds={highlightIds} onOpen={(e) => navigate(`/admin/finance/people/${e.id}`)} />
+          </div>
         )
       ) : (
 
