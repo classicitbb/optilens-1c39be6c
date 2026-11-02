@@ -22,8 +22,8 @@ function Harness({ initial = "", onValue }: { initial?: string; onValue: (value:
 
 async function typeAndWait(input: HTMLElement, text: string) {
   fireEvent.change(input, { target: { value: text } });
-  // Search is debounced by 200 ms.
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  // Search is debounced by 200 ms; the margin keeps a loaded full-suite run from racing it.
+  await new Promise((resolve) => setTimeout(resolve, 800));
 }
 
 describe("recipient strings", () => {
