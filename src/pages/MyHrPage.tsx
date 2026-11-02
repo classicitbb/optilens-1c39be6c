@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router";
 import { Download, UserRound } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -202,13 +203,20 @@ const ProfileTab = ({ employee }: { employee: Employee }) => (
   </Card>
 );
 
+// Each tab has its own URL (/me/leave etc.) so links can be shared; /me is payslips.
+const TABS = ["payslips", "leave", "tax", "assessment", "profile"] as const;
+
 const MyHrPage = () => {
   const { data: employee, isLoading, error } = useMyEmployee();
+  const { tab = "payslips" } = useParams();
+  const navigate = useNavigate();
+
+  if (!(TABS as readonly string[]).includes(tab)) return <Navigate to="/me" replace />;
 
   return (
     <PrivacyFilterProvider>
       <div className="min-h-screen bg-background">
-        <Header />
+        <Header hideBreadcrumbs />
         <main className="pt-24 pb-16">
           <div className="container mx-auto max-w-5xl space-y-6 px-4 lg:px-8">
             <div className="flex items-center gap-3">
@@ -227,7 +235,7 @@ const MyHrPage = () => {
                 </CardContent>
               </Card>
             ) : (
-              <Tabs defaultValue="payslips">
+              <Tabs value={tab} onValueChange={(next) => navigate(next === "payslips" ? "/me" : `/me/${next}`)}>
                 <TabsList className="flex h-auto flex-wrap justify-start">
                   <TabsTrigger value="payslips">Payslips</TabsTrigger>
                   <TabsTrigger value="leave">Leave</TabsTrigger>

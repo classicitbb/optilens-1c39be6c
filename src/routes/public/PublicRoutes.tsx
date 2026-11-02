@@ -119,6 +119,7 @@ const PublicRoutes = () => (
     <Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="shared/pages/:token" element={<ProtectedRoute><SharedPageViewer /></ProtectedRoute>} />
     <Route path="me" element={<ProtectedRoute><MyHrPage /></ProtectedRoute>} />
+    <Route path="me/:tab" element={<ProtectedRoute><MyHrPage /></ProtectedRoute>} />
     <Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />
     <Route path="terms" element={<LegalPage slug="terms" />} />
     <Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />
