@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-01 - HR privacy filter
+
+`src/features/admin/hr/privacy.tsx` provides `PrivacyFilterProvider`, `Private` and `PrivacyToggle`. `HrRoute` wraps every HR admin page in the provider and `MyHrPage` wraps itself, so each page load starts hidden. Wrap new salary/tax/notes output in `<Private>` (inline) or `<Private block>` (sections and forms); without a provider `Private` stays hidden. Reveal lasts `REVEAL_SECONDS` (30) and resets on `visibilitychange` to hidden. It is a shoulder-surfing blur only, not access control.
+
 ## 2026-11-01 - CRM email verification button
 
 - `ContactEmailVerify` renders on the contact editor's Email tab. It parses `contacts.email` with `parseEmailList`, reads `contact_email_checks` (errors read as no results, so it renders before the migration), and invokes `crm-email-verify` for stale or unchecked addresses.

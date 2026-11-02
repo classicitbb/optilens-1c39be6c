@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-11-01 - HR privacy filter (no defect)
+
+New feature, no bug fixed. Known limits: the blur is visual only (figures are still in the page and downloads/PDFs are unaffected); leave decision notes are not blurred.
+
 ## 2026-11-01 - CRM email verification button (no defect)
 
 New feature, no bug fixed. Not checked: the button against a live Reoon response or in a signed-in browser; the migration is not applied.

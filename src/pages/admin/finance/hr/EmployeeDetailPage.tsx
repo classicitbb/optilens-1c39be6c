@@ -33,6 +33,7 @@ import { useLeaveAdjustments, useLeavePolicy, useLeaveRequests, useLeaveTypes } 
 import { day, EMPLOYMENT_TYPE_LABELS, Field, fieldInputClass, formValues, money, STATUS_LABELS } from "@/features/admin/hr/formFields";
 import HelpTip from "@/help/HelpTip";
 import { linkEmployeeLogin, useEmployeeLoginEmail } from "@/features/admin/hr/self/useMyHr";
+import { Private, PrivacyToggle } from "@/features/admin/hr/privacy";
 
 // Native selects keep these forms plain FormData posts.
 const NativeSelect = ({ id, name, defaultValue, options }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string> }) => (
@@ -436,42 +437,44 @@ const NotesTab = ({ employeeId }: { employeeId: string }) => {
         <Field label="Note" htmlFor="body" className="sm:col-span-3"><Textarea id="body" name="body" required rows={3} className={fieldInputClass} /></Field>
         <div className="sm:col-span-3 sm:text-right"><Button type="submit" disabled={mutate.isPending}>Add note</Button></div>
       </form>
-      <ul className="divide-y text-sm">
-        {notes.map((n) =>
-          editingId === n.id ? (
-            <li key={n.id} className="py-3">
-              <form
-                onSubmit={(event) => {
-                  const v = formValues(event.currentTarget);
-                  return submit(() => mutate.mutateAsync({ update: { id: n.id, values: v } }), "Note updated", () => setEditingId(null))(event);
-                }}
-                className="grid gap-3 sm:grid-cols-3"
-              >
-                <Field label="Category" htmlFor={`category-${n.id}`}><NativeSelect id={`category-${n.id}`} name="category" defaultValue={n.category} options={NOTE_CATEGORIES} /></Field>
-                <Field label="Visibility" htmlFor={`visibility-${n.id}`}><NativeSelect id={`visibility-${n.id}`} name="visibility" defaultValue={n.visibility} options={NOTE_VISIBILITY} /></Field>
-                <Field label="Note" htmlFor={`body-${n.id}`} className="sm:col-span-3"><Textarea id={`body-${n.id}`} name="body" required rows={3} defaultValue={n.body} className={fieldInputClass} /></Field>
-                <div className="flex justify-end gap-2 sm:col-span-3">
-                  <Button type="button" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
-                  <Button type="submit" disabled={mutate.isPending}>Save note</Button>
+      <Private block>
+        <ul className="divide-y text-sm">
+          {notes.map((n) =>
+            editingId === n.id ? (
+              <li key={n.id} className="py-3">
+                <form
+                  onSubmit={(event) => {
+                    const v = formValues(event.currentTarget);
+                    return submit(() => mutate.mutateAsync({ update: { id: n.id, values: v } }), "Note updated", () => setEditingId(null))(event);
+                  }}
+                  className="grid gap-3 sm:grid-cols-3"
+                >
+                  <Field label="Category" htmlFor={`category-${n.id}`}><NativeSelect id={`category-${n.id}`} name="category" defaultValue={n.category} options={NOTE_CATEGORIES} /></Field>
+                  <Field label="Visibility" htmlFor={`visibility-${n.id}`}><NativeSelect id={`visibility-${n.id}`} name="visibility" defaultValue={n.visibility} options={NOTE_VISIBILITY} /></Field>
+                  <Field label="Note" htmlFor={`body-${n.id}`} className="sm:col-span-3"><Textarea id={`body-${n.id}`} name="body" required rows={3} defaultValue={n.body} className={fieldInputClass} /></Field>
+                  <div className="flex justify-end gap-2 sm:col-span-3">
+                    <Button type="button" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                    <Button type="submit" disabled={mutate.isPending}>Save note</Button>
+                  </div>
+                </form>
+              </li>
+            ) : (
+              <li key={n.id} className="space-y-1 py-3">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline">{n.category.replace("_", "-")}</Badge>
+                  <span>{day(n.created_at)}</span>
+                  {n.updated_at && <span>· edited {day(n.updated_at)}</span>}
+                  {n.visibility === "shared" && <span>· shared</span>}
+                  <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" aria-label="Edit note" onClick={() => setEditingId(n.id)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-              </form>
-            </li>
-          ) : (
-            <li key={n.id} className="space-y-1 py-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="outline">{n.category.replace("_", "-")}</Badge>
-                <span>{day(n.created_at)}</span>
-                {n.updated_at && <span>· edited {day(n.updated_at)}</span>}
-                {n.visibility === "shared" && <span>· shared</span>}
-                <Button variant="ghost" size="icon" className="ml-auto h-7 w-7" aria-label="Edit note" onClick={() => setEditingId(n.id)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-              <p className="whitespace-pre-wrap">{n.body}</p>
-            </li>
-          ),
-        )}
-      </ul>
+                <p className="whitespace-pre-wrap">{n.body}</p>
+              </li>
+            ),
+          )}
+        </ul>
+      </Private>
     </Section>
   );
 };
@@ -527,6 +530,7 @@ const EmployeeDetailPage = () => {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {employee.job_title && <span>{employee.job_title}</span>}
           <Badge variant={employee.status === "active" ? "default" : "outline"}>{STATUS_LABELS[employee.status]}</Badge>
+          <PrivacyToggle />
         </div>
       </AdminPageHeader>
 
@@ -545,10 +549,10 @@ const EmployeeDetailPage = () => {
           <ContactLink employee={employee} />
           <LoginLink employee={employee} />
         </TabsContent>
-        <TabsContent value="pay"><CompensationTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="items"><PayItemsTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="pay"><Private block><CompensationTab employeeId={employeeId} /></Private></TabsContent>
+        <TabsContent value="items"><Private block><PayItemsTab employeeId={employeeId} /></Private></TabsContent>
         <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
-        <TabsContent value="tax"><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></TabsContent>
+        <TabsContent value="tax"><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></TabsContent>
         <TabsContent value="ids"><IdentityTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="notes"><NotesTab employeeId={employeeId} /></TabsContent>
       </Tabs>
