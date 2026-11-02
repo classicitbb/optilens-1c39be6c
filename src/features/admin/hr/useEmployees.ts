@@ -17,6 +17,8 @@ export interface Employee {
   address: string | null;
   job_title: string | null;
   department: string | null;
+  department_id: string | null;
+  /** Summary of the primary line manager; managed through employee_managers. */
   manager_id: string | null;
   employment_type: EmploymentType;
   status: EmployeeStatus;

@@ -31,39 +31,15 @@ import { LeaveAdjustmentForm, LeaveBalanceCards, LeaveRequestForm, LeaveRequestT
 import { EmployeeTaxPanel } from "@/features/admin/hr/tax/TaxComponents";
 import { useLeaveAdjustments, useLeavePolicy, useLeaveRequests, useLeaveTypes } from "@/features/admin/hr/leave/useLeave";
 import { day, EMPLOYMENT_TYPE_LABELS, Field, fieldInputClass, formValues, money, STATUS_LABELS } from "@/features/admin/hr/formFields";
+import { NativeSelect, Section, useSubmit } from "@/features/admin/hr/formBits";
+import { departmentOptions, isCurrentManager, useDepartments, useEmployeeManagers } from "@/features/admin/hr/useDepartments";
+import { isCurrentAssignment, useEmployeePositions } from "@/features/admin/hr/usePositions";
+import EmployeePositionsTab from "@/features/admin/hr/EmployeePositionsTab";
+import EmployeeContractsTab from "@/features/admin/hr/EmployeeContractsTab";
+import EmployeeAssessmentTab from "@/features/admin/hr/EmployeeAssessmentTab";
 import HelpTip from "@/help/HelpTip";
 import { linkEmployeeLogin, useEmployeeLoginEmail } from "@/features/admin/hr/self/useMyHr";
 import { Private, PrivacyToggle } from "@/features/admin/hr/privacy";
-
-// Native selects keep these forms plain FormData posts.
-const NativeSelect = ({ id, name, defaultValue, options }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string> }) => (
-  <select id={id} name={name} defaultValue={defaultValue ?? undefined} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-    {Object.entries(options).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-  </select>
-);
-
-const useSubmit = () => {
-  const { toast } = useToast();
-  return (action: () => Promise<unknown>, success: string, onDone?: () => void) => async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    try {
-      await action();
-      toast({ title: success });
-      form.reset();
-      onDone?.();
-    } catch (error) {
-      toast({ title: "Save failed", description: (error as Error).message, variant: "destructive" });
-    }
-  };
-};
-
-const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-  <Card>
-    <CardHeader className="pb-3"><CardTitle className="text-base">{title}</CardTitle></CardHeader>
-    <CardContent className="space-y-4">{children}</CardContent>
-  </Card>
-);
 
 const ContactLink = ({ employee }: { employee: Employee }) => {
   const { toast } = useToast();
@@ -165,11 +141,21 @@ const LoginLink = ({ employee }: { employee: Employee }) => {
 const ProfileTab = ({ employeeId }: { employeeId: string }) => {
   const { data: employee } = useEmployee(employeeId);
   const { data: employees = [] } = useEmployees();
+  const { data: departments = [] } = useDepartments();
+  const { data: assignments = [] } = useEmployeePositions();
+  const { data: managerLinks = [] } = useEmployeeManagers();
   const update = useHrMutation("employees");
   const submit = useSubmit();
   if (!employee) return null;
 
-  const managers = Object.fromEntries([["", "— None —"], ...employees.filter((e) => e.id !== employee.id).map((e) => [e.id, employeeDisplayName(e)])]);
+  // Job title and department follow the primary position once there is one; managers have their own section.
+  const fromPosition = assignments.some((a) => a.employee_id === employee.id && a.is_primary && isCurrentAssignment(a));
+  const managerNames = managerLinks
+    .filter((l) => l.employee_id === employee.id && isCurrentManager(l))
+    .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
+    .map((l) => employees.find((e) => e.id === l.manager_id))
+    .filter((m): m is NonNullable<typeof m> => !!m)
+    .map(employeeDisplayName);
 
   return (
     <form
@@ -196,9 +182,19 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
       <Section title="Job">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Employee no." htmlFor="employee_no" tip="hr.employee.employeeNo"><Input id="employee_no" name="employee_no" defaultValue={employee.employee_no ?? ""} /></Field>
-          <Field label="Job title" htmlFor="job_title"><Input id="job_title" name="job_title" defaultValue={employee.job_title ?? ""} /></Field>
-          <Field label="Department" htmlFor="department"><Input id="department" name="department" defaultValue={employee.department ?? ""} /></Field>
-          <Field label="Manager" htmlFor="manager_id" tip="hr.employee.manager"><NativeSelect id="manager_id" name="manager_id" defaultValue={employee.manager_id ?? ""} options={managers} /></Field>
+          <Field label="Job title" htmlFor="job_title">
+            <Input id="job_title" name={fromPosition ? undefined : "job_title"} defaultValue={employee.job_title ?? ""} readOnly={fromPosition} title={fromPosition ? "Set by the primary position" : undefined} />
+          </Field>
+          <Field label="Department" htmlFor="department_id">
+            {fromPosition ? (
+              <Input id="department_id" value={employee.department ?? ""} readOnly title="Set by the primary position" />
+            ) : (
+              <NativeSelect id="department_id" name="department_id" defaultValue={employee.department_id ?? ""} options={departmentOptions(departments, employee.department_id)} />
+            )}
+          </Field>
+          <Field label="Managers" htmlFor="managers" tip="hr.employee.manager">
+            <Input id="managers" value={managerNames.join(", ")} placeholder="None" readOnly />
+          </Field>
           <Field label="Employment type" htmlFor="employment_type" tip="hr.employee.employmentType"><NativeSelect id="employment_type" name="employment_type" defaultValue={employee.employment_type} options={EMPLOYMENT_TYPE_LABELS} /></Field>
           <Field label="Status" htmlFor="status" tip="hr.employee.status"><NativeSelect id="status" name="status" defaultValue={employee.status} options={STATUS_LABELS} /></Field>
           <Field label="Hire date" htmlFor="hire_date"><Input id="hire_date" name="hire_date" type="date" defaultValue={employee.hire_date ?? ""} /></Field>
@@ -542,6 +538,9 @@ const EmployeeDetailPage = () => {
           <TabsTrigger value="leave" data-tour="hr-employee-tab-leave">Leave</TabsTrigger>
           <TabsTrigger value="tax" data-tour="hr-employee-tab-tax">Tax</TabsTrigger>
           <TabsTrigger value="ids" data-tour="hr-employee-tab-ids">IDs & bank</TabsTrigger>
+          <TabsTrigger value="positions" data-tour="hr-employee-tab-positions">Positions</TabsTrigger>
+          <TabsTrigger value="contracts" data-tour="hr-employee-tab-contracts">Contracts</TabsTrigger>
+          <TabsTrigger value="assessment">Assessment</TabsTrigger>
           <TabsTrigger value="notes" data-tour="hr-employee-tab-notes">Notes</TabsTrigger>
         </TabsList>
         <TabsContent value="profile" className="space-y-4">
@@ -554,6 +553,9 @@ const EmployeeDetailPage = () => {
         <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
         <TabsContent value="tax"><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></TabsContent>
         <TabsContent value="ids"><IdentityTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="positions"><EmployeePositionsTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="contracts"><EmployeeContractsTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="assessment"><EmployeeAssessmentTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="notes"><NotesTab employeeId={employeeId} /></TabsContent>
       </Tabs>
     </div>

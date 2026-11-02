@@ -2,6 +2,15 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
+
+### Release Notes
+- Shipment costing: per-line **Landed/unit** and the **Sell** price and markup beside it were overstated on non-BBD shipments (about double for USD) because the exchange rate was applied twice. Line landed costs now add up to the shipment's landed total. Saved shipment totals are unchanged; the line figures on screen and in the Lines CSV export change.
+- Shipment lines can be linked to an Innovations order; the order's lens total then fixes the sell price and markup is derived.
+- The binder cover now shows the supplier name, VAT, total landed cost, the multiplier and each line's landed cost, and continues onto further pages when a shipment is long.
+- HR: employee assessments, departments and manager reporting lines.
+- Copilot: updated composer and push-to-talk.
+
 ## 2026-11-01 — HR privacy filter
 
 ### Release Notes
