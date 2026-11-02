@@ -97,10 +97,9 @@ export const ADMIN_APPS = {
     title: 'Helpdesk',
     icon: LifeBuoy,
     baseRoute: '/admin/helpdesk',
-    defaultRoute: '/admin/helpdesk/overview',
+    defaultRoute: '/admin/helpdesk/tickets',
     featurePrefix: 'helpdesk',
     sidebarItems: [
-      { label: 'Overview', route: '/admin/helpdesk/overview', icon: LayoutDashboard },
       { label: 'Tickets', route: '/admin/helpdesk/tickets', icon: Ticket },
       { label: 'Config', route: '/admin/helpdesk/config', icon: Settings },
     ] satisfies SidebarItem[],

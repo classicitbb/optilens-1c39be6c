@@ -1080,3 +1080,24 @@ The prior `rounded-l-none` class was overridden by the workspace theme's unlayer
 Affected files: `src/components/admin/AdminSidebar.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and this handoff.
 
 Validation: `npx.cmd vitest run --coverage=false src/tests/unit/adminMobileSidebar.test.tsx` passes (2 tests); `npm run build` passes. No deployment or backend changes.
+## 2026-11-02 — Helpdesk combined tickets and overview
+
+Status: Complete — no active handoff.
+
+Affected: `src/routes/admin/AdminRoutes.tsx`, `src/features/admin/core/config/apps.ts`, `src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx`, `src/pages/admin/helpdesk/HelpdeskOverviewPage.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and `docs/agent/INTEGRATIONS.md`.
+
+The Tickets page is now the Helpdesk landing surface. Its **Overview** button toggles the main content between ticket queue and overview board. **Pop out overview** opens the existing overview route in a reusable named browser window and carries over search/team filters. In popup mode `AdminLayout` omits the admin top bar and sidebar; the board fills the page and its own toolbar includes fullscreen. Popup-block feedback leaves Tickets available and explains the browser setting. The browser/OS owns popup placement and taskbar behavior. The separate overview route remains available.
+
+Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json`, `npm run build`, and `git diff --check` pass. Scoped ESLint: 0 errors, 19 warnings in legacy code. Connected Edge opened the button-triggered popup in a distinct native Edge window; its compact Overview toolbar and board rendered, and the original Tickets tab/window remained open. A subsequent reload lost Helpdesk permission, so drag/resize and view switching were not rechecked in this follow-up. No hosted writes, deployment, auth changes, or schema changes.
+
+The browser/OS controls the popup's taskbar presence and placement on another monitor. Connected Edge confirmed the separate popup omits AdminTopBar/sidebar and exposes **Enter fullscreen**. The Fullscreen/Escape interaction itself could not be rechecked after the popup closed during HMR. `npm run build` and `git diff --check` pass; scoped ESLint has 0 errors and 19 warnings. TypeScript check was stopped after it continued consuming CPU without producing output; run `npx.cmd tsc --noEmit -p tsconfig.app.json` separately. Do not deploy without explicit production approval.
+
+## 2026-11-02 — Helpdesk queue scrolling and list stages
+
+Status: Complete — no active handoff.
+
+Affected: `src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx`, `src/pages/admin/helpdesk/HelpdeskOverviewPage.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and `docs/agent/INTEGRATIONS.md`.
+
+Ticket Queue card uses bounded flex sizing and internal overflow so the title/count stays in place while rows scroll. Overview List stage groups can be collapsed from keyboard-accessible buttons, and list table headings/data cells explicitly use square corners.
+
+Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json` and `npm run build` pass; `git diff --check` passes. Scoped ESLint reports 0 errors and 19 existing warnings. Connected Edge rendered the bounded queue with the Ticket Queue title visible at the top while rows extend below the viewport. Overview interaction could not be rechecked because its toggle did not accept the attempted CUA action. No backend, schema, authorization or deployment changes.

@@ -23,6 +23,7 @@ const AdminLayout = () => {
   useAdminBodyClass();
   const contextSlug = pathnameToContextSlug(location.pathname);
   const isDocStudio = location.pathname === "/admin/docs/studio";
+  const isHelpdeskPopup = location.pathname === "/admin/helpdesk/overview" && new URLSearchParams(location.search).get("popup") === "1";
   // Email brings its own Outlook-style app rail, so the admin sidebar would only repeat it.
   const isEmail = location.pathname === "/admin/email" || location.pathname.startsWith("/admin/email/");
   const hideSidebar = location.pathname === "/admin/dashboard" || isDocStudio || isEmail;
@@ -30,7 +31,12 @@ const AdminLayout = () => {
   return (
     <AdminRoleProvider>
       <TourProvider contextSlug={contextSlug}>
-        <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
+        {isHelpdeskPopup ? (
+          <div className="admin-tool flex h-screen w-full flex-col overflow-hidden rounded-none">
+            <Outlet />
+            <HelpdeskTicketDialog />
+          </div>
+        ) : <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
           <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
           <div className="relative flex flex-1 min-h-0">
             {!hideSidebar && <AdminSidebar />}
@@ -48,7 +54,7 @@ const AdminLayout = () => {
             </div>
           </div>
           <AdminCopilotAssistant />
-        </div>
+        </div>}
       </TourProvider>
     </AdminRoleProvider>
   );

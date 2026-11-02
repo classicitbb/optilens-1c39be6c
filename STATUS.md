@@ -4,6 +4,10 @@ Branch `crm-harvey-psychology`, local source. Borrows ideas from the Harvey sale
 
 # Project Status
 
+## Helpdesk combined tickets and overview - 2026-11-02
+
+Local source: Helpdesk opens on Tickets; Overview toggles the Tickets surface between queue and overview board; **Pop out overview** opens the separate window. Popup query mode omits AdminTopBar/AdminSidebar, fills the page, and includes fullscreen controls. The Tickets page keeps its title, filters, and Ticket Queue heading fixed while ticket rows scroll inside the card. Overview list stages can collapse, and its list table headings/cells have square corners. Search/team filters pass to the popup. Separate-window launch was confirmed in Edge; visual review of the latest scroll/collapse/radius refinements is pending. No backend, authorization, schema, or live data changes. Not deployed.
+
 Iris / Copilot workspace chat polish (2026-11-01, local source): shared helpers in `src/features/admin/copilot/` (`useStickToBottom`, `useAutoGrowTextarea`, `CopyMessageButton`). Workspace (`/admin/copilot`): no forced scroll while reading history plus a "Jump to latest" pill, copy on replies, ↑ recalls the last message, composer resizes for chip/dictation text, voice transcript no longer needs a "Reviewed" tick (matches the floating widget and CONTEXT.md; low-confidence note stays), dead stop icon removed, `role="log"`/`status` for screen readers. Public Iris: input stays enabled while she answers (send is guarded), height resets after send, IME-safe Enter, labelled Send button, copy on replies, `role="log"`. Atlas `IrisPanel` and the floating admin widget were not changed. `tsc`, lint (0 errors) and 34 focused tests pass; not checked in a browser (admin route needs sign-in). No backend, schema or deploy change.
 
 ## HR positions, org chart and contracts - 2026-11-01

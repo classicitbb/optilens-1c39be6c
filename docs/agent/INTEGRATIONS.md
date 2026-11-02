@@ -1,5 +1,7 @@
 # Integrations and Cross-Repository Contract
 
+Helpdesk Tickets queue scrolling, overview list collapse, and table corner styling are client-side presentation changes. They reuse the existing Helpdesk ticket/stage reads and mutations; no service, environment variable, schema, authorization, or connector changes.
+
 ## Alert bell and stock/list reads - 2026-10-20
 
 Frontend changes reuse existing notification/attention reads, get_store_product_variants_public and admin user/customer detail contracts. Eight-hour stock polling runs in mounted browsers plus mount/focus/reconnect; it does not import office inventory and is not a server cron. Bell coordination uses Web Locks and origin-local storage, without cross-device messaging. Portal list caches last one minute; existing mutation invalidations remain effective. No migration, hosted write, new service, connector, environment variable, credential or authorization change.
@@ -147,3 +149,6 @@ Order transmission and supplementary invoices (2026-10-28): unpriced published s
 
 
 Store checkout coverage: migration 20261028193836_stock_checkout_gatekeeper_default updates enqueue_stock_submission_for_order to Gatekeeper and removes its obsolete assigned-pricelist prerequisite. Confirmed card payments and pending on-account orders retain their existing eligibility gate; automatic mode approves/opts in new stock inserts, manual mode stages them. The isolated fixture in src/tests/sql/stock_checkout_dispatch_rollback.sql checks both modes and always rolls back. All four order migrations are recorded in hosted migration history.
+# Helpdesk overview panel boundary - 2026-11-02
+
+The combined Helpdesk UI reuses the existing overview page and existing Supabase queries/mutations. Tickets toggles its main view between queue and overview; a user click may also open the overview in a named same-origin popup window. Popup mode omits the admin top bar/sidebar while retaining existing auth, role context, and ticket dialog support. Same-origin app authentication continues to use the existing browser session. The browser may block popups or control window positioning/taskbar behavior; the Tickets page announces when popups must be allowed. No new integration or data write was introduced.

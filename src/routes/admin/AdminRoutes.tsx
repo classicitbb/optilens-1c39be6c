@@ -262,7 +262,7 @@ const AdminRoutes = () => (
       <Route path="email" element={<EmailPage />} />
       <Route
         path="helpdesk"
-        element={<Navigate to="/admin/helpdesk/overview" replace />}
+        element={<Navigate to="/admin/helpdesk/tickets" replace />}
       />
       <Route path="helpdesk/overview" element={<HelpdeskOverviewPage />} />
       <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />

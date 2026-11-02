@@ -1,5 +1,11 @@
 # Project Knowledge
 
+## Helpdesk tickets and overview panel - 2026-11-02
+
+The admin Helpdesk landing route is `/admin/helpdesk/tickets`; the old separate Overview navigation item is removed. Tickets' **Overview** button toggles the main surface between the queue and existing board/list experience; **Pop out overview** opens `/admin/helpdesk/overview?popup=1` in the reusable window name `classic-visions-helpdesk-overview`, carrying current search/team filters. Popup mode is detected by `AdminLayout` and renders only the route plus the ticket dialog mount, without AdminTopBar or AdminSidebar. The overview page fills that window and includes a Fullscreen API toggle; listen for `fullscreenchange` so Escape/native exit keeps control state accurate, and announce when fullscreen is unsupported/blocked. Popup placement and taskbar/window behavior belong to the browser/OS. On a blocked popup, leave the user on Tickets and announce that popups must be allowed. Keep the standalone overview route available. No new service or environment variable.
+
+The ticket queue uses a flex-bounded card: its title/count stays visible while the card content scrolls vertically and horizontally. In overview List mode, stage headers collapse/expand their ticket rows; keep table heading and data cell corners square (`rounded-none`) because workspace theme rules can override radius utilities. No backend or data contract changes.
+
 ## Admin mobile handle edge - 2026-10-29
 
 The unlayered `.admin-tool button` rule in `src/styles/workspace.css` overrides Tailwind radius utilities. Set `borderTopLeftRadius` and `borderBottomLeftRadius` inline on the viewport-edge handle to make its left corners square; keep the right-side rounding.
