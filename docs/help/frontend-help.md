@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-11-02 — Paste Markdown into wiki pages (pending release)
+
+Choose **Edit**, click the page body and paste Markdown. Headings, tables, lists and inline formatting become editable page content. Review the page, then use **Update** or **Publish**. Paste with Ctrl/Cmd+Shift+V for literal text; a code block also preserves Markdown characters. One Undo removes the entire paste. Existing page content is not automatically reformatted.
+
 ## 2026-11-01 - Hiding salary figures
 
 On **Finance → Payroll** runs, **Finance → Income tax**, an employee's Compensation, Pay items, Tax and Notes tabs, and on **/me**, pay figures and HR notes are blurred until you click **Show figures**. They stay visible for 30 seconds (the button counts down) and then blur again; click **Hide** to blur them sooner. To edit pay or a note, show the figures first.

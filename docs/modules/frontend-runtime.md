@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-02 — Atlas Markdown clipboard conversion
+
+`editor/markdownPaste.ts` registers a ProseMirror paste plugin through `buildBaseExtensions`. Plain clipboard text is converted with the existing `textToBlocks` GFM parser and canonical-to-editor adapter, then inserted in one transaction. Rich HTML and code blocks keep native handling. The plugin records the plain-paste keyboard chord because ClipboardEvent has no standard shiftKey field. No storage, permissions or schema changes. Six clipboard-event regressions pass; browser verification remains pending and the change is not deployed.
+
 ## 2026-11-01 - HR privacy filter
 
 `src/features/admin/hr/privacy.tsx` provides `PrivacyFilterProvider`, `Private` and `PrivacyToggle`. `HrRoute` wraps every HR admin page in the provider and `MyHrPage` wraps itself, so each page load starts hidden. Wrap new salary/tax/notes output in `<Private>` (inline) or `<Private block>` (sections and forms); without a provider `Private` stays hidden. Reveal lasts `REVEAL_SECONDS` (30) and resets on `visibilitychange` to hidden. It is a shoulder-surfing blur only, not access control.

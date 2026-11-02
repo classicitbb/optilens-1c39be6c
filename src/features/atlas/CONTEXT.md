@@ -36,6 +36,8 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
 
 ## Tables
 
+- Plain-text Markdown paste uses the existing GFM-to-canonical converter before inserting editable nodes (headings, tables, lists and inline marks). Rich HTML keeps native paste handling; code blocks and Ctrl/Cmd+Shift+V remain literal. The paste is one undo step. Regression coverage: `atlasMarkdownPaste.test.ts`.
+
 - Right-clicking a cell opens `TableContextMenu`: insert/delete row and column, header row, autofit/reset widths, delete table,
   and per-table cell spacing (`compact` / comfortable / `spacious`). Spacing is a `spacing` attribute on the table node and an optional
   `spacing` field on the canonical `table` block (omitted when comfortable).

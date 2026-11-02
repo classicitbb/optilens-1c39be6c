@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-11-02 — Markdown pasted as plain paragraphs (local fix)
+
+Reproduced with the actual editor clipboard path: Markdown headings, bold text, lists and a GFM table became plain paragraphs. The editor only handled image paste explicitly and had no Markdown conversion. Added a paste plugin using the existing GFM/canonical conversion, with regressions for formatted text, all 59 table rows, leading-zero SKUs, Undo, rich HTML, literal text, code blocks and the plain-paste shortcut. Six focused tests pass; TypeScript, lint and build pass. Two local browser attempts timed out. The full suite reported customer internal-data access, Rx keyboard and email recipient failures outside these changed files before it was stopped; no full-suite pass is claimed. Not deployed.
+
 ## 2026-11-01 - HR privacy filter (no defect)
 
 New feature, no bug fixed. Known limits: the blur is visual only (figures are still in the page and downloads/PDFs are unaffected); leave decision notes are not blurred.

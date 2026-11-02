@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-02 — Atlas Markdown paste (local, not deployed)
+
+- Plain-text Markdown paste now creates editable headings, tables, lists and inline formatting through the existing GFM/canonical converter. Rich HTML, code-block paste and paste-as-plain-text retain their existing behavior; one Undo removes the paste.
+- Six focused paste regressions pass, including a 59-row table; TypeScript, lint and build pass. Full tests reported failures in customer internal-data access, Rx keyboard navigation and email recipient input before the broad run was stopped. Local browser verification timed out. No deployment or schema change.
+
 ## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
 
 ### Release Notes

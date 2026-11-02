@@ -2,6 +2,10 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-02 — Atlas Markdown paste (not deployed)
+
+Pasting Markdown into a wiki page converts headings, tables, lists and bold text into editable formatting. Rich formatted clipboard content keeps its formatting. Use Ctrl/Cmd+Shift+V to keep literal Markdown; pasting inside a code block also remains literal.
+
 ## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
 
 ### Release Notes
