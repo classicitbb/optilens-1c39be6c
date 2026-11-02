@@ -14,6 +14,14 @@
 - Migrations written, not applied: `20261101140000_hr_assessments`, `20261101150000_hr_departments_managers`, `20261101160000_shipment_line_innovations_order_link`. `shipment-binder` not deployed.
 - Proposed shipment document-intake design recorded in `docs/architecture/adr-001-shipment-intake-pipeline.md`; no intake code yet.
 
+## 2026-11-01 — HR privacy filter
+
+### Release Notes
+- Salary figures, tax estimates and HR notes now start blurred on the payroll run, income tax and employee pages and on /me. **Show figures** reveals them for 30 seconds; they blur again on their own, or straight away on **Hide**, on leaving the page, or on switching browser tab.
+
+### Technical Changelog
+- `src/features/admin/hr/privacy.tsx`: `PrivacyFilterProvider` (mounted in `HrRoute` and `MyHrPage`), `Private` (blur + `inert` + `aria-hidden` while hidden; defaults to hidden without a provider) and `PrivacyToggle`. Visual filter only; data access is unchanged.
+
 ## 2026-11-01 — CRM email verification button
 
 ### Release Notes

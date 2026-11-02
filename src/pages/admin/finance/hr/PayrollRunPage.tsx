@@ -34,6 +34,7 @@ import {
   type PayslipRow,
 } from "@/features/admin/hr/payroll/usePayroll";
 import { downloadPayrollArchive, useCreatePayrollArchive, usePayrollArchives } from "@/features/admin/hr/payroll/useArchives";
+import { Private, PrivacyToggle } from "@/features/admin/hr/privacy";
 
 const sum =(rows: PayslipRow[], key: keyof PayslipRow) => rows.reduce((total, r) => total + Number(r[key]), 0);
 
@@ -89,110 +90,113 @@ const PayslipDialog = ({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{employee ? employeeDisplayName(employee) : "Payslip"} · {periodLabel(run.period_start)}</DialogTitle>
+          <div><PrivacyToggle /></div>
         </DialogHeader>
-        <dl className="divide-y text-sm">
-          {payslip.lines.map((line, i) => {
-            const key = line.deductionKey;
-            if (key && editingKey === key) {
+        <Private block className="grid gap-4">
+          <dl className="divide-y text-sm">
+            {payslip.lines.map((line, i) => {
+              const key = line.deductionKey;
+              if (key && editingKey === key) {
+                return (
+                  <form
+                    key={i}
+                    className="flex items-center justify-between gap-2 py-1"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void saveOverride(key, Number(formValues(event.currentTarget).amount));
+                    }}
+                  >
+                    <label htmlFor={`override-${key}`}>{line.label}</label>
+                    <div className="flex items-center gap-1">
+                      <Input id={`override-${key}`} name="amount" type="number" step="0.01" min="0" required autoFocus defaultValue={line.amount} className="h-8 w-28 text-right" />
+                      <Button type="submit" size="icon" className="h-8 w-8" aria-label="Save amount" disabled={recalc.isPending}><Check className="h-4 w-4" /></Button>
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Cancel" onClick={() => setEditingKey(null)}><X className="h-4 w-4" /></Button>
+                    </div>
+                  </form>
+                );
+              }
               return (
-                <form
-                  key={i}
-                  className="flex items-center justify-between gap-2 py-1"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void saveOverride(key, Number(formValues(event.currentTarget).amount));
-                  }}
-                >
-                  <label htmlFor={`override-${key}`}>{line.label}</label>
-                  <div className="flex items-center gap-1">
-                    <Input id={`override-${key}`} name="amount" type="number" step="0.01" min="0" required autoFocus defaultValue={line.amount} className="h-8 w-28 text-right" />
-                    <Button type="submit" size="icon" className="h-8 w-8" aria-label="Save amount" disabled={recalc.isPending}><Check className="h-4 w-4" /></Button>
-                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Cancel" onClick={() => setEditingKey(null)}><X className="h-4 w-4" /></Button>
-                  </div>
-                </form>
+                <div key={i} className="flex items-center justify-between gap-3 py-1.5">
+                  <dt>
+                    {line.label}
+                    {line.code === "earning" && line.taxable === false && <span className="ml-2 text-xs text-muted-foreground">non-taxable</span>}
+                    {line.calculated != null && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">edited · calculated {money(line.calculated)}</span>}
+                  </dt>
+                  <dd className="flex items-center gap-1 tabular-nums">
+                    {["base", "earning"].includes(line.code) ? money(line.amount) : `−${money(line.amount)}`}
+                    {key && editable && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${line.label}`} onClick={() => setEditingKey(key)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        {line.calculated != null && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Reset ${line.label} to calculated`} disabled={recalc.isPending} onClick={() => void saveOverride(key, null)}>
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </dd>
+                </div>
               );
-            }
-            return (
-              <div key={i} className="flex items-center justify-between gap-3 py-1.5">
-                <dt>
-                  {line.label}
-                  {line.code === "earning" && line.taxable === false && <span className="ml-2 text-xs text-muted-foreground">non-taxable</span>}
-                  {line.calculated != null && <span className="ml-2 text-xs text-amber-700 dark:text-amber-400">edited · calculated {money(line.calculated)}</span>}
-                </dt>
-                <dd className="flex items-center gap-1 tabular-nums">
-                  {["base", "earning"].includes(line.code) ? money(line.amount) : `−${money(line.amount)}`}
-                  {key && editable && (
-                    <>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${line.label}`} onClick={() => setEditingKey(key)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      {line.calculated != null && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Reset ${line.label} to calculated`} disabled={recalc.isPending} onClick={() => void saveOverride(key, null)}>
-                          <RotateCcw className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </dd>
-              </div>
-            );
-          })}
-          <div className="flex justify-between gap-3 py-1.5 font-semibold">
-            <dt className="flex items-center gap-1">Net pay {editable && <HelpTip id="hr.payrollRun.deductions" />}</dt>
-            <dd className="tabular-nums">{money(payslip.net)}</dd>
-          </div>
-        </dl>
-        {payslip.splits.length > 0 && (
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">Paid out as</p>
-            {payslip.splits.map((s, i) => (
-              <div key={i} className="flex justify-between text-muted-foreground">
-                <span>{s.label} ({s.method.replace("_", " ")})</span>
-                <span className="tabular-nums">{money(s.amount)}</span>
+            })}
+            <div className="flex justify-between gap-3 py-1.5 font-semibold">
+              <dt className="flex items-center gap-1">Net pay {editable && <HelpTip id="hr.payrollRun.deductions" />}</dt>
+              <dd className="tabular-nums">{money(payslip.net)}</dd>
+            </div>
+          </dl>
+          {payslip.splits.length > 0 && (
+            <div className="space-y-1 text-sm">
+              <p className="font-medium">Paid out as</p>
+              {payslip.splits.map((s, i) => (
+                <div key={i} className="flex justify-between text-muted-foreground">
+                  <span>{s.label} ({s.method.replace("_", " ")})</span>
+                  <span className="tabular-nums">{money(s.amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {payslip.warnings.length > 0 && (
+            <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-400">
+              {payslip.warnings.map((w) => <li key={w} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{w}</li>)}
+            </ul>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Allowances {money(payslip.annual_allowances)}/yr · Rules: {payslip.rules_source ?? "—"}
+          </p>
+  
+          <div className="space-y-2 border-t pt-3">
+            <p className="flex items-center gap-1 text-sm font-medium">One-off items this month <HelpTip id="hr.payrollRun.oneOff" /></p>
+            {payslip.adjustments.length === 0 && <p className="text-sm text-muted-foreground">None.</p>}
+            {payslip.adjustments.map((a, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <Badge variant={a.kind === "earning" ? "default" : "secondary"}>{a.kind}</Badge>
+                <span>{a.label}</span>
+                <span className="ml-auto tabular-nums">{money(a.amount)}</span>
+                {editable && (
+                  <Button variant="ghost" size="icon" aria-label={`Remove ${a.label}`} disabled={recalc.isPending}
+                    onClick={() => void saveAdjustments(payslip.adjustments.filter((_, j) => j !== i))}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
+            {editable && (
+              <form onSubmit={handleAdd} className="grid gap-2 sm:grid-cols-[7rem_1fr_7rem]">
+                <Field label="Type" htmlFor="adj-kind">
+                  <select id="adj-kind" name="kind" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option value="earning">Earning</option>
+                    <option value="deduction">Deduction</option>
+                  </select>
+                </Field>
+                <Field label="Label" htmlFor="adj-label"><Input id="adj-label" name="label" required placeholder="e.g. Bonus" className={fieldInputClass} /></Field>
+                <Field label="Amount" htmlFor="adj-amount"><Input id="adj-amount" name="amount" type="number" step="0.01" min="0.01" required className={fieldInputClass} /></Field>
+                <label htmlFor="adj-taxable" className="flex items-center gap-2 text-sm sm:col-span-2">
+                  <input id="adj-taxable" name="taxable" type="checkbox" defaultChecked className="h-4 w-4" /> Taxable (earnings only)
+                </label>
+                <Button type="submit" size="sm" disabled={recalc.isPending}>Add</Button>
+              </form>
+            )}
           </div>
-        )}
-        {payslip.warnings.length > 0 && (
-          <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-400">
-            {payslip.warnings.map((w) => <li key={w} className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{w}</li>)}
-          </ul>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Allowances {money(payslip.annual_allowances)}/yr · Rules: {payslip.rules_source ?? "—"}
-        </p>
-
-        <div className="space-y-2 border-t pt-3">
-          <p className="flex items-center gap-1 text-sm font-medium">One-off items this month <HelpTip id="hr.payrollRun.oneOff" /></p>
-          {payslip.adjustments.length === 0 && <p className="text-sm text-muted-foreground">None.</p>}
-          {payslip.adjustments.map((a, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
-              <Badge variant={a.kind === "earning" ? "default" : "secondary"}>{a.kind}</Badge>
-              <span>{a.label}</span>
-              <span className="ml-auto tabular-nums">{money(a.amount)}</span>
-              {editable && (
-                <Button variant="ghost" size="icon" aria-label={`Remove ${a.label}`} disabled={recalc.isPending}
-                  onClick={() => void saveAdjustments(payslip.adjustments.filter((_, j) => j !== i))}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-          {editable && (
-            <form onSubmit={handleAdd} className="grid gap-2 sm:grid-cols-[7rem_1fr_7rem]">
-              <Field label="Type" htmlFor="adj-kind">
-                <select id="adj-kind" name="kind" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="earning">Earning</option>
-                  <option value="deduction">Deduction</option>
-                </select>
-              </Field>
-              <Field label="Label" htmlFor="adj-label"><Input id="adj-label" name="label" required placeholder="e.g. Bonus" className={fieldInputClass} /></Field>
-              <Field label="Amount" htmlFor="adj-amount"><Input id="adj-amount" name="amount" type="number" step="0.01" min="0.01" required className={fieldInputClass} /></Field>
-              <label htmlFor="adj-taxable" className="flex items-center gap-2 text-sm sm:col-span-2">
-                <input id="adj-taxable" name="taxable" type="checkbox" defaultChecked className="h-4 w-4" /> Taxable (earnings only)
-              </label>
-              <Button type="submit" size="sm" disabled={recalc.isPending}>Add</Button>
-            </form>
-          )}
-        </div>
+        </Private>
       </DialogContent>
     </Dialog>
   );
@@ -324,6 +328,7 @@ const PayrollRunPage = () => {
         <ArrowLeft className="h-4 w-4" /> Payroll
       </Link>
       <AdminPageHeader icon={Calculator} title={`Payroll · ${periodLabel(run.period_start)}`} tooltip="Figures are worked out when the run is created or recalculated. Approving locks the run and takes loan repayments off loan balances.">
+        <PrivacyToggle />
         <Badge variant="outline">{RUN_STATUS_LABELS[run.status]}</Badge>
         {run.status === "draft" && (
           <>
@@ -368,7 +373,7 @@ const PayrollRunPage = () => {
           <Card key={t.label}>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">{t.label}</p>
-              <p className="text-lg font-semibold tabular-nums">{money(t.value)}</p>
+              <p className="text-lg font-semibold tabular-nums"><Private>{money(t.value)}</Private></p>
             </CardContent>
           </Card>
         ))}
@@ -410,12 +415,12 @@ const PayrollRunPage = () => {
                       </button>
                       {p.warnings.length > 0 && <AlertTriangle className="ml-2 inline h-4 w-4 text-amber-600" aria-label="Has warnings" />}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{money(p.gross)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(p.nis)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(p.paye)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(p.rr_levy)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{money(p.other_deductions)}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{money(p.net)}</TableCell>
+                    <TableCell className="text-right tabular-nums"><Private>{money(p.gross)}</Private></TableCell>
+                    <TableCell className="text-right tabular-nums"><Private>{money(p.nis)}</Private></TableCell>
+                    <TableCell className="text-right tabular-nums"><Private>{money(p.paye)}</Private></TableCell>
+                    <TableCell className="text-right tabular-nums"><Private>{money(p.rr_levy)}</Private></TableCell>
+                    <TableCell className="text-right tabular-nums"><Private>{money(p.other_deductions)}</Private></TableCell>
+                    <TableCell className="text-right font-medium tabular-nums"><Private>{money(p.net)}</Private></TableCell>
                   </TableRow>
                 );
               })
@@ -426,7 +431,7 @@ const PayrollRunPage = () => {
               <TableRow>
                 <TableCell>Total</TableCell>
                 {(["gross", "nis", "paye", "rr_levy", "other_deductions", "net"] as const).map((k) => (
-                  <TableCell key={k} className="text-right tabular-nums">{money(sum(payslips, k))}</TableCell>
+                  <TableCell key={k} className="text-right tabular-nums"><Private>{money(sum(payslips, k))}</Private></TableCell>
                 ))}
               </TableRow>
             </TableFooter>

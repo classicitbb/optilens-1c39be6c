@@ -11,6 +11,11 @@ Summarized release outcomes for each major date-stamped update.
 - HR: employee assessments, departments and manager reporting lines.
 - Copilot: updated composer and push-to-talk.
 
+## 2026-11-01 — HR privacy filter
+
+### Release Notes
+- Salary figures, tax estimates and HR notes now start blurred on the payroll run, income tax and employee pages and on /me. **Show figures** reveals them for 30 seconds; they blur again on their own, or straight away on **Hide**, on leaving the page, or on switching browser tab.
+
 ## 2026-11-01 — CRM email verification button
 
 ### Release Notes

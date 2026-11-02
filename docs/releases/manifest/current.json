@@ -1,5 +1,5 @@
 {
-  "semanticVersion": "0.32.0",
+  "semanticVersion": "0.33.0",
   "sourceEntry": "2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer",
   "releaseDateTimeUtc": "2026-11-01T00:00:00.000Z",
   "environment": "production",
