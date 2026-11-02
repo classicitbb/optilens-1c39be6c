@@ -70,6 +70,12 @@ const parseHtmlToBlocks = (raw: string): BlogBlockNode[] => {
       return src ? [{ type: "image", src, alt: node.getAttribute("alt") ?? "" }] : [];
     }
     if (tag === "hr") return [{ type: "divider" }];
+    if (tag === "table") {
+      const rows = Array.from(node.querySelectorAll("tr")).map((tr) => Array.from(tr.children).filter((cell) => cell.tagName === "TH" || cell.tagName === "TD"));
+      if (!rows.length) return [];
+      const header = rows[0].length > 0 && rows[0].every((cell) => cell.tagName === "TH");
+      return [{ type: "table", header, rows: rows.map((cells) => cells.map((cell) => toInline(Array.from(cell.childNodes)))) }];
+    }
     if (tag === "pre") {
       const codeEl = node.querySelector("code");
       const language = codeEl?.className.match(/language-([\w-]+)/)?.[1];
@@ -210,6 +216,19 @@ const parseInlineMarkdown = (text: string): BlogInlineNode[] => {
   return nodes.length > 0 ? nodes : [asText(text)];
 };
 
+/** Cells of a markdown table row: `| a | b |` → ["a", "b"]. `\|` is a literal pipe. */
+const splitTableRow = (line: string): string[] =>
+  line
+    .replace(/^\|/, "")
+    .replace(/(?<!\\)\|$/, "")
+    .split(/(?<!\\)\|/)
+    .map((cell) => cell.trim().replace(/\\\|/g, "|"));
+
+const isTableSeparator = (line: string) => {
+  const cells = splitTableRow(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+};
+
 export const toCanonicalDocument = (value?: unknown): BlogCanonicalContent => {
   if (!value) return { blocks: [] };
 
@@ -235,10 +254,11 @@ export const toCanonicalDocument = (value?: unknown): BlogCanonicalContent => {
     return { blocks: parseHtmlToBlocks(raw) };
   }
 
-  // Full markdown-style parser: headings, lists, blockquotes, paragraphs with inline formatting
+  // Full markdown-style parser: headings, lists, blockquotes, tables, paragraphs with inline formatting
   const lines = raw.split(/\r?\n/);
   const blocks: BlogBlockNode[] = [];
   let listBuffer: { ordered: boolean; items: BlogInlineNode[][] } | null = null;
+  let tableBuffer: string[] = [];
 
   const flushList = () => {
     if (!listBuffer) return;
@@ -246,9 +266,29 @@ export const toCanonicalDocument = (value?: unknown): BlogCanonicalContent => {
     listBuffer = null;
   };
 
+  // A run of `| … |` lines is a table only when its second line is the `| --- |` header separator.
+  const flushTable = () => {
+    if (!tableBuffer.length) return;
+    if (tableBuffer.length >= 2 && isTableSeparator(tableBuffer[1])) {
+      const rows = [tableBuffer[0], ...tableBuffer.slice(2)].map((row) => splitTableRow(row).map(parseInlineMarkdown));
+      blocks.push({ type: "table", header: true, rows });
+    } else {
+      for (const row of tableBuffer) blocks.push({ type: "paragraph", children: parseInlineMarkdown(row) });
+    }
+    tableBuffer = [];
+  };
+
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
     const trimmed = line.trim();
+
+    // Table row
+    if (trimmed.startsWith("|") && trimmed.length > 1) {
+      flushList();
+      tableBuffer.push(trimmed);
+      continue;
+    }
+    flushTable();
 
     // Blank line — flush list
     if (!trimmed) {
@@ -295,6 +335,7 @@ export const toCanonicalDocument = (value?: unknown): BlogCanonicalContent => {
   }
 
   flushList();
+  flushTable();
   return { blocks };
 };
 

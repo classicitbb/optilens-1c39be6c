@@ -129,6 +129,22 @@ describe("Portal Copilot multi-chat workspace", () => {
     expect(screen.getByRole("button", { name: /Second chat/i })).toBeInTheDocument();
   });
 
+  it("recalls the last sent message with the up arrow, and sends without a transcript gate", async () => {
+    loadCopilotState.mockResolvedValue({
+      ...stateFor("chat-a"),
+      messages: [{ id: "u1", conversation_id: "chat-a", role: "user", content: "Show lapsed buyers", attachments: [], created_at: "2026-08-14T01:00:00Z" }],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(<QueryClientProvider client={client}><PortalCopilotPage /></QueryClientProvider>);
+    await screen.findByText("Show lapsed buyers");
+
+    const box = screen.getByLabelText("Message the Copilot") as HTMLTextAreaElement;
+    fireEvent.keyDown(box, { key: "ArrowUp" });
+
+    expect(box.value).toBe("Show lapsed buyers");
+    expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
+  });
+
   it("renders CRM evidence and keeps a suggestion pending for explicit approval", async () => {
     loadCopilotState.mockResolvedValue(crmState());
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });

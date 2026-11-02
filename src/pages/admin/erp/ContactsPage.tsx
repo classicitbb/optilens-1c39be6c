@@ -34,6 +34,7 @@ import { paginate } from "@/lib/pagination";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { ContactEmailHistory } from "@/features/admin/email/ContactEmailHistory";
 import { ContactCalls } from "@/features/admin/crm/ContactCalls";
+import { ContactEmailVerify } from "@/features/admin/crm/ContactEmailVerify";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -2802,6 +2803,7 @@ const ContactsPage = ({
 
                   {editContact?.id ? (
                     <TabsContent value="email" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                      <ContactEmailVerify contactId={editContact.id} emails={editContact.email} />
                       <ContactEmailHistory email={editContact.email} />
                     </TabsContent>
                   ) : null}

@@ -109,6 +109,7 @@ const AssetReportsPage = lazyWithRetry(() => import("@/pages/admin/finance/asset
 const AssetImportPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetImportPage"));
 const StatementDeliveryPreviewPage = lazyWithRetry(() => import("@/pages/admin/StatementDeliveryPreviewPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
+const TrainingHubPage = lazyWithRetry(() => import("@/pages/admin/settings/TrainingHubPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
 );
 const EdgeFunctionStatusPage = lazyWithRetry(() => import("@/pages/admin/settings/EdgeFunctionStatusPage"),
@@ -428,6 +429,7 @@ const AdminRoutes = () => (
       />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
+      <Route path="settings/training" element={<TrainingHubPage />} />
       <Route path="settings/email-previews" element={<EmailPreviewsPage />} />
       <Route
         path="settings/edge-functions"

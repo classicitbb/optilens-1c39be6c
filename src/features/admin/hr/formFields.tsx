@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import HelpTip from "@/help/HelpTip";
+import type { TooltipId } from "@/help/tooltips";
 
 // Errors only show once the user has interacted with the field (:user-invalid), never on load.
 export const fieldInputClass = "[&:user-invalid]:border-destructive [&:user-invalid]:ring-destructive";
 
-export const Field = ({ label, htmlFor, className, children }: { label: string; htmlFor: string; className?: string; children: ReactNode }) => (
+export const Field = ({ label, htmlFor, tip, className, children }: { label: string; htmlFor: string; tip?: TooltipId; className?: string; children: ReactNode }) => (
   <div className={cn("space-y-1.5", className)}>
-    <Label htmlFor={htmlFor}>{label}</Label>
+    <div className="flex items-center gap-1">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {tip && <HelpTip id={tip} />}
+    </div>
     {children}
   </div>
 );

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, CircleHelp, House, KeyRound, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Shield, Sun } from "lucide-react";
+import { ArrowLeft, BookOpen, CircleHelp, House, KeyRound, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Shield, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,14 @@ import { useAnnotator } from "@/features/annotate/useAnnotator";
 interface AccountTopBarProps {
   displayName: string;
   onSignOut: () => void;
+  /** Opens the help panel for the page being viewed. */
+  onPageHelp?: () => void;
 }
 
 // Marks the profile menu as annotator UI so it stays usable (and unannotatable) while annotating.
 const ANNOTATE_UI = { [ANNOTATE_UI_ATTR]: "" };
 
-const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
+const AccountTopBar = ({ displayName, onSignOut, onPageHelp }: AccountTopBarProps) => {
   const location = useLocation();
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
@@ -98,6 +100,11 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
           <div className="flex items-center justify-end gap-1">
             {/* Mobile only: help dot + hamburger */}
             <div className="flex items-center gap-1 lg:hidden">
+              {onPageHelp && (
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Help for this page" onClick={onPageHelp}>
+                  <BookOpen className="h-3.5 w-3.5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -151,6 +158,12 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                   );
                 })}
               </div>
+              {onPageHelp && (
+                <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1.5 px-2 text-xs" aria-label="Help for this page" onClick={onPageHelp}>
+                  <BookOpen className="h-3.5 w-3.5" />
+                  <span>Page guide</span>
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

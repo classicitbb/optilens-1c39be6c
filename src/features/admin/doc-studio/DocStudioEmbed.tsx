@@ -5,6 +5,7 @@ import DocStudioFileManager from "./files/FileManager";
 import { loadInnovationsInvoice } from "./innovationsInvoice";
 import { supabaseRequestUrl } from "@/lib/supabaseDevTransport";
 import { useNavigate } from "react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { rememberStudioTool, studioToolForState } from "./navigation";
 
@@ -24,6 +25,8 @@ import { rememberStudioTool, studioToolForState } from "./navigation";
  * location.search.
  */
 
+// Links placed in outgoing documents must use the public site, not the admin host.
+const PUBLIC_SITE_ORIGIN = "https://classicvisions.net";
 const DS_BASE = "/ds";
 const DESIGN_SYSTEM_CSS = `${DS_BASE}/_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css`;
 const MATERIAL_SYMBOLS_CSS = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200";
@@ -58,12 +61,9 @@ const NATIVE_CSS = `
 .ds-native-host #dc-root,.ds-native-host #dc-root>.sc-host{height:100%!important}
 .ds-native-host #dc-root>.sc-host>div{height:100%!important}
 .ds-native-host .ds-topbar{display:none!important}
-.ds-native-host #embedded-tabbar{display:flex!important}
-.ds-native-host .ds-sidebar{background:#0B1E35!important;border-color:#243951!important;color:#F4F2ED}
-.ds-native-host .ds-sidebar [style*="background:#fff"],.ds-native-host .ds-sidebar [style*="background:#f4f2ed"],.ds-native-host .ds-sidebar [style*="background:#f7f5ef"]{background:#162a42!important}
-.ds-native-host .ds-sidebar [style*="color:#0B1E35"]{color:#F4F2ED!important}
-.ds-native-host .ds-sidebar [style*="color:#5b6b7c"],.ds-native-host .ds-sidebar [style*="color:#8a93a0"],.ds-native-host .ds-sidebar [style*="color:#a7a596"]{color:#cdd8e4!important}
-.ds-native-host .ds-sidebar [style*="border:1px solid #d9d7cf"],.ds-native-host .ds-sidebar [style*="border-top:1px solid #efece3"],.ds-native-host .ds-sidebar [style*="border-color:#e7e4db"]{border-color:#31455e!important}
+.ds-native-host #embedded-tabbar{display:flex!important;align-items:flex-end!important;height:44px!important;padding-top:6px!important;gap:2px!important;box-shadow:inset 0 -1px 0 #243951}
+.ds-native-host #embedded-tabbar>div{align-self:center}
+.ds-native-host #embedded-tabbar [role="tab"][aria-selected="false"]:hover{background:rgba(255,255,255,.13)!important;color:#fff!important}
 .ds-native-host [contenteditable]:empty:before{content:attr(data-ph);color:#a7aeb6}
 .ds-native-host [contenteditable]:focus{border-color:#1A8A9C !important}
 .ds-native-host .cv-in:focus{border-color:#1A8A9C !important;box-shadow:0 0 0 3px rgba(26,138,156,.12)}
@@ -73,6 +73,23 @@ const NATIVE_CSS = `
 .ds-native-host table[role="presentation"]{background:transparent;color:inherit}
 .ds-native-host table[role="presentation"] td,.ds-native-host table[role="presentation"] th{padding:0;border:0;font:inherit;color:inherit;background:transparent;letter-spacing:normal;text-transform:none}
 .ds-native-host table[role="presentation"] tr:hover td{background:transparent}
+/* Studio chrome is always light: the admin dark theme never reaches inputs or the sidebar. */
+.ds-native-host :is(input,textarea,select){background-color:#fff!important;color:#0B1E35!important;border-color:#d9d7cf!important}
+.ds-native-host :is(input,textarea)::placeholder{color:#8a93a0!important}
+.ds-native-host :is(input,textarea,select):disabled{background-color:#f1efe8!important;color:#8a93a0!important}
+/* Sidebar: dense, utilitarian control panel on the workspace tokens (mono labels, 4px blocks). */
+.ds-native-host .ds-sidebar{background:#fafaf8!important;border-right:1px solid #d9d7cf!important;color:#0B1E35;width:360px!important}
+.ds-native-host .ds-sidebar>div{padding:14px 14px 32px!important;gap:12px!important}
+.ds-native-host .ds-sidebar :is(div,span,label)[style*="text-transform: uppercase"]{font:500 10.5px/1.2 'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace!important;letter-spacing:.08em!important;color:#5b6b7c!important;margin-bottom:5px!important}
+.ds-native-host .ds-sidebar :is(input,select,textarea){padding:6px 8px!important;border-radius:4px!important;font-size:12.5px!important}
+.ds-native-host .ds-sidebar button{border-radius:4px!important}
+/* The rendered document is paper: it never follows the admin light/dark theme. */
+.ds-native-host .ds-doc-preview{color:#1a202c;color-scheme:light}
+.ds-native-host .ds-doc-preview table{background:transparent;color:inherit}
+.ds-native-host .ds-doc-preview :is(th,td){background:transparent;color:inherit;font-family:inherit;font-size:inherit;letter-spacing:normal;text-transform:none;padding:0;border:0}
+.ds-native-host .ds-doc-preview tr:hover td{background:transparent}
+/* Document tables are square; the admin shell's global radius must not round their cells. */
+.ds-native-host .ds-doc-preview :is(table,thead,tbody,tfoot,tr,th,td):not([style*="border-radius: 8px"]){border-radius:0!important}
 .ds-native-host button:focus-visible{outline:2px solid #1A8A9C;outline-offset:3px}
 .ds-native-host .ds-letter-polish button[aria-pressed="true"]{background:#1A8A9C!important;border-color:#1A8A9C!important;color:#fff!important}
 .ds-native-host .ds-letter-polish button:hover{outline:1px solid #1A8A9C;outline-offset:2px}
@@ -87,7 +104,35 @@ declare global {
     __docStudioSupabaseRef?: string;
     __docStudioLoadInvoice?: typeof loadInnovationsInvoice;
     __docStudioFunctionsBase?: string;
+    __docStudioCreatePayLink?: typeof createInvoicePayLink;
   }
+}
+
+interface InvoicePayLinkInput {
+  amount: number;
+  customerName: string;
+  customerEmail: string;
+  reference?: string;
+  reason?: string;
+}
+
+/**
+ * Mints a one-time /pay link (amount fixed server-side) for an invoice email.
+ * Same RPC and staff-role check as the walk-in "request by email" flow; the
+ * token is only ever placed in the email the studio is about to send.
+ */
+async function createInvoicePayLink(input: InvoicePayLinkInput): Promise<string> {
+  const { data, error } = await (supabase.rpc as any)("publish_walk_in_payment", {
+    p_amount: input.amount,
+    p_customer_name: input.customerName,
+    p_origin: "email_request",
+    p_customer_email: input.customerEmail,
+    p_order_reference: input.reference || null,
+    p_reason: input.reason || null,
+  });
+  const token = (data as { token?: string } | null)?.token;
+  if (error || !token) throw new Error(error?.message || "Could not create the payment link.");
+  return `${PUBLIC_SITE_ORIGIN}/pay?token=${encodeURIComponent(token)}`;
 }
 
 let assetsPromise: Promise<void> | null = null;
@@ -235,6 +280,7 @@ const DocStudioEmbed = () => {
     const invoiceController = new AbortController();
     const invoiceLoader: typeof loadInnovationsInvoice = (number, account) => loadInnovationsInvoice(number, account, invoiceController.signal);
     window.__docStudioLoadInvoice = invoiceLoader;
+    window.__docStudioCreatePayLink = createInvoicePayLink;
     window.__docStudioFunctionsBase = supabaseRequestUrl(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1`, import.meta.env.VITE_SUPABASE_URL, import.meta.env.DEV, window.location.origin);
     (async () => {
       const [markup] = await Promise.all([fetchTemplateMarkup(), loadAssets()]);
@@ -257,6 +303,7 @@ const DocStudioEmbed = () => {
       window.removeEventListener('ds:navigation', onStudioNavigation);
       invoiceController.abort();
       if (window.__docStudioLoadInvoice === invoiceLoader) delete window.__docStudioLoadInvoice;
+      if (window.__docStudioCreatePayLink === createInvoicePayLink) delete window.__docStudioCreatePayLink;
     };
   }, [attempt, navigate, user?.id]);
 

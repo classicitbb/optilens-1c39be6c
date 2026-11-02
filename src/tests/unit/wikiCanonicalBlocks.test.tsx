@@ -6,6 +6,7 @@ import {
   canonicalToHtml,
   canonicalToTiptapDoc,
   tiptapDocToCanonical,
+  toCanonicalDocument,
   validateCanonicalDocument,
 } from "@/lib/wikiCanonical";
 
@@ -209,5 +210,40 @@ describe("nested lists", () => {
     const html = renderToStaticMarkup(<BlogPostRenderer content={nested} />);
     expect(html).toMatch(/<li[^>]*>.*A1.*<ul[^>]*>.*A1a/s);
     expect(canonicalToHtml(nested)).toContain("<li>A<ul><li>A1<ul><li>A1a</li></ul></li></ul></li>");
+  });
+});
+
+describe("markdown tables in legacy content", () => {
+  it("reads a pipe table with a header row", () => {
+    const doc = toCanonicalDocument(
+      ["## Tabs", "", "| Tab | What it holds |", "| --- | :---: |", "| Profile | Press **Save profile** |", "| Pay \\| items | Splits |", "", "After."].join("\n"),
+    );
+    expect(doc.blocks[1]).toEqual({
+      type: "table",
+      header: true,
+      rows: [
+        [[t("Tab")], [t("What it holds")]],
+        [[t("Profile")], [t("Press "), { type: "strong", children: [t("Save profile")] }]],
+        [[t("Pay | items")], [t("Splits")]],
+      ],
+    });
+    expect(doc.blocks[2]).toEqual({ type: "paragraph", children: [t("After.")] });
+    expect(renderToStaticMarkup(<BlogPostRenderer content={doc} />)).toMatch(/<th[^>]*><span>Tab<\/span><\/th>.*<td[^>]*><span>Profile<\/span><\/td>/s);
+  });
+
+  it("keeps pipe lines without a separator row as paragraphs", () => {
+    expect(toCanonicalDocument("| not a table |\n| still not |").blocks).toEqual([
+      { type: "paragraph", children: [t("| not a table |")] },
+      { type: "paragraph", children: [t("| still not |")] },
+    ]);
+  });
+
+  it("reads tables back from editor HTML, so a save keeps them", () => {
+    const html = '<table style="min-width: 50px"><tbody><tr><th colspan="1"><p>Tab</p></th><th><p>Holds</p></th></tr><tr><td><p><strong>Pay</strong></p></td><td><p>Splits</p></td></tr></tbody></table>';
+    expect(toCanonicalDocument(html).blocks).toEqual([
+      { type: "table", header: true, rows: [[[t("Tab")], [t("Holds")]], [[{ type: "strong", children: [t("Pay")] }], [t("Splits")]]] },
+    ]);
+    const fromMarkdown = toCanonicalDocument("| A | B |\n| --- | --- |\n| c | d |");
+    expect(toCanonicalDocument(canonicalToHtml(fromMarkdown))).toEqual(fromMarkdown);
   });
 });

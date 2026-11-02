@@ -132,12 +132,14 @@ const registerPdf = (input: ArchiveInput, rows: Row[], totals: ArchiveTotals) =>
   return pdfBytes(doc);
 };
 
-const payslipPdf = (input: ArchiveInput, row: Row) => {
-  const { payslip } = row;
+/** One employee's payslip as a PDF: the copy in the archive pack, and what employees download from /me. */
+export const buildPayslipPdf = (run: PayrollRun, payslip: PayslipRow, employee: Employee | undefined) => {
+  const name = employee ? employeeDisplayName(employee) : "Unknown employee";
+  const number = employee?.employee_no;
   const doc = new jsPDF();
-  const startY = pdfHeader(doc, `Payslip · ${periodLabel(input.run.period_start)}`, [
-    `${row.name}${row.number ? ` (${row.number})` : ""}${row.employee?.job_title ? ` · ${row.employee.job_title}` : ""}`,
-    `Pay date: ${input.run.pay_date ?? "not set"}`,
+  const startY = pdfHeader(doc, `Payslip · ${periodLabel(run.period_start)}`, [
+    `${name}${number ? ` (${number})` : ""}${employee?.job_title ? ` · ${employee.job_title}` : ""}`,
+    `Pay date: ${run.pay_date ?? "not set"}`,
   ]);
   autoTable(doc, {
     startY,
@@ -238,7 +240,7 @@ export const buildPayrollArchive = async (input: ArchiveInput): Promise<ArchiveP
     [`Payroll ${period}.xlsx`]: await workbook(input, rows, totals),
   };
   for (const row of rows) {
-    contents[`payslips/${safeName(`${row.number} ${row.name}`)}.pdf`] = payslipPdf(input, row);
+    contents[`payslips/${safeName(`${row.number} ${row.name}`)}.pdf`] = buildPayslipPdf(input.run, row.payslip, row.employee);
   }
 
   const files: ArchiveFile[] = [];

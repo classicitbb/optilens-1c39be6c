@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeShipmentDerivedTotals } from "@/lib/importCostings";
+import { computeShipmentCosting, computeShipmentDerivedTotals } from "@/lib/importCostings";
 
 const shipment = {
   currency: "USD",
@@ -49,5 +49,17 @@ describe("import costing totals", () => {
 
     expect(totals.charityAllocationBbd).toBe(0);
     expect(totals.totalLandedBbd).toBeCloseTo(2314.59, 6);
+  });
+  it("costs lines so their landed totals add up to the shipment total, at any exchange rate", () => {
+    const lines = [
+      { line_fob_foreign: 600, quantity: 6, markup_percent: 50 },
+      { line_fob_foreign: 395.14, quantity: 4, markup_percent: 50 },
+    ];
+    const { totals, lines: costed } = computeShipmentCosting(shipment, charges, lines);
+    const landedSum = costed.reduce((sum, { costs }) => sum + costs.landedLineBbd, 0);
+
+    expect(totals.exchangeRate).toBe(2);
+    expect(landedSum).toBeCloseTo(totals.totalLandedBbd, 6);
+    expect(costed[0].costs.landedUnitBbd).toBeCloseTo((600 * totals.multiplier) / 6, 6);
   });
 });

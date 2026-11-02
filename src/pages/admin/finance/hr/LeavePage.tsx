@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { CalendarDays, Plus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import HelpTip from "@/help/HelpTip";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,19 +29,20 @@ const LeavePage = () => {
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <AdminPageHeader icon={CalendarDays} title="Leave" tooltip="Vacation, sick, maternity, paternity and unpaid leave. Unpaid and NIS-paid days come off pay in the payroll run for that month.">
-        <Button size="sm" onClick={() => setAdding(true)}><Plus className="mr-1 h-4 w-4" /> Record leave</Button>
+        <Button size="sm" onClick={() => setAdding(true)} data-tour="hr-leave-record"><Plus className="mr-1 h-4 w-4" /> Record leave</Button>
+        <HelpTip id="hr.leave.record" side="bottom" />
       </AdminPageHeader>
 
       <Tabs defaultValue="requests">
-        <TabsList className="flex h-auto flex-wrap justify-start">
+        <TabsList className="flex h-auto flex-wrap justify-start" data-tour="hr-leave-tabs">
           <TabsTrigger value="requests">Requests{pending.length > 0 && ` (${pending.length})`}</TabsTrigger>
-          <TabsTrigger value="balances">Balances</TabsTrigger>
+          <TabsTrigger value="balances" data-tour="hr-leave-tab-balances">Balances</TabsTrigger>
           <TabsTrigger value="all">All leave</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="settings" data-tour="hr-leave-tab-settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests" className="space-y-4">
-          <section className="space-y-2">
+          <section className="space-y-2" data-tour="hr-leave-pending">
             <h2 className="text-sm font-medium">Awaiting approval</h2>
             {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : <LeaveRequestTable requests={pending} employees={employees} types={types} />}
           </section>
@@ -55,7 +57,7 @@ const LeavePage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Employee</TableHead>
+                  <TableHead><span className="inline-flex items-center gap-1">Employee <HelpTip id="hr.leave.balances" /></span></TableHead>
                   {activeTypes.map((t) => <TableHead key={t.id} className="text-right">{t.name}{t.basis === "per_year" ? " (available)" : " (this year)"}</TableHead>)}
                 </TableRow>
               </TableHeader>

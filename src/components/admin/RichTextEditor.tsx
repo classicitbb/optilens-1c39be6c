@@ -3,14 +3,15 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { useEffect, useCallback, useState, useRef } from "react";
 import {
-  Bold, Italic, List, ListOrdered, Link as LinkIcon, Type, Plus, ChevronDown, ImagePlus, WandSparkles,
+  Bold, Italic, List, ListOrdered, Link as LinkIcon, Type, Plus, ChevronDown, ImagePlus, WandSparkles, Table as TableIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,8 @@ const RichTextEditor = ({
   const [imageUrl, setImageUrl] = useState("");
   const [imageAlt, setImageAlt] = useState("");
   const [imageOpen, setImageOpen] = useState(false);
+  // The toolbar does not re-render on every cursor move, so the table menu checks when it opens.
+  const [inTable, setInTable] = useState(false);
   const suppressUpdate = useRef(false);
 
   const editor = useEditor({
@@ -76,6 +79,11 @@ const RichTextEditor = ({
       }),
       Placeholder.configure({ placeholder }),
       ImageNode,
+      // One paragraph per cell, like the stored article format (cells hold inline text only).
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader.extend({ content: "paragraph" }),
+      TableCell.extend({ content: "paragraph" }),
     ],
     content: content || "",
     onUpdate: ({ editor: ed }) => {
@@ -121,6 +129,9 @@ const RichTextEditor = ({
           "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2",
           "[&_li]:text-sm [&_li]:mb-0.5",
           "[&_img]:my-4 [&_img]:w-full [&_img]:rounded-xl [&_img]:border [&_img]:border-border",
+          "[&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
+          "[&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:align-top [&_th]:font-semibold",
+          "[&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_td]:align-top [&_td_p]:mb-0 [&_th_p]:mb-0 [&_.selectedCell]:bg-primary/10",
           "[&_.is-editor-empty:first-child::before]:text-muted-foreground/50 [&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.is-editor-empty:first-child::before]:float-left [&_.is-editor-empty:first-child::before]:h-0 [&_.is-editor-empty:first-child::before]:pointer-events-none",
         ),
         style: `min-height: ${minHeight};${height ? `height: ${height}; max-height: ${height};` : ""} padding: 12px; box-sizing: border-box;`,
@@ -350,6 +361,34 @@ const RichTextEditor = ({
             </Button>
           </PopoverContent>
         </Popover>
+
+        {/* Table */}
+        <DropdownMenu onOpenChange={(open) => open && setInTable(editor.isActive("table"))}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className={cn("h-7 w-7", editor.isActive("table") && "bg-muted")} title="Table">
+              <TableIcon className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[160px]">
+            {inTable ? (
+              <>
+                <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().addRowBefore().run()}>Add row above</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().addRowAfter().run()}>Add row below</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().addColumnBefore().run()}>Add column left</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().addColumnAfter().run()}>Add column right</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().toggleHeaderRow().run()}>Header row on/off</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().deleteRow().run()}>Delete row</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().deleteColumn().run()}>Delete column</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs text-destructive focus:text-destructive" onClick={() => editor.chain().focus().deleteTable().run()}>Delete table</DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem className="text-xs" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+                Insert table
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Quick insert menu */}
         <DropdownMenu>

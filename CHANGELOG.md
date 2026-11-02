@@ -1,5 +1,47 @@
 # Changelog
 
+## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
+
+### Release Notes
+- Shipment costing: per-line **Landed/unit** and the **Sell** price and markup beside it were overstated on non-BBD shipments (about double for USD) because the exchange rate was applied twice. Line landed costs now add up to the shipment's landed total. Saved shipment totals are unchanged; the line figures on screen and in the Lines CSV export change.
+- Shipment lines can be linked to an Innovations order; the order's lens total then fixes the sell price and markup is derived.
+- The binder cover now shows the supplier name, VAT, total landed cost, the multiplier and each line's landed cost, and continues onto further pages when a shipment is long.
+- HR: employee assessments, departments and manager reporting lines.
+- Copilot: updated composer and push-to-talk.
+
+### Technical Changelog
+- Landed-cost math now lives in `supabase/functions/_shared/shipments/landedCost.ts`; `src/lib/importCostings.ts` re-exports it and `shipment-binder` imports it. `computeLineCosts` moved there from `useShipments.ts` (still re-exported).
+- Migrations written, not applied: `20261101140000_hr_assessments`, `20261101150000_hr_departments_managers`, `20261101160000_shipment_line_innovations_order_link`. `shipment-binder` not deployed.
+- Proposed shipment document-intake design recorded in `docs/architecture/adr-001-shipment-intake-pipeline.md`; no intake code yet.
+
+## 2026-11-01 — HR privacy filter
+
+### Release Notes
+- Salary figures, tax estimates and HR notes now start blurred on the payroll run, income tax and employee pages and on /me. **Show figures** reveals them for 30 seconds; they blur again on their own, or straight away on **Hide**, on leaving the page, or on switching browser tab.
+
+### Technical Changelog
+- `src/features/admin/hr/privacy.tsx`: `PrivacyFilterProvider` (mounted in `HrRoute` and `MyHrPage`), `Private` (blur + `inert` + `aria-hidden` while hidden; defaults to hidden without a provider) and `PrivacyToggle`. Visual filter only; data access is unchanged.
+
+## 2026-11-01 — CRM email verification button
+
+### Release Notes
+- Contact editor, Email tab: a **Verify email** button checks each address on the contact and shows Verified, Catch-all, Invalid or Unknown beside it. Nothing is blocked or sent because of the result yet.
+- Needs the `contact_email_checks` migration applied and a `REOON_API_KEY` secret; until then the list shows "Not checked" and the button reports the missing setup.
+
+### Technical Changelog
+- `ContactEmailVerify` (`src/features/admin/crm/`) calls `crm-email-verify` and reads `contact_email_checks`. Migration `20261101120000_contact_email_checks.sql` is written, not applied. Not deployed.
+
+## 2026-11-01 — CRM outreach quality and lead profiles
+
+### Release Notes
+- CRM outreach drafts now follow one marketing-psychology principle per pipeline stage, tuned to a buyer persona (for example, a word-of-mouth shop gets a short WhatsApp with one easy question).
+- Every draft is checked for spam and AI-sounding phrases, length, unfilled placeholders, more than one link and a missing ask. A failing draft is rewritten once. The Outbox shows live warnings while you edit.
+- Pipeline cards show a persona badge; hover it to see the evidence and the suggested angle.
+- Sending is unchanged: every draft still waits for staff approval.
+
+### Technical Changelog
+- Shared modules `supabase/functions/_shared/crm/outreachGate.ts`, `outreachPsychology.ts` and `leadProfile.ts` (re-exported at `src/features/admin/crm/leadProfile.ts`). `crm-draft-outreach` returns `{ draft, gate }`. No migration or new service; not deployed.
+
 ## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
 
 ### Release Notes

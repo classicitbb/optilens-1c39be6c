@@ -22,7 +22,7 @@ const AMOUNT_FIELDS: [keyof TaxClaims, string][] = [
 ];
 
 /** The year's tax estimate for one employee, what they could still claim, and the inputs behind it. */
-export const EmployeeTaxPanel = ({ employee, year }: { employee: Employee; year: number }) => {
+export const EmployeeTaxPanel = ({ employee, year, readOnly = false }: { employee: Employee; year: number; readOnly?: boolean }) => {
   const { toast } = useToast();
   const { data, isLoading, error } = useTaxYearData(year);
   const mutate = useHrMutation("employee_tax_years");
@@ -105,11 +105,14 @@ export const EmployeeTaxPanel = ({ employee, year }: { employee: Employee; year:
         </CardContent>
       </Card>
 
+      {readOnly ? (
+        <p className="text-sm text-muted-foreground">To claim an allowance or correct your pay from before the app, tell HR and they'll update it here.</p>
+      ) : (
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Income, PAYE and claims for {year}</CardTitle></CardHeader>
         <CardContent>
           <form key={row?.id ?? "new"} onSubmit={save} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Months paid before the app" htmlFor="opening_months"><Input id="opening_months" name="opening_months" type="number" min="0" max="12" defaultValue={row?.opening_months ?? 0} /></Field>
+            <Field label="Months paid before the app" htmlFor="opening_months" tip="hr.tax.openingMonths"><Input id="opening_months" name="opening_months" type="number" min="0" max="12" defaultValue={row?.opening_months ?? 0} /></Field>
             <Field label="Taxable pay in those months" htmlFor="opening_income"><Input id="opening_income" name="opening_income" type="number" step="0.01" min="0" defaultValue={row?.opening_income ?? 0} /></Field>
             <Field label="PAYE withheld in those months" htmlFor="opening_paye"><Input id="opening_paye" name="opening_paye" type="number" step="0.01" min="0" defaultValue={row?.opening_paye ?? 0} /></Field>
             {AMOUNT_FIELDS.map(([key, label]) => (
@@ -122,6 +125,7 @@ export const EmployeeTaxPanel = ({ employee, year }: { employee: Employee; year:
           </form>
         </CardContent>
       </Card>
+      )}
       <p className="text-xs text-muted-foreground">An estimate to plan with, not a tax return. Employees file their own return in TAMIS by 30 April; check the figures against BRA guidance.</p>
     </div>
   );
