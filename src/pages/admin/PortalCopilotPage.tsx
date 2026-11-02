@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
+  ArrowDown,
   ArrowLeft,
   ArrowUp,
   Bot,
@@ -19,12 +20,10 @@ import {
   Paperclip,
   Plus,
   ShieldCheck,
-  Square,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -45,6 +44,9 @@ import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { suggestFollowUps } from "@/features/admin/copilot/followUpSuggestions";
 import { ActionCard, statusLabel } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
+import { CopyMessageButton } from "@/features/admin/copilot/CopyMessageButton";
+import { useAutoGrowTextarea } from "@/features/admin/copilot/useAutoGrowTextarea";
+import { useStickToBottom } from "@/features/admin/copilot/useStickToBottom";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from "@/features/admin/copilot/attachments";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,7 +88,6 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isTranscribingFile, setIsTranscribingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
   const commandInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const transcribeAudioFile = useCallback(async (file: File) => {
@@ -105,7 +106,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
       }
       setCommand((current) => (current.trim() ? `${current}\n${transcript}` : transcript));
       setInputMode("voice");
-      setTranscriptConfirmed(false);
+      setTranscriptConfirmed(true);
     } catch (error) {
       toast({ title: "Transcription failed", description: error instanceof Error ? error.message : `Could not transcribe ${file.name}.`, variant: "destructive" });
     } finally {
@@ -136,8 +137,9 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const onTranscript = useCallback((transcript: string, confidence: number) => {
     setCommand(transcript);
     setInputMode("voice");
-    setTranscriptConfirmed(false);
+    setTranscriptConfirmed(true);
     setSpeechConfidence(confidence);
+    commandInputRef.current?.focus();
   }, []);
   const speech = usePushToTalk(onTranscript);
 
@@ -245,18 +247,17 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const followUpSuggestions = useMemo(() => suggestFollowUps(displayedState), [displayedState]);
 
   const canPrepare = !prepareMutation.isPending && !isAnalyzing
-    && (hasAttachments || command.trim().length > 0)
-    && (inputMode === "text" || transcriptConfirmed);
+    && (hasAttachments || command.trim().length > 0);
   const auditEvents = displayedState?.auditEvents ?? [];
+  const lastSentMessage = useMemo(
+    () => [...conversationMessages].reverse().find((message) => message.role === "user")?.content ?? "",
+    [conversationMessages],
+  );
 
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [selectedConversation?.id, selectedRun?.id, visibleActions.length, followUpSuggestions.length, prepareMutation.isPending, conversationMessages.length, localMessages.length, isAnalyzing]);
-
-  useEffect(() => {
-    if (command) return;
-    if (commandInputRef.current) commandInputRef.current.style.height = "auto";
-  }, [command]);
+  const { containerRef: threadRef, isAtBottom, onScroll: onThreadScroll, scrollToBottom } = useStickToBottom(
+    `${selectedConversation?.id}:${selectedRun?.id}:${visibleActions.length}:${followUpSuggestions.length}:${prepareMutation.isPending}:${conversationMessages.length}:${localMessages.length}:${isAnalyzing}`,
+  );
+  useAutoGrowTextarea(commandInputRef, command);
 
   const chooseConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
@@ -399,7 +400,15 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
 
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="relative min-h-0 flex-1">
+        <div
+          ref={threadRef}
+          onScroll={onThreadScroll}
+          role="log"
+          aria-live="polite"
+          aria-label="Conversation"
+          className="h-full overflow-y-auto"
+        >
           <div className="mx-auto w-full max-w-3xl space-y-3 px-4 py-3">
             {stateQuery.isError && !state ? (
               <div className="flex gap-2 border border-amber-300 bg-amber-50 p-2 text-xs text-amber-950">
@@ -426,6 +435,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                       onClick={() => {
                         setCommand(suggestion);
                         setInputMode("text");
+                        commandInputRef.current?.focus();
                       }}
                     >
                       {suggestion}
@@ -559,13 +569,18 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                   <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white shadow-sm"><Bot className="h-3.5 w-3.5 text-cyan-300" /></div>
                   <div className="min-w-0 flex-1 text-xs">
                     <CopilotMarkdown content={message.text ?? ""} />
+                    {message.text ? (
+                      <div className="mt-1 flex opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                        <CopyMessageButton text={message.text} />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )
             ))}
 
             {isAnalyzing ? (
-              <div className="flex animate-fade-in items-center gap-2 text-xs text-muted-foreground">
+              <div role="status" className="flex animate-fade-in items-center gap-2 text-xs text-muted-foreground">
                 <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white"><Bot className="h-3.5 w-3.5 animate-pulse text-cyan-300" /></div>
                 <span className="flex items-center gap-1.5">
                   Reading your attachment
@@ -575,7 +590,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
             ) : null}
 
             {prepareMutation.isPending ? (
-              <div className="flex animate-fade-in items-center gap-2 text-xs text-muted-foreground">
+              <div role="status" className="flex animate-fade-in items-center gap-2 text-xs text-muted-foreground">
                 <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white"><Bot className="h-3.5 w-3.5 animate-pulse text-cyan-300" /></div>
                 <span className="flex items-center gap-1.5">
                   Working through the ERP customer layer
@@ -604,8 +619,18 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
               </div>
             ) : null}
 
-            <div ref={transcriptEndRef} />
           </div>
+        </div>
+        {!isAtBottom ? (
+          <button
+            type="button"
+            aria-label="Jump to latest message"
+            className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs font-medium shadow-md transition hover:bg-muted"
+            onClick={() => scrollToBottom()}
+          >
+            <ArrowDown className="h-3.5 w-3.5" /> Jump to latest
+          </button>
+        ) : null}
         </div>
 
         <div className="relative shrink-0 bg-gradient-to-t from-slate-100 via-slate-100/90 to-transparent dark:from-zinc-950 dark:via-zinc-950/90">
@@ -630,28 +655,12 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                   </div>
                 ) : null}
 
-                {inputMode === "voice" ? (
-                  <div
-                    className={cn(
-                      "flex items-start gap-3 border-b px-4 py-2.5 text-xs",
-                      lowConfidence
-                        ? "border-amber-200/70 bg-amber-50 text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200"
-                        : "border-violet-200/70 bg-violet-50 text-violet-900 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200",
-                    )}
-                  >
-                    {lowConfidence ? <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> : <FileCheck2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold">Review your transcript</p>
-                      <p className="mt-0.5 opacity-80">
-                        {lowConfidence
-                          ? "Recognition confidence was below your threshold. Check customer and lens terms before sending."
-                          : "Fix any recognition errors, then confirm this is what you said."}
-                      </p>
-                    </div>
-                    <label className="flex shrink-0 cursor-pointer items-center gap-1.5 self-center rounded-full border border-current/20 bg-white/60 px-2.5 py-1 font-medium dark:bg-black/20">
-                      <Checkbox checked={transcriptConfirmed} onCheckedChange={(checked) => setTranscriptConfirmed(checked === true)} className="h-3.5 w-3.5 rounded-[4px]" />
-                      Reviewed
-                    </label>
+                {lowConfidence ? (
+                  <div role="status" className="flex items-start gap-3 border-b border-amber-200/70 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <p className="min-w-0 flex-1">
+                      <span className="font-semibold">Check your transcript.</span> Recognition confidence was below your threshold, so review customer and lens terms before sending.
+                    </p>
                   </div>
                 ) : null}
 
@@ -702,33 +711,20 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                     ref={commandInputRef}
                     aria-label="Message the Copilot"
                     value={command}
-                    onChange={(event) => {
-                      setCommand(event.target.value);
-                      if (inputMode === "voice") setTranscriptConfirmed(false);
-                      const el = event.currentTarget;
-                      el.style.height = "auto";
-                      const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight) || 24;
-                      el.style.height = `${Math.min(el.scrollHeight, lineHeight * 8)}px`;
-                    }}
+                    onChange={(event) => setCommand(event.target.value)}
                     onPaste={(event) => {
                       const files = Array.from(event.clipboardData.files ?? []);
-                      if (files.length) {
-                        event.preventDefault();
-                        void addFiles(files);
-                        return;
-                      }
-                      requestAnimationFrame(() => {
-                        const el = commandInputRef.current;
-                        if (!el) return;
-                        el.style.height = "auto";
-                        const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight) || 24;
-                        el.style.height = `${Math.min(el.scrollHeight, lineHeight * 8)}px`;
-                      });
+                      if (!files.length) return;
+                      event.preventDefault();
+                      void addFiles(files);
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey) {
+                      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                         event.preventDefault();
                         submit();
+                      } else if (event.key === "ArrowUp" && !command && lastSentMessage) {
+                        event.preventDefault();
+                        setCommand(lastSentMessage);
                       }
                     }}
                     rows={1}
@@ -862,7 +858,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                     <button
                       type="button"
                       aria-label={attachments.length ? "Analyse attachment" : "Send message"}
-                      title={canPrepare ? "Send (Enter)" : inputMode === "voice" && !transcriptConfirmed ? "Confirm the transcript first" : "Type a message to send"}
+                      title={canPrepare ? "Send (Enter)" : "Type a message to send"}
                       disabled={!canPrepare}
                       className={cn(
                         "ml-0.5 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200",
@@ -874,10 +870,8 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                     >
                       {prepareMutation.isPending || isAnalyzing ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : canPrepare ? (
-                        <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.5} />
                       ) : (
-                        <Square className="h-3 w-3 fill-current" />
+                        <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.5} />
                       )}
                     </button>
                   </div>
@@ -892,7 +886,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
             ) : null}
 
             <p className="mt-2.5 text-center text-[11px] text-slate-400 dark:text-zinc-500">
-              <kbd className="rounded border border-slate-200 bg-slate-50 px-1 font-sans dark:border-white/10 dark:bg-white/5">Enter</kbd> to send · <kbd className="rounded border border-slate-200 bg-slate-50 px-1 font-sans dark:border-white/10 dark:bg-white/5">Shift+Enter</kbd> for a new line · drop files or audio anywhere
+              <kbd className="rounded border border-slate-200 bg-slate-50 px-1 font-sans dark:border-white/10 dark:bg-white/5">Enter</kbd> to send · <kbd className="rounded border border-slate-200 bg-slate-50 px-1 font-sans dark:border-white/10 dark:bg-white/5">Shift+Enter</kbd> for a new line · <kbd className="rounded border border-slate-200 bg-slate-50 px-1 font-sans dark:border-white/10 dark:bg-white/5">↑</kbd> to recall your last message · drop files or audio anywhere
             </p>
           </div>
         </div>

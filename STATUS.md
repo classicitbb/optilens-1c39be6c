@@ -4,6 +4,8 @@ Branch `crm-harvey-psychology`, local source. Borrows ideas from the Harvey sale
 
 # Project Status
 
+Iris / Copilot workspace chat polish (2026-11-01, local source): shared helpers in `src/features/admin/copilot/` (`useStickToBottom`, `useAutoGrowTextarea`, `CopyMessageButton`). Workspace (`/admin/copilot`): no forced scroll while reading history plus a "Jump to latest" pill, copy on replies, ↑ recalls the last message, composer resizes for chip/dictation text, voice transcript no longer needs a "Reviewed" tick (matches the floating widget and CONTEXT.md; low-confidence note stays), dead stop icon removed, `role="log"`/`status` for screen readers. Public Iris: input stays enabled while she answers (send is guarded), height resets after send, IME-safe Enter, labelled Send button, copy on replies, `role="log"`. Atlas `IrisPanel` and the floating admin widget were not changed. `tsc`, lint (0 errors) and 34 focused tests pass; not checked in a browser (admin route needs sign-in). No backend, schema or deploy change.
+
 ## Fixed asset register phase 1 - 2026-10-30
 
 Branch `finance-asset-register`, local source. Adds Finance → Fixed Assets and Depreciation Runs under `/admin/finance/assets/*`, limited to admin and office admin. The register covers:
