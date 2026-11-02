@@ -4,17 +4,13 @@ import {
   AlertCircle,
   ArrowDown,
   ArrowLeft,
-  ArrowUp,
   Bot,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   Database,
   FileCheck2,
   FileText,
   Loader2,
-  Mic,
-  MicOff,
   PanelLeftClose,
   PanelLeftOpen,
   Paperclip,
@@ -24,7 +20,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   analyzeCopilotAttachments,
@@ -37,15 +32,14 @@ import {
   type CopilotAttachment,
   type CopilotState,
 } from "@/features/admin/copilot/api";
+import { CopilotComposer } from "@/features/admin/copilot/CopilotComposer";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
-import { VoiceSettingsMenu } from "@/features/admin/copilot/VoiceSettingsMenu";
 import { readStoredHoldToRecord, storeHoldToRecord } from "@/features/admin/copilot/voicePreferences";
 import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { suggestFollowUps } from "@/features/admin/copilot/followUpSuggestions";
 import { ActionCard, statusLabel } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
 import { CopyMessageButton } from "@/features/admin/copilot/CopyMessageButton";
-import { useAutoGrowTextarea } from "@/features/admin/copilot/useAutoGrowTextarea";
 import { useStickToBottom } from "@/features/admin/copilot/useStickToBottom";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from "@/features/admin/copilot/attachments";
 import { cn } from "@/lib/utils";
@@ -87,7 +81,6 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isTranscribingFile, setIsTranscribingFile] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const commandInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const transcribeAudioFile = useCallback(async (file: File) => {
@@ -257,7 +250,6 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const { containerRef: threadRef, isAtBottom, onScroll: onThreadScroll, scrollToBottom } = useStickToBottom(
     `${selectedConversation?.id}:${selectedRun?.id}:${visibleActions.length}:${followUpSuggestions.length}:${prepareMutation.isPending}:${conversationMessages.length}:${localMessages.length}:${isAnalyzing}`,
   );
-  useAutoGrowTextarea(commandInputRef, command);
 
   const chooseConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
@@ -635,249 +627,57 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
 
         <div className="relative shrink-0 bg-gradient-to-t from-slate-100 via-slate-100/90 to-transparent dark:from-zinc-950 dark:via-zinc-950/90">
           <div className="mx-auto w-full max-w-3xl px-4 pb-5 pt-6 sm:px-6">
-            <div className="group relative">
-              {/* Glow behind the composer */}
-              <div aria-hidden className="pointer-events-none absolute -inset-1 rounded-[30px] bg-gradient-to-r from-violet-500/25 via-fuchsia-500/20 to-cyan-500/25 opacity-0 blur-xl transition-opacity duration-500 group-focus-within:opacity-100" />
-
-              <div
-                className={cn(
-                  "composer relative overflow-hidden rounded-[26px] border bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_12px_32px_-12px_rgba(15,23,42,0.18)] transition-all duration-300",
-                  "border-slate-200/80 focus-within:border-violet-400/70 focus-within:shadow-[0_1px_2px_rgba(15,23,42,0.06),0_0_0_4px_rgba(139,92,246,0.14),0_18px_44px_-14px_rgba(15,23,42,0.28)]",
-                  "dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_20px_50px_-20px_rgba(0,0,0,0.8)] dark:focus-within:border-violet-400/50",
-                  speech.isListening && "border-rose-400/70 focus-within:border-rose-400/70",
-                )}
-              >
-                {/* Status strips: transcription / transcript review */}
-                {isTranscribingFile ? (
-                  <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-600 dark:border-white/5 dark:bg-white/[0.03] dark:text-zinc-400">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-500" />
-                    Transcribing audio file…
-                  </div>
-                ) : null}
-
-                {lowConfidence ? (
-                  <div role="status" className="flex items-start gap-3 border-b border-amber-200/70 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <p className="min-w-0 flex-1">
-                      <span className="font-semibold">Check your transcript.</span> Recognition confidence was below your threshold, so review customer and lens terms before sending.
-                    </p>
-                  </div>
-                ) : null}
-
-                {/* Attachment chips */}
-                {attachments.length ? (
-                  <div className="flex flex-wrap gap-2 px-4 pt-3.5">
-                    {attachments.map((file) => (
-                      <div
-                        key={file.id}
-                        className="group flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-1.5 pr-2 text-xs text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
-                      >
-                        {file.kind === "image" && file.previewUrl ? (
-                          <img src={file.previewUrl} alt="" className="h-8 w-8 rounded-lg object-cover" />
-                        ) : (
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white">
-                            <FileText className="h-4 w-4" />
-                          </span>
-                        )}
-                        <span className="max-w-[11rem] truncate font-medium">{file.name}</span>
-                        <button
-                          type="button"
-                          aria-label={`Remove ${file.name}`}
-                          className="ml-0.5 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
-                          onClick={() => setAttachments((current) => current.filter((item) => item.id !== file.id))}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  accept="image/*,application/pdf,text/*,.csv,audio/*"
-                  onChange={(event) => {
-                    void addFiles(Array.from(event.target.files ?? []));
-                    event.target.value = "";
-                  }}
-                />
-
-                {/* Text input */}
-                <div className="px-5 pt-4">
-                  <Textarea
-                    ref={commandInputRef}
-                    aria-label="Message the Copilot"
-                    value={command}
-                    onChange={(event) => setCommand(event.target.value)}
-                    onPaste={(event) => {
-                      const files = Array.from(event.clipboardData.files ?? []);
-                      if (!files.length) return;
-                      event.preventDefault();
-                      void addFiles(files);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                        event.preventDefault();
-                        submit();
-                      } else if (event.key === "ArrowUp" && !command && lastSentMessage) {
-                        event.preventDefault();
-                        setCommand(lastSentMessage);
-                      }
-                    }}
-                    rows={1}
-                    className="min-h-[1.5rem] w-full resize-none overflow-y-auto border-0 bg-transparent p-0 text-[15px] leading-6 text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                    placeholder={
-                      speech.isListening
-                        ? "Listening… speak now"
-                        : attachments.length
-                          ? "Add a note about this file (optional)"
-                          : "Ask the Copilot anything — orders, customers, CRM, rollouts…"
-                    }
-                  />
-                </div>
-
-                {/* Toolbar */}
-                <div className="flex items-center justify-between gap-2 px-3 pb-3 pt-3">
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      aria-label="Attach a file"
-                      title="Attach a file (images, PDF, CSV, audio)"
-                      disabled={attachments.length >= MAX_ATTACHMENTS}
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Paperclip className="h-[18px] w-[18px]" />
-                    </button>
-
-                    <span
-                      className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300 sm:inline-flex"
-                      title="Copilot can read and propose changes across every admin module. Customer-facing effects always wait for your approval."
-                    >
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      Full access
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {speech.isListening ? (
-                      <div className="mr-1 flex items-center gap-2 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-600 dark:bg-rose-500/10 dark:text-rose-300">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
-                        </span>
-                        <span className="flex h-3 items-end gap-[2px]" aria-hidden>
-                          {[0.35, 0.7, 1, 0.55, 0.85].map((weight, index) => (
-                            <span
-                              key={index}
-                              className="w-[3px] rounded-full bg-rose-500 transition-[height] duration-100"
-                              style={{ height: `${Math.max(2, Math.min(12, (speech.level / 100) * 12 * weight + 2))}px` }}
-                            />
-                          ))}
-                        </span>
-                        Recording
-                      </div>
-                    ) : speech.isTranscribing ? (
-                      <span className="mr-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-zinc-400">
-                        <Loader2 className="h-3 w-3 animate-spin" /> Transcribing
-                      </span>
-                    ) : null}
-
-                    <div className="flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 dark:border-white/10 dark:bg-white/5">
-                      <button
-                        type="button"
-                        aria-label={speech.isStarting ? "Starting microphone" : speech.isTranscribing ? "Transcribing recording" : holdToRecord ? "Hold to talk, then release to review the transcript" : speech.isListening ? "Stop recording" : "Start recording"}
-                        title={holdToRecord ? "Hold to talk" : speech.isListening ? "Stop recording" : `Record — ${speech.activeDeviceLabel}`}
-                        disabled={speech.isStarting || speech.isTranscribing}
-                        className={cn(
-                          "flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition disabled:opacity-50",
-                          speech.isListening
-                            ? "bg-rose-500 text-white shadow-[0_0_0_3px_rgba(244,63,94,0.2)] hover:bg-rose-600"
-                            : "text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white",
-                        )}
-                        onPointerDown={(event) => {
-                          if (!holdToRecord) return;
-                          event.preventDefault();
-                          event.currentTarget.setPointerCapture(event.pointerId);
-                          void speech.start();
-                        }}
-                        onPointerUp={() => holdToRecord && speech.stop()}
-                        onPointerCancel={() => holdToRecord && speech.stop()}
-                        onKeyDown={(event) => {
-                          if (!holdToRecord) return;
-                          if ((event.key === " " || event.key === "Enter") && !event.repeat) {
-                            event.preventDefault();
-                            void speech.start();
-                          }
-                        }}
-                        onKeyUp={(event) => {
-                          if (!holdToRecord) return;
-                          if (event.key === " " || event.key === "Enter") {
-                            event.preventDefault();
-                            speech.stop();
-                          }
-                        }}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (holdToRecord) return;
-                          if (speech.isListening) speech.stop();
-                          else void speech.start();
-                        }}
-                      >
-                        {speech.isStarting || speech.isTranscribing ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : speech.isListening ? (
-                          <MicOff className="h-4 w-4" />
-                        ) : (
-                          <Mic className="h-4 w-4" />
-                        )}
-                        <span className="hidden sm:inline">{speech.isListening ? "Stop" : holdToRecord ? "Hold" : "Voice"}</span>
-                      </button>
-                      <VoiceSettingsMenu
-                        speech={speech}
-                        holdToRecord={holdToRecord}
-                        onHoldToRecordChange={changeHoldToRecord}
-                        showAdvanced
-                        switchId="console-hold-to-record"
-                        align="end"
-                      >
-                        <button
-                          type="button"
-                          aria-label="Voice and microphone settings"
-                          title="Microphone and voice settings"
-                          className="flex h-8 w-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
-                        >
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </button>
-                      </VoiceSettingsMenu>
+            <CopilotComposer
+              value={command}
+              onChange={setCommand}
+              onSubmit={submit}
+              canSend={canPrepare}
+              isSending={prepareMutation.isPending || isAnalyzing}
+              placeholder={attachments.length ? "Add a note about this file (optional)" : "Ask the Copilot anything — orders, customers, CRM, rollouts…"}
+              textareaRef={commandInputRef}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowUp" && !command && lastSentMessage) {
+                  event.preventDefault();
+                  setCommand(lastSentMessage);
+                }
+              }}
+              attachments={attachments}
+              maxAttachments={MAX_ATTACHMENTS}
+              onAddFiles={(files) => void addFiles(files)}
+              onRemoveAttachment={(id) => setAttachments((current) => current.filter((item) => item.id !== id))}
+              speech={speech}
+              holdToRecord={holdToRecord}
+              onHoldToRecordChange={changeHoldToRecord}
+              showAdvancedVoice
+              switchId="console-hold-to-record"
+              banner={
+                <>
+                  {isTranscribingFile ? (
+                    <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-600 dark:border-white/5 dark:bg-white/[0.03] dark:text-zinc-400">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Transcribing audio file…
                     </div>
-
-                    <button
-                      type="button"
-                      aria-label={attachments.length ? "Analyse attachment" : "Send message"}
-                      title={canPrepare ? "Send (Enter)" : "Type a message to send"}
-                      disabled={!canPrepare}
-                      className={cn(
-                        "ml-0.5 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200",
-                        canPrepare
-                          ? "bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-[0_6px_16px_-6px_rgba(139,92,246,0.7)] hover:scale-105 hover:from-violet-500 hover:to-fuchsia-500 active:scale-95"
-                          : "bg-slate-200 text-slate-400 dark:bg-white/10 dark:text-zinc-500",
-                      )}
-                      onClick={submit}
-                    >
-                      {prepareMutation.isPending || isAnalyzing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.5} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                  ) : null}
+                  {lowConfidence ? (
+                    <div role="status" className="flex items-start gap-3 border-b border-amber-200/70 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <p className="min-w-0 flex-1">
+                        <span className="font-semibold">Check your transcript.</span> Recognition confidence was below your threshold, so review customer and lens terms before sending.
+                      </p>
+                    </div>
+                  ) : null}
+                </>
+              }
+              trailing={
+                <span
+                  className="hidden h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 sm:inline-flex"
+                  title="Copilot can read and propose changes across every admin module. Customer-facing effects always wait for your approval."
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Full access
+                </span>
+              }
+            />
 
             {speech.error ? (
               <p role="alert" className="mt-2 flex items-center gap-1.5 px-2 text-xs text-rose-600 dark:text-rose-400">

@@ -22,6 +22,9 @@ type VoiceSettingsMenuProps = {
   /** Unique per surface — the widget and the console can both be mounted. */
   switchId: string;
   align?: "start" | "end";
+  /** Control the menu from outside, e.g. to open it from a right-click. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 };
 
@@ -37,9 +40,11 @@ export const VoiceSettingsMenu = ({
   showAdvanced,
   switchId,
   align = "start",
+  open,
+  onOpenChange,
   children,
 }: VoiceSettingsMenuProps) => (
-  <DropdownMenu>
+  <DropdownMenu open={open} onOpenChange={onOpenChange}>
     <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
     <DropdownMenuContent align={align} className="w-72">
       <DropdownMenuLabel className="px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Microphone</DropdownMenuLabel>
