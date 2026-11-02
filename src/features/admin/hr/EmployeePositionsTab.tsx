@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { day, Field, fieldInputClass, formValues } from "./formFields";
 import { NativeSelect, Section, useSubmit } from "./formBits";
-import { useHrMutation } from "./useEmployees";
+import EmployeeManagersSection from "./EmployeeManagersSection";
+import { employeeDisplayName, useEmployees, useHrMutation } from "./useEmployees";
 import { isCurrentAssignment, openHrDocument, useEmployeePositions, usePositions } from "./usePositions";
 
 const EmployeePositionsTab = ({ employeeId }: { employeeId: string }) => {
   const { toast } = useToast();
   const { data: positions = [] } = usePositions();
   const { data: allAssignments = [] } = useEmployeePositions();
+  const { data: employees = [] } = useEmployees();
   const mutate = useHrMutation("employee_positions");
   const submit = useSubmit();
 
@@ -21,7 +23,13 @@ const EmployeePositionsTab = ({ employeeId }: { employeeId: string }) => {
   const positionOf = (id: string) => positions.find((p) => p.id === id);
   const reportsTo = (id: string | null) => {
     const parent = id ? positionOf(id) : null;
-    return parent ? `${parent.title} · ${parent.department}` : "—";
+    if (!parent) return "—";
+    const names = allAssignments
+      .filter((a) => a.position_id === parent.id && isCurrentAssignment(a))
+      .map((a) => employees.find((e) => e.id === a.employee_id))
+      .filter((e): e is NonNullable<typeof e> => !!e && e.id !== employeeId)
+      .map(employeeDisplayName);
+    return `${parent.title} · ${parent.department}${names.length ? ` (${names.join(", ")})` : ""}`;
   };
 
   /** Only one primary position per person, so demote the current one first. */
@@ -105,6 +113,8 @@ const EmployeePositionsTab = ({ employeeId }: { employeeId: string }) => {
           </form>
         )}
       </Section>
+
+      <EmployeeManagersSection employeeId={employeeId} />
     </div>
   );
 };

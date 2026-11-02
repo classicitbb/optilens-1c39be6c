@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Field, fieldInputClass, formValues } from "./formFields";
 import { NativeSelect } from "./formBits";
 import { buildPositionTree, type PositionItem, type TreeNode } from "./orgTree";
+import { departmentOptions, type Department } from "./useDepartments";
 import { employeeDisplayName, useHrMutation, type Employee } from "./useEmployees";
 import { openHrDocument, removeHrDocument, uploadHrDocument, type EmployeePosition, type Position } from "./usePositions";
 
@@ -17,7 +18,7 @@ interface PositionsPanelProps {
   positions: Position[];
   assignments: EmployeePosition[];
   employees: Employee[];
-  departments: string[];
+  departments: Department[];
 }
 
 const flatten = (nodes: TreeNode<PositionItem>[]): PositionItem[] => nodes.flatMap((n) => [n.item, ...flatten(n.reports)]);
@@ -51,6 +52,12 @@ const PositionsPanel = ({ positions, assignments, employees, departments }: Posi
     return p ? `${p.title} · ${p.department}` : "—";
   };
 
+  // A position must have a department, so there is no blank choice.
+  const positionDepartments = (keepId?: string) => {
+    const { "": _none, ...options } = departmentOptions(departments, keepId);
+    return options;
+  };
+
   const parentOptions = (editingId: string | null): Record<string, string> => {
     const blocked = editingId ? new Set([editingId, ...descendantIds(tree, editingId)]) : new Set<string>();
     return {
@@ -67,7 +74,7 @@ const PositionsPanel = ({ positions, assignments, employees, departments }: Posi
     const file = data.get("file") as File | null;
     const values = {
       title: v.title,
-      department: v.department,
+      department_id: v.department_id,
       reports_to_position_id: v.reports_to_position_id,
       headcount: Number(v.headcount ?? 1),
       active: data.has("active"),
@@ -141,8 +148,10 @@ const PositionsPanel = ({ positions, assignments, employees, departments }: Posi
           <DialogHeader><DialogTitle>{current ? "Edit position" : "Add position"}</DialogTitle></DialogHeader>
           <form id="position-form" key={current?.id ?? "new"} onSubmit={save} className="grid gap-3 sm:grid-cols-2">
             <Field label="Title" htmlFor="title"><Input id="title" name="title" required defaultValue={current?.title} className={fieldInputClass} /></Field>
-            <Field label="Department" htmlFor="department"><Input id="department" name="department" required list="position-departments" defaultValue={current?.department} className={fieldInputClass} /></Field>
-            <datalist id="position-departments">{departments.map((d) => <option key={d} value={d} />)}</datalist>
+            <Field label="Department" htmlFor="department_id">
+              <NativeSelect id="department_id" name="department_id" defaultValue={current?.department_id} options={positionDepartments(current?.department_id)} />
+              {departments.length === 0 && <p className="text-xs text-destructive">Add a department first (Departments view).</p>}
+            </Field>
             <Field label="Reports to" htmlFor="reports_to_position_id" className="sm:col-span-2">
               <NativeSelect id="reports_to_position_id" name="reports_to_position_id" defaultValue={current?.reports_to_position_id} options={parentOptions(current?.id ?? null)} />
             </Field>

@@ -4,13 +4,13 @@ export const hrTooltips = {
   // People list
   "hr.people.search": "Searches first, last and preferred name, job title, employee number and email.",
   "hr.people.status": "Shows active employees by default. Pick All statuses to include people on leave and former staff.",
-  "hr.people.department": "Departments come from what is typed on each employee's Job section.",
+  "hr.people.department": "Departments are managed in the Departments view on this page.",
   "hr.people.add": "Creates the employee record and opens it, so you can set up pay, pay items and bank details next.",
 
   // Employee record: profile
   "hr.employee.preferredName": "Shown in lists and page headings instead of the first name when filled in.",
   "hr.employee.employeeNo": "Your own staff number. Optional, and shown next to the name in the People list.",
-  "hr.employee.manager": "Who this person reports to. Only used for the People list for now.",
+  "hr.employee.manager": "Everyone this person reports to, primary line manager first. Change them on the Positions tab. Job title and department follow the primary position once one is set.",
   "hr.employee.employmentType": "Full time, part time, contract or casual. Payroll only runs for monthly salaries so far.",
   "hr.employee.status": "Terminated employees are left out of new payroll runs. On leave alone does not change pay: record the leave on the Leave page.",
   "hr.employee.taxCode": "Your reference for the employee's tax treatment. It does not change the PAYE calculation.",

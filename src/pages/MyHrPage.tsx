@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { employeeDisplayName, type Employee } from "@/features/admin/hr/useEmployees";
+import EmployeeAssessmentTab from "@/features/admin/hr/EmployeeAssessmentTab";
 import { day, money, STATUS_LABELS } from "@/features/admin/hr/formFields";
 import { periodLabel } from "@/features/admin/hr/payroll/usePayroll";
 import { buildPayslipPdf } from "@/features/admin/hr/payroll/archivePack";
@@ -223,11 +224,13 @@ const MyHrPage = () => {
                 <TabsTrigger value="payslips">Payslips</TabsTrigger>
                 <TabsTrigger value="leave">Leave</TabsTrigger>
                 <TabsTrigger value="tax">Tax</TabsTrigger>
+                <TabsTrigger value="assessment">Assessment</TabsTrigger>
                 <TabsTrigger value="profile">Profile</TabsTrigger>
               </TabsList>
               <TabsContent value="payslips"><PayslipsTab employee={employee} /></TabsContent>
               <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
               <TabsContent value="tax"><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} readOnly /></TabsContent>
+              <TabsContent value="assessment"><EmployeeAssessmentTab employeeId={employee.id} readOnly /></TabsContent>
               <TabsContent value="profile"><ProfileTab employee={employee} /></TabsContent>
             </Tabs>
           )}

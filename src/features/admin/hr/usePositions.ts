@@ -7,6 +7,7 @@ export interface Position {
   id: string;
   title: string;
   department: string;
+  department_id: string;
   reports_to_position_id: string | null;
   headcount: number;
   active: boolean;
