@@ -40,9 +40,15 @@ describe('Innovations invoice import', () => {
     const data = invoice(); data.lines[0].amount = null;
     expect(() => invoiceBillingFields(data, 123)).toThrow('no amount');
   });
-  it('uses the selected account for invoices absent from synced statements', async () => {
-    const single = vi.fn().mockResolvedValue({ data: { id: 7, name: 'Optician', account_number: 'OPT', address: 'Address', innovations_customer_id: 9 } });
-    mocks.from.mockReturnValue({ select: () => ({ eq: () => ({ single }) }) });
+  it('falls back to the selected account for invoices absent from synced statements', async () => {
+    const responses: Record<string, unknown> = {
+      statement_lines: { data: [] },
+      customers: { data: { id: 7, name: 'Optician', account_number: 'OPT', address: 'Address', innovations_customer_id: 9 } },
+    };
+    mocks.from.mockImplementation((table: string) => {
+      const query = { select: () => query, eq: () => query, in: () => query, limit: () => Promise.resolve(responses[table]), single: () => Promise.resolve(responses[table]) };
+      return query;
+    });
     mocks.request.mockResolvedValue(invoice());
     const result = await loadInnovationsInvoice('123', 'OPT');
     expect(mocks.from).toHaveBeenCalledWith('customers');
@@ -66,6 +72,21 @@ describe('Innovations invoice import', () => {
     expect(await loadInnovationsInvoice('123', '')).toMatchObject({ selectedBillingCustomer: 'OPT' });
     responses.statements = { data: [{ account_number: 'OPT' }, { account_number: 'OTHER' }] };
     await expect(loadInnovationsInvoice('123', '')).rejects.toThrow('Select the invoice customer');
+    responses.statement_lines = { data: [] };
+    await expect(loadInnovationsInvoice('123', '')).rejects.toThrow('not in the synced statements');
+  });
+  it('lets the invoice number decide the customer over a stale selection', async () => {
+    const responses: Record<string, unknown> = {
+      statement_lines: { data: [{ innovations_statement_id: 17 }] },
+      statements: { data: [{ account_number: 'OPT' }] },
+      customers: { data: { id: 7, name: 'Optician', account_number: 'OPT', address: 'Address' } },
+    };
+    mocks.from.mockImplementation((table: string) => {
+      const query = { select: () => query, eq: () => query, in: () => query, limit: () => Promise.resolve(responses[table]), single: () => Promise.resolve(responses[table]) };
+      return query;
+    });
+    mocks.request.mockResolvedValue(invoice());
+    expect(await loadInnovationsInvoice('123', 'STALE')).toMatchObject({ selectedBillingCustomer: 'OPT' });
   });
   it.each(['invoice', 'quote'])('fills a separate %s draft and leaves the existing saved document detached', async (type) => {
     const { studio, win } = studioFixture();
