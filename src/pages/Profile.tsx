@@ -76,7 +76,7 @@ const Profile = () => {
   const totalActiveOrders = activeOrders.length + (liveOrdersQuery.data?.orders.length ?? 0);
   const currentBalance = Number(data?.balance?.current_balance ?? data?.latestStatement?.closing_balance ?? 0);
   const accountName = identity?.customerName || data?.profile?.customerName || data?.profile?.organizationName || null;
-  const displayName = resolveUserFullName(user) || accountName || user?.email?.split("@")[0] || "Customer";
+  const displayName = (emulation ? null : resolveUserFullName(user)) || accountName || (emulation ? null : user?.email?.split("@")[0]) || "Customer";
   const accessStatus = identity?.portalAccessStatus ?? data?.profile?.accessStatus ?? "pending_profile";
   const approvedAccessNoticeStorageKey = `cv.portal.approved-access-notice.dismissed:${effectiveUserId ?? user?.id ?? "anonymous"}`;
   const [isApprovedAccessNoticeDismissed, setIsApprovedAccessNoticeDismissed] = useState(false);
@@ -140,7 +140,7 @@ const Profile = () => {
       {accessStatus !== "approved_customer" ? (
         <Card className="border-amber-300 bg-amber-50/60"><CardHeader className="sm:flex-row sm:items-center sm:justify-between"><div><CardTitle className="text-lg">Complete your customer access</CardTitle><CardDescription>{identity?.portalAccessNote || data?.profile?.accessNote || "Finish your profile to continue the approval process."}</CardDescription></div><Button asChild variant="outline"><Link to="/profile/account">Open account setup</Link></Button></CardHeader></Card>
       ) : !isApprovedAccessNoticeDismissed ? (
-        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div className="min-w-0 flex-1"><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>{"\n"}</CardDescription></div><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Dismiss approved customer access message permanently" title="Dismiss permanently" onClick={dismissApprovedAccessNotice}><X className="h-4 w-4" /></Button></CardHeader></Card>
+        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div className="min-w-0 flex-1"><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>Your account is approved and linked. Orders, pricing and statements are available from the menu.</CardDescription></div><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Dismiss approved customer access message permanently" title="Dismiss permanently" onClick={dismissApprovedAccessNotice}><X className="h-4 w-4" /></Button></CardHeader></Card>
       ) : null}
 
       <section data-sc-in data-sc-stagger="70" className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
