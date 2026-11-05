@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { findAuthUserByEmail } from "../_shared/auth/findAuthUserByEmail.ts";
 
 /**
  * Fires the customer-onboarding function for a newly created user.
@@ -344,8 +345,7 @@ Deno.serve(async (req) => {
         if (error) {
           const msg = error.message ?? "";
           if (/already been registered|already registered|already exists/i.test(msg)) {
-            const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-            const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+            const existing = await findAuthUserByEmail(adminClient, String(email));
             if (!existing) {
               return jsonResponse(req, 409, { error: "A user with this email already exists." });
             }
@@ -369,8 +369,7 @@ Deno.serve(async (req) => {
         if (error) {
           const msg = error.message ?? "";
           if (/already been registered|already registered|already exists/i.test(msg)) {
-            const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-            const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+            const existing = await findAuthUserByEmail(adminClient, String(email));
             if (!existing) {
               return jsonResponse(req, 409, { error: "A user with this email already exists." });
             }
@@ -430,8 +429,7 @@ Deno.serve(async (req) => {
         const msg = error.message ?? "";
         if (/already been registered|already registered|already exists/i.test(msg)) {
           // User already exists — link them to the customer instead of failing.
-          const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-          const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+          const existing = await findAuthUserByEmail(adminClient, String(email));
           if (existing) {
             await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
             return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });

@@ -3,6 +3,7 @@
 // The human always approves/sends — this only prepares the missive.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import { recordAiSpend } from "../_shared/aiSpend.ts";
 import { checkOutreachDraft } from "../_shared/crm/outreachGate.ts";
@@ -40,18 +41,29 @@ serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    const auth = await requirePrivilegedAccess(req, corsHeaders, {
-      allowedRoles: ["admin", "operator"],
-      sourceFunction: "crm-draft-outreach",
-    });
-    if (auth instanceof Response) return auth;
+    // The cadence runner calls with the shared scheduler secret; everyone else
+    // must be admin/operator staff.
+    const providedSecret = req.headers.get("x-scheduler-secret");
+    const expectedSecret = Deno.env.get("CRM_CADENCE_SCHEDULER_SECRET");
+    let supabase;
+    if (providedSecret) {
+      if (!expectedSecret || providedSecret !== expectedSecret) return json({ error: "Unauthorized" }, 401);
+      supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+    } else {
+      const auth = await requirePrivilegedAccess(req, corsHeaders, {
+        allowedRoles: ["admin", "operator"],
+        sourceFunction: "crm-draft-outreach",
+      });
+      if (auth instanceof Response) return auth;
+      // This client intentionally bypasses RLS to assemble an internal CRM
+      // draft, but only after requirePrivilegedAccess has verified staff role.
+      supabase = auth.supabaseAdminClient;
+    }
 
     const { contact_id, step_id, enrollment_id } = await req.json();
     if (!contact_id || !step_id) return json({ error: "contact_id and step_id are required" }, 400);
-
-    // This client intentionally bypasses RLS to assemble an internal CRM
-    // draft, but only after requirePrivilegedAccess has verified staff role.
-    const supabase = auth.supabaseAdminClient;
 
     const { data: contact, error: cErr } = await supabase
       .from("contacts")
