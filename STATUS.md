@@ -4,6 +4,10 @@ Branch `crm-harvey-psychology`, local source. Borrows ideas from the Harvey sale
 
 # Project Status
 
+## Guided CRM outreach workspace — 2026-11-06
+
+Deployed to production on 2026-11-06 from codex/crm-outreach-wizard, commit 0409d407. Vercel reports READY and the live Classic Visions domains assigned. Dashboard opens a five-step outreach workspace; existing reports remain below. Contacts, My Leads, Lead Finder, Pipeline, Activities and Outbox link into it. Activities own briefs/owners/reminders; outreach_outbox owns messages. Company mail confirms sending before CRM recording; external composers never count as sent. Iris receives an editable handoff without auto-submit. Separate reusable practice mode blocks delivery and real stage changes. The user-requested practice brief/draft were saved against an existing test contact, without changing contact/account links or sending email. No schema, Edge Function or authorization release. Broad tests (1,940 passed / one skipped), 54 release-focused tests, typecheck, lint, build, PR checks and route smoke pass. See HANDOFF.md and docs/crm-outreach-workspace.md.
+
 ## Helpdesk combined tickets and overview - 2026-11-02
 
 Local source: Helpdesk opens on Tickets; Overview toggles the Tickets surface between queue and overview board; **Pop out overview** opens the separate window. Popup query mode omits AdminTopBar/AdminSidebar, fills the page, and includes fullscreen controls. The Tickets page keeps its title, filters, and Ticket Queue heading fixed while ticket rows scroll inside the card. Overview list stages can collapse, and its list table headings/cells have square corners. Search/team filters pass to the popup. Separate-window launch was confirmed in Edge; visual review of the latest scroll/collapse/radius refinements is pending. No backend, authorization, schema, or live data changes. Not deployed.

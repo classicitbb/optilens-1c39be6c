@@ -1,3 +1,15 @@
+## 2026-11-06 — Guided CRM outreach workspace
+
+Status: Complete — no active handoff
+
+Implemented the dashboard wizard and entry points in Contacts, My Leads, Pipeline, Outbox and Activities; added editable Iris handoff and confirmed-send callback in existing email compose. New source: crm/OutreachWorkspace, OutreachConfirmButton, outreachJourney, outreachWorkspace.css and hooks/useOutreachJourney. Plans/messages reuse existing tables; no migration or auth change. Unrelated pre-existing catalog retirement and shell edits remain untouched.
+
+Validation: 49 focused tests across six files pass; broad run without coverage passed 1,940 tests / 310 files, with one skipped. The two coverage runs stopped progressing and were interrupted. TypeScript, production build, full lint (zero errors / 2,508 warnings), PR checks and route smoke pass. Smoke now asserts the existing pricing publisher destination after the prior CRM proposal retirement; SMOKE_EXISTING_SERVER=1 with SMOKE_PORT reuses a running preview without disturbing its dependency cache (startup diagnostics are not captured in reuse mode). Desktop and 390px browser checks pass.
+
+User explicitly authorized a named reusable practice outreach. The existing test contact with the supplied recipient was reused, preserving its parent/customer/account links. One separate Outreach practice activity and one generated_by=practice email draft were saved through the signed-in UI. No email, real customer stage, account access or financial record changed. Practice sending/reply/outcome/reset is covered by mocks; live company email sending remains untested.
+
+Production publication was explicitly approved and completed on 2026-11-06 through the existing Vercel Git connection. Release commit 0409d407 on codex/crm-outreach-wizard is based on the prior deployed commit, preserving the newer production account-page changes absent from this checkout's main. Vercel reports READY with www.classicvisions.net and classicvisions.net assigned and no alias error. Release-checkout build, typecheck, PR checks and 54 focused tests pass. No Edge Function, schema, authorization or credential deployment. The release branch is retained for review; incorporate it before a future main-branch frontend release. The original checkout and its pre-existing staging remain intact. No required continuation or approval remains.
+
 ## 2026-10-28 - Homepage drawer and customer daily actions
 
 Status: Complete — no active handoff.

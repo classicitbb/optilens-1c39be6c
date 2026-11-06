@@ -1,5 +1,7 @@
 # CV Portal Copilot — Context
 
+CRM handoff (2026-11-06, local source): PortalCopilotPage accepts bounded outreachCommand from router state to prefill the editable composer. It never auto-submits or approves it; existing admin routes and server policy stay authoritative. CRM supplies the brief, email and return link after explicit Ask Iris interaction. No new tool, permission or backend action. See docs/crm-outreach-workspace.md.
+
 ## What this is
 
 The admin-only operating layer for whitelisted portal and CRM workflows. It

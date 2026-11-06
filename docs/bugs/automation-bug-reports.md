@@ -83,3 +83,6 @@ PBX agent (2026-10-24, local source): unconfirmed on a real PBX — dialplan con
 2026-10-28 QA maintenance: retain the legacy admin lens-assistant URL as a redirect to Rx Rules; the smoke harness now checks the current Forgot password button text. Route/source contract tests follow the current explicit aliases and live-data field projections, while launcher pins now forward context-menu trigger props and are found by their disambiguated accessible link names. Validation remains enabled; no gates were removed.
 
 PBX call panel (2026-10-30, local source): the agent's channel matching assumes one `PJSIP/<ext>-` channel per staff phone during a website call and that the `channel originate PJSIP/<ext>` target is right for every staff phone (a follow-me or mobile-only extension would not ring). Unconfirmed on the real PBX.
+## CRM smoke route drift and shared preview cache — 2026-11-06
+
+The harness still expected the retired CRM proposal page and its former legacy destination. It now asserts the current admin-only pricing publisher and redirect, preserving the checks rather than skipping them. A second local Vite server can also invalidate the active preview's optimized-module cache; opt-in existing-server smoke avoids launching that second process and clearly reports that it did not capture startup diagnostics.

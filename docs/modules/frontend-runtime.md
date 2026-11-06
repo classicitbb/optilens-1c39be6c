@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-06 — Guided CRM outreach
+
+The existing dashboard route hosts OutreachWorkspace with explicit steps, editable activity briefs/owners/due dates, outbox approval and confirmed sending through existing ComposeDialog. External composer opening never marks sent. Contacts, saved Lead Finder results, My Leads, Pipeline and Activities share links to this workspace. Iris receives an editable router-state request without auto-submit. See docs/crm-outreach-workspace.md for persistence, recovery and live-verification limits. No new route, service, schema or auth boundary.
+
 ## 2026-11-02 — Atlas Markdown clipboard conversion
 
 `editor/markdownPaste.ts` registers a ProseMirror paste plugin through `buildBaseExtensions`. Plain clipboard text is converted with the existing `textToBlocks` GFM parser and canonical-to-editor adapter, then inserted in one transaction. Rich HTML and code blocks keep native handling. The plugin records the plain-paste keyboard chord because ClipboardEvent has no standard shiftKey field. No storage, permissions or schema changes. Six clipboard-event regressions pass; browser verification remains pending and the change is not deployed.
@@ -335,7 +339,7 @@ Operational notes and change context for code in `src/**`.
 ## 2026-07-24 — Sales app consolidation
 
 - The Sales app is no longer registered in `ADMIN_APPS` or the launcher navigation registry.
-- Canonical admin routes are `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
+- Canonical admin routes are `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
 - `adminSalesClosure.integration.test.ts` prevents the removed Sales and standalone orders routes from being reintroduced.
 
 ## 2026-07-24 — DHL Express MyDHL integration

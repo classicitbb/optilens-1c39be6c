@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-06 — Guided CRM outreach (local, not deployed)
+
+- Repeatable practice mode uses separate saved activities/drafts and simulates sending, replies and outcomes without delivery or customer-stage changes; Reset practice preserves reusable content. Outbox blocks sending practice messages.
+
+- CRM opens with a contact-to-email wizard, named owners, handoff briefs, explicit review/send, mailbox history and operator-recorded outcomes. Existing reports and specialist CRM views remain available.
+- External email/WhatsApp composers no longer mark messages sent when opened. Confirmed company sends retain a recording-only retry after CRM save failure. No schema, permissions, background sending or deployment change.
+- Usage and verification boundaries: docs/crm-outreach-workspace.md.
+
 ## 2026-11-02 — Atlas Markdown paste (local, not deployed)
 
 - Plain-text Markdown paste now creates editable headings, tables, lists and inline formatting through the existing GFM/canonical converter. Rich HTML, code-block paste and paste-as-plain-text retain their existing behavior; one Undo removes the paste.

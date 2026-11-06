@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-11-06 — Fragmented CRM outreach and premature sent status (local fix)
+
+Contacts, leads, pipeline, tasks and Outbox lacked one guided handoff. The old Outbox marked a message sent after opening mailto/WhatsApp. Added a shared guided workspace and separated opening a composer from confirming sending. Company-send success and CRM recording failures are distinct; recording-only recovery prevents another send in the current wizard. Mocked workflow tests cover approval, delegation, outcomes, read-only behavior and partial send-recording failure. Real delivery and production writes are untested. See docs/crm-outreach-workspace.md.
+
 ## 2026-11-02 — Markdown pasted as plain paragraphs (local fix)
 
 Reproduced with the actual editor clipboard path: Markdown headings, bold text, lists and a GFM table became plain paragraphs. The editor only handled image paste explicitly and had no Markdown conversion. Added a paste plugin using the existing GFM/canonical conversion, with regressions for formatted text, all 59 table rows, leading-zero SKUs, Undo, rich HTML, literal text, code blocks and the plain-paste shortcut. Six focused tests pass; TypeScript, lint and build pass. Two local browser attempts timed out. The full suite reported customer internal-data access, Rx keyboard and email recipient failures outside these changed files before it was stopped; no full-suite pass is claimed. Not deployed.

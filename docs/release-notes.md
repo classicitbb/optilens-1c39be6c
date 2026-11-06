@@ -2,9 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
-## 2026-11-02 — Atlas Markdown paste (not deployed)
+## 2026-11-06 — Guided CRM outreach (local, not deployed)
 
-Pasting Markdown into a wiki page converts headings, tables, lists and bold text into editable formatting. Rich formatted clipboard content keeps its formatting. Use Ctrl/Cmd+Shift+V to keep literal Markdown; pasting inside a code block also remains literal.
+### Release Notes
+
+## 2026-11-02 — Atlas Markdown paste (local, not deployed)
+
+### Release Notes
 
 ## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
 

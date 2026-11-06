@@ -16,15 +16,18 @@ import {
   Paperclip,
   Plus,
   ShieldCheck,
+  Trash2,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   analyzeCopilotAttachments,
   createCopilotConversation,
   decideCopilotAction,
+  deleteCopilotConversation,
   editCopilotAction,
   loadCopilotState,
   submitCopilotCommand,
@@ -45,6 +48,7 @@ import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { formatVoiceTranscript } from "@/features/admin/copilot/transcriptFormatting";
+import { useLocation } from "react-router";
 
 type LocalMessage = {
   id: string;
@@ -63,8 +67,9 @@ const SUGGESTIONS = [
 ];
 
 const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
+  const location = useLocation();
   const { toast } = useToast();
-  const [command, setCommand] = useState("");
+  const [command, setCommand] = useState(() => typeof location.state?.outreachCommand === "string" ? location.state.outreachCommand.slice(0, 16000) : "");
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
   const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
@@ -159,6 +164,11 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
       transcriptConfirmed,
       conversationId: selectedConversationId ?? stateQuery.data?.selectedConversationId ?? undefined,
     }),
+    // Show the sent message at once, like a chat app, instead of after the reply.
+    onMutate: () => {
+      setLocalMessages([{ id: `user-${Date.now()}`, role: "user", text: command.trim() }]);
+    },
+    onSettled: () => setLocalMessages([]),
     onSuccess: (next) => {
       acceptState(next);
       setCommand("");
@@ -173,7 +183,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
           ? { title: "ERP rollout prepared", description: "No customer-facing action was executed. Review the action cards in the thread." }
           : { title: "Copilot replied" });
     },
-    onError: (error: Error) => toast({ title: "Could not prepare rollout", description: error.message, variant: "destructive" }),
+    onError: (error: Error) => toast({ title: "Could not send message", description: error.message, variant: "destructive" }),
   });
 
   const newConversationMutation = useMutation({
@@ -189,6 +199,25 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
       setActionFilter("pending");
     },
     onError: (error: Error) => toast({ title: "Could not start a new chat", description: error.message, variant: "destructive" }),
+  });
+
+  const [conversationToDelete, setConversationToDelete] = useState<{ id: string; title: string } | null>(null);
+  const deleteConversationMutation = useMutation({
+    mutationFn: (conversationId: string) => deleteCopilotConversation(conversationId),
+    onSuccess: (next, deletedId) => {
+      // Only move the view if the open chat was the one deleted.
+      if (deletedId === selectedConversationId || deletedId === displayedState?.selectedConversationId) {
+        acceptState(next);
+        setLocalMessages([]);
+        setAttachments([]);
+        setActionFilter("pending");
+      } else {
+        setState((current) => current ? { ...current, conversations: next.conversations } : next);
+      }
+      setConversationToDelete(null);
+      toast({ title: "Chat deleted" });
+    },
+    onError: (error: Error) => toast({ title: "Could not delete chat", description: error.message, variant: "destructive" }),
   });
 
   const decideMutation = useMutation({
@@ -334,6 +363,27 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
           <p className="flex items-center gap-2 text-sm font-medium"><Paperclip className="h-4 w-4" /> Drop a file to attach it, or an audio file to transcribe it</p>
         </div>
       ) : null}
+      <Dialog open={conversationToDelete !== null} onOpenChange={(open) => { if (!open) setConversationToDelete(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete this chat?</DialogTitle>
+            <DialogDescription>
+              “{conversationToDelete?.title}” and its messages will be removed. Approval actions and their audit trail are kept.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConversationToDelete(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConversationMutation.isPending}
+              onClick={() => conversationToDelete && deleteConversationMutation.mutate(conversationToDelete.id)}
+            >
+              {deleteConversationMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {showSidebar ? (
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
           <div className="flex items-center justify-between gap-1.5 border-b px-3 py-2">
@@ -349,18 +399,32 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
           <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
             <p className="px-1 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Chats</p>
             {(displayedState?.conversations ?? []).map((conversation) => (
-              <button
+              <div
                 key={conversation.id}
-                type="button"
-                onClick={() => chooseConversation(conversation.id)}
                 className={cn(
-                  "group w-full border-l-2 border-transparent px-2 py-1.5 text-left text-xs transition-all duration-200 hover:translate-x-0.5 hover:bg-muted",
+                  "group relative border-l-2 border-transparent transition-all duration-200 hover:bg-muted",
                   conversation.id === displayedState?.selectedConversationId && "border-l-cyan-500 bg-background shadow-sm",
                 )}
               >
-                <p className={cn("line-clamp-2 transition-colors", conversation.id === displayedState?.selectedConversationId ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{conversation.title}</p>
-                <p className="mt-0.5 flex items-center gap-0.5 text-[10px] text-muted-foreground"><Clock3 className="h-2.5 w-2.5" /> {new Date(conversation.updated_at).toLocaleString()}</p>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => chooseConversation(conversation.id)}
+                  className="w-full px-2 py-1.5 pr-8 text-left text-xs"
+                >
+                  <p className={cn("line-clamp-2 transition-colors", conversation.id === displayedState?.selectedConversationId ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{conversation.title}</p>
+                  <p className="mt-0.5 flex items-center gap-0.5 text-[10px] text-muted-foreground"><Clock3 className="h-2.5 w-2.5" /> {new Date(conversation.updated_at).toLocaleString()}</p>
+                </button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`Delete chat: ${conversation.title}`}
+                  className="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+                  onClick={() => setConversationToDelete({ id: conversation.id, title: conversation.title })}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             ))}
 
             {!(displayedState?.conversations ?? []).length ? <p className="px-1 text-[11px] text-muted-foreground">No chats yet.</p> : null}
@@ -585,7 +649,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
               <div role="status" className="flex animate-fade-in items-center gap-2 text-xs text-muted-foreground">
                 <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white"><Bot className="h-3.5 w-3.5 animate-pulse text-cyan-300" /></div>
                 <span className="flex items-center gap-1.5">
-                  Working through the ERP customer layer
+                  Thinking
                   <ThinkingDots />
                 </span>
               </div>

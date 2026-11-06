@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
+import { OUTREACH_PLAN_TITLE, OUTREACH_PRACTICE_TITLE, outreachLink } from "@/features/admin/crm/outreachJourney";
 import { CalendarPlus, PhoneCall, UserPlus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -136,6 +137,7 @@ const CrmActivityDialog = () => {
           <DialogTitle className="flex items-center justify-center gap-2 text-sm font-medium">{isLogCall && !editing ? <><PhoneCall className="h-4 w-4" />Log call</> : <><CalendarPlus className="h-4 w-4" />{editing ? "Edit task" : "Create task"}</>}</DialogTitle>
           <DialogDescription className="text-center text-xs">{isLogCall && !editing ? "Record a customer call you just made. It counts toward your call KPIs." : "Capture the next action, who owns it, and who can help."}</DialogDescription>
         </DialogHeader>
+        {editing && [OUTREACH_PLAN_TITLE, OUTREACH_PRACTICE_TITLE].includes(editing.activity_type) && editing.contact_id && <Button variant="outline" asChild><Link to={outreachLink(editing.contact_id, editing.activity_type === OUTREACH_PRACTICE_TITLE)}>Continue guided outreach</Link></Button>}
         <div className="grid min-w-0 gap-3 py-2 sm:grid-cols-2">
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs text-muted-foreground" htmlFor="crm-activity-title">Task title *</Label><div className="relative"><Input id="crm-activity-title" value={form.activityType} onChange={(event) => setForm({ ...form, activityType: event.target.value })} placeholder="Task title" className="h-8 pr-11 text-xs focus:ring-2 focus:ring-inset focus:ring-primary" autoFocus /><InlineDictationButton ariaLabel="Dictate task title" onValueChange={applyTitleDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Customer or contact</Label><Select value={form.contactId || "none"} onValueChange={(contactId) => setForm({ ...form, contactId: contactId === "none" ? "" : contactId })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="General task" /></SelectTrigger><SelectContent><SelectItem value="none" className="text-xs">General task</SelectItem>{contacts.map((contact) => <SelectItem key={contact.id} value={contact.id} className="text-xs">{contact.business_name || contact.name || "Unnamed contact"}</SelectItem>)}</SelectContent></Select></div>
