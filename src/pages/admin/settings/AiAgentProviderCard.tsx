@@ -134,7 +134,7 @@ export default function AiAgentProviderCard({ provider, row, canTest, onRemoveDr
             <Input
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="e.g. gpt-5, grok-4, claude-sonnet-5"
+              placeholder="e.g. gpt-5, grok-4, claude-sonnet-5-5"
             />
           </div>
           <div className="space-y-1.5">

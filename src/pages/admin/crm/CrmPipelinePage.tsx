@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Columns3, Sparkles, Target, UserPlus, X } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { outreachLink } from "@/features/admin/crm/outreachJourney";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -203,6 +204,7 @@ const StageColumn = ({ title, hint, rows, cadences, onMove, onEnroll, onRemove, 
               </Select>
             ) : null}
             <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="h-8 flex-1 text-xs" asChild><Link to={outreachLink(c.id)}>Guided outreach</Link></Button>
               <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground" onClick={() => onRemove(c)} title="Remove from pipeline">
                 <X className="h-3 w-3" />
               </Button>

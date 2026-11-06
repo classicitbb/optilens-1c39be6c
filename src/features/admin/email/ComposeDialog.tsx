@@ -24,11 +24,14 @@ export function ComposeDialog({
   accounts,
   onClose,
   onManageSignatures,
+  onSent,
 }: {
   draft: ComposeDraft | null;
   accounts: EmailAccount[];
   onClose: () => void;
   onManageSignatures: (account: EmailAccount) => void;
+  /** Called only after the mail bridge confirms sending; CRM bookkeeping is separate. */
+  onSent?: (message: { subject: string; text: string; to: string }) => void;
 }) {
   const { toast } = useToast();
   const send = useSendEmail();
@@ -54,6 +57,7 @@ export function ComposeDialog({
   const invalid = [...invalidRecipients(form.to), ...invalidRecipients(form.cc)];
 
   const handleSend = async () => {
+    if (send.isPending || !from || !canSend || invalid.length || !form.to.trim()) return;
     try {
       const attachments: OutgoingAttachment[] = await Promise.all(form.attachments.map(fileToAttachment));
       const body = buildOutgoingEmail({ bodyHtml, signatureHtml: signature?.body_html, quoted: form.quoted, quotedHtml: form.quotedHtml });
@@ -69,6 +73,7 @@ export function ComposeDialog({
       });
       toast({ title: "Sent", description: result.savedToSent ? "A copy is in Sent Items and the CRM history." : "Sent, but the copy could not be saved to Sent Items." });
       onClose();
+      onSent?.({ subject: form.subject, text: body.text, to: form.to });
     } catch (error) {
       toast({ title: "Not sent", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     }

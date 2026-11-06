@@ -1,30 +1,16 @@
 {
-  "semanticVersion": "0.33.0",
-  "sourceEntry": "2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer",
-  "releaseDateTimeUtc": "2026-11-01T00:00:00.000Z",
+  "semanticVersion": "0.34.0",
+  "sourceEntry": "2026-11-06 — Guided CRM outreach (local, not deployed)",
+  "releaseDateTimeUtc": "2026-11-06T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Shipment costing: per-line **Landed/unit** and the **Sell** price and markup beside it were overstated on non-BBD shipments (about double for USD) because the exchange rate was applied twice. Line landed costs now add up to the shipment's landed total. Saved shipment totals are unchanged; the line figures on screen and in the Lines CSV export change.",
-    "Shipment lines can be linked to an Innovations order; the order's lens total then fixes the sell price and markup is derived.",
-    "The binder cover now shows the supplier name, VAT, total landed cost, the multiplier and each line's landed cost, and continues onto further pages when a shipment is long.",
-    "HR: employee assessments, departments and manager reporting lines.",
-    "Copilot: updated composer and push-to-talk."
+    "Guided CRM outreach (local, not deployed)"
   ],
   "moduleImpact": [
     {
-      "module": "supabase/functions",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Shipment costing: line landed cost fix, HR assessments, Copilot composer."
-    },
-    {
-      "module": "src/lib/importCostings.ts",
-      "impact": "medium",
-      "notes": "Updated as part of Shipment costing: line landed cost fix, HR assessments, Copilot composer."
-    },
-    {
-      "module": "docs/architecture",
-      "impact": "medium",
-      "notes": "Updated as part of Shipment costing: line landed cost fix, HR assessments, Copilot composer."
+      "notes": "Updated as part of Guided CRM outreach (local, not deployed)."
     }
   ],
   "migrationNotes": [

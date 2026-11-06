@@ -155,8 +155,12 @@ const MyAccountSection = () => {
       toast({ title: "Profile saved", description: "Your profile was saved, but sign-in metadata will refresh next time.", variant: "default" });
     }
 
-    await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: user.id });
+    const { error: syncError } = await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: user.id });
     await queryClient.invalidateQueries({ queryKey: ["portal-identity", user.id] });
+    if (syncError) {
+      toast({ title: "Profile saved", description: "Your access status may take a little while to refresh." });
+      return true;
+    }
     toast({ title: "Success", description: successDescription });
     return true;
   };
@@ -198,7 +202,7 @@ const MyAccountSection = () => {
   const handleSaveProfileField = async (field: InlineProfileField) => {
     const trimmed = profileDraft.trim();
     const label = inlineProfileLabels[field];
-    if (!trimmed && field !== "organization_name") {
+    if (!trimmed) {
       toast({ title: `${label} is required`, description: `Enter a ${label.toLowerCase()} before saving.`, variant: "destructive" });
       return;
     }
@@ -207,11 +211,19 @@ const MyAccountSection = () => {
       return;
     }
 
+    if (field === "phone") {
+      const digits = trimmed.replace(/\D/g, "");
+      if (/[^\d\s+().\-]/.test(trimmed) || digits.length < 7 || digits.length > 15) {
+        toast({ title: "Check the phone number", description: "Use 7 to 15 digits. Spaces, +, dashes and brackets are fine.", variant: "destructive" });
+        return;
+      }
+    }
+
     const values = { ...form.getValues(), [field]: trimmed };
     setSavingProfileField(field);
     const saved = await saveProfileValues(
       values,
-      field === "organization_name" && !trimmed ? "Organization cleared." : `${label} updated.`,
+      `${label} updated.`,
     );
     setSavingProfileField(null);
     if (!saved) return;
@@ -280,18 +292,18 @@ const MyAccountSection = () => {
       toast({ title: "Enter the code", description: "Please enter the verification code from your email.", variant: "destructive" });
       return;
     }
-    if (newPassword.trim().length < 6) {
-      toast({ title: "Password too short", description: "Must be at least 6 characters.", variant: "destructive" });
+    if (newPassword.length < 8) {
+      toast({ title: "Password too short", description: "Must be at least 8 characters.", variant: "destructive" });
       return;
     }
-    if (newPassword.trim() !== confirmNewPassword.trim()) {
+    if (newPassword !== confirmNewPassword) {
       toast({ title: "Passwords don't match", description: "Please confirm your new password.", variant: "destructive" });
       return;
     }
 
     setUpdatingPassword(true);
     const { error } = await supabase.auth.updateUser({
-      password: newPassword.trim(),
+      password: newPassword,
       nonce: verificationCode.trim(),
     });
     setUpdatingPassword(false);
@@ -367,6 +379,22 @@ const MyAccountSection = () => {
       </div>
 
       <div className="max-w-3xl space-y-4">
+          {missingRequirements.length ? (
+            <Card className="overflow-hidden border-amber-400/50 bg-amber-50/40 shadow-sm transition-all hover:shadow-md dark:bg-amber-950/20">
+              <CardContent className="space-y-3 p-5">
+                <p className="text-sm font-medium text-foreground">Profile setup required</p>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  {missingRequirements.map((item) => (
+                    <li key={item.key}>
+                      <Link to={`${item.route}?focus=${item.focus}`} className="underline underline-offset-2">
+                        Add {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ) : null}
           <Card className="overflow-hidden border-0 bg-white shadow-sm transition-all hover:shadow-md dark:bg-slate-950 md:border">
             <CardContent className="space-y-4 p-5">
               <div className="flex items-start gap-4">
@@ -374,6 +402,7 @@ const MyAccountSection = () => {
                   <User className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
+                  <dl>
                   <dt className="text-xs text-muted-foreground">Full name</dt>
                   {editingProfileField === "full_name" ? (
                     <dd className="mt-1 flex items-center gap-1.5">
@@ -387,7 +416,7 @@ const MyAccountSection = () => {
                             void handleSaveProfileField("full_name");
                           }
                         }}
-                        className="h-7 text-sm"
+                        className="h-9 text-sm"
                         autoFocus
                         disabled={savingProfileField === "full_name"}
                       />
@@ -395,7 +424,7 @@ const MyAccountSection = () => {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 shrink-0"
+                        className="h-8 w-8 shrink-0"
                         onClick={() => handleSaveProfileField("full_name")}
                         disabled={savingProfileField === "full_name"}
                         aria-label="Save full name"
@@ -406,7 +435,7 @@ const MyAccountSection = () => {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 shrink-0"
+                        className="h-8 w-8 shrink-0"
                         onClick={handleCancelEditProfileField}
                         disabled={savingProfileField === "full_name"}
                         aria-label="Cancel"
@@ -422,7 +451,7 @@ const MyAccountSection = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-5 w-5 shrink-0"
+                          className="h-8 w-8 shrink-0"
                           onClick={() => handleStartEditProfileField("full_name")}
                           aria-label="Edit full name"
                         >
@@ -431,7 +460,7 @@ const MyAccountSection = () => {
                       )}
                     </dd>
                   )}
-                  <p className="truncate text-xs text-muted-foreground">{user?.email || "No email on file"}</p>
+                  </dl>
                 </div>
               </div>
               <dl className="grid gap-4 text-sm mt-2">
@@ -451,7 +480,7 @@ const MyAccountSection = () => {
                               void handleSaveEmail();
                             }
                           }}
-                          className="h-7 text-sm"
+                          className="h-9 text-sm"
                           autoFocus
                           disabled={changingEmail}
                         />
@@ -459,7 +488,7 @@ const MyAccountSection = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0"
+                          className="h-8 w-8 shrink-0"
                           onClick={handleSaveEmail}
                           disabled={changingEmail}
                           aria-label="Save email"
@@ -470,7 +499,7 @@ const MyAccountSection = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0"
+                          className="h-8 w-8 shrink-0"
                           onClick={handleCancelEditEmail}
                           disabled={changingEmail}
                           aria-label="Cancel"
@@ -486,7 +515,7 @@ const MyAccountSection = () => {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5 shrink-0"
+                            className="h-8 w-8 shrink-0"
                             onClick={handleStartEditEmail}
                             aria-label="Edit email"
                           >
@@ -513,7 +542,7 @@ const MyAccountSection = () => {
                               void handleSaveProfileField("phone");
                             }
                           }}
-                          className="h-7 text-sm"
+                          className="h-9 text-sm"
                           autoFocus
                           disabled={savingProfileField === "phone"}
                         />
@@ -521,7 +550,7 @@ const MyAccountSection = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0"
+                          className="h-8 w-8 shrink-0"
                           onClick={() => handleSaveProfileField("phone")}
                           disabled={savingProfileField === "phone"}
                           aria-label="Save phone"
@@ -532,7 +561,7 @@ const MyAccountSection = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0"
+                          className="h-8 w-8 shrink-0"
                           onClick={handleCancelEditProfileField}
                           disabled={savingProfileField === "phone"}
                           aria-label="Cancel"
@@ -548,7 +577,7 @@ const MyAccountSection = () => {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5 shrink-0"
+                            className="h-8 w-8 shrink-0"
                             onClick={() => handleStartEditProfileField("phone")}
                             aria-label="Edit phone"
                           >
@@ -575,7 +604,7 @@ const MyAccountSection = () => {
                               void handleSaveProfileField("organization_name");
                             }
                           }}
-                          className="h-7 text-sm"
+                          className="h-9 text-sm"
                           autoFocus
                           disabled={savingProfileField === "organization_name"}
                         />
@@ -583,7 +612,7 @@ const MyAccountSection = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0"
+                          className="h-8 w-8 shrink-0"
                           onClick={() => handleSaveProfileField("organization_name")}
                           disabled={savingProfileField === "organization_name"}
                           aria-label="Save organization"
@@ -594,7 +623,7 @@ const MyAccountSection = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 shrink-0"
+                          className="h-8 w-8 shrink-0"
                           onClick={handleCancelEditProfileField}
                           disabled={savingProfileField === "organization_name"}
                           aria-label="Cancel"
@@ -610,7 +639,7 @@ const MyAccountSection = () => {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5 shrink-0"
+                            className="h-8 w-8 shrink-0"
                             onClick={() => handleStartEditProfileField("organization_name")}
                             aria-label="Edit organization"
                           >
@@ -629,6 +658,13 @@ const MyAccountSection = () => {
                       <dd className="truncate font-mono font-medium text-foreground">{identity.accountNumber}</dd>
                     ) : emulation ? (
                       <dd className="truncate font-medium text-muted-foreground">Not linked yet</dd>
+                    ) : savedClaim ? (
+                      <dd className="space-y-1">
+                        <p className="truncate font-mono font-medium text-foreground">{savedClaim}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Submitted. Our team is confirming it. To change this number, contact us.
+                        </p>
+                      </dd>
                     ) : (
                       <dd className="mt-1 space-y-1">
                         <div className="flex items-center gap-1.5">
@@ -643,14 +679,14 @@ const MyAccountSection = () => {
                               }
                             }}
                             placeholder="Account # from your invoice (optional)"
-                            className="h-7 font-mono text-sm"
+                            className="h-9 font-mono text-sm"
                             disabled={savingClaim}
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 shrink-0"
+                            className="h-8 w-8 shrink-0"
                             onClick={handleSaveClaim}
                             disabled={savingClaim || claimDraft.trim().toUpperCase() === savedClaim}
                             aria-label="Save account number"
@@ -767,22 +803,6 @@ const MyAccountSection = () => {
             </Card>
           ) : null}
 
-          {missingRequirements.length ? (
-            <Card className="overflow-hidden border-amber-400/50 bg-amber-50/40 shadow-sm transition-all hover:shadow-md dark:bg-amber-950/20">
-              <CardContent className="space-y-3 p-5">
-                <p className="text-sm font-medium text-foreground">Profile setup required</p>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {missingRequirements.map((item) => (
-                    <li key={item.key}>
-                      <Link to={`${item.route}?focus=${item.focus}`} className="underline underline-offset-2">
-                        Add {item.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ) : null}
       </div>
     </section>
   );

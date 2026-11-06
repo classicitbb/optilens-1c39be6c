@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-06 — Guided CRM outreach
+
+The existing dashboard route hosts OutreachWorkspace with explicit steps, editable activity briefs/owners/due dates, outbox approval and confirmed sending through existing ComposeDialog. External composer opening never marks sent. Contacts, saved Lead Finder results, My Leads, Pipeline and Activities share links to this workspace. Iris receives an editable router-state request without auto-submit. See docs/crm-outreach-workspace.md for persistence, recovery and live-verification limits. No new route, service, schema or auth boundary.
+
 ## 2026-11-02 — Atlas Markdown clipboard conversion
 
 `editor/markdownPaste.ts` registers a ProseMirror paste plugin through `buildBaseExtensions`. Plain clipboard text is converted with the existing `textToBlocks` GFM parser and canonical-to-editor adapter, then inserted in one transaction. Rich HTML and code blocks keep native handling. The plugin records the plain-paste keyboard chord because ClipboardEvent has no standard shiftKey field. No storage, permissions or schema changes. Six clipboard-event regressions pass; browser verification remains pending and the change is not deployed.

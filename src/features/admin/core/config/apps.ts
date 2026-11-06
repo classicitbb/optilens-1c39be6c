@@ -66,7 +66,7 @@ export const ADMIN_APPS = {
     // (viewer: view-only), so it gates the combined Contacts/Leads/CRM app.
     featurePrefix: 'contacts',
     sidebarItems: [
-      { label: 'Dashboard', route: '/admin/crm/dashboard', icon: LayoutDashboard },
+      { label: 'Outreach workspace', route: '/admin/crm/dashboard', icon: LayoutDashboard },
       { label: 'Pipeline', route: '/admin/crm/pipeline', icon: Kanban },
       { label: 'Contacts', route: '/admin/crm/contacts', icon: Contact },
       { label: 'My Leads', route: '/admin/crm/leads', icon: UserCheck },
