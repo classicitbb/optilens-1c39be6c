@@ -1,3 +1,13 @@
+## 2026-11-06 — Guided CRM outreach workspace
+
+Status: Implementation complete — approved production deployment in progress.
+
+Implemented the dashboard wizard and entry points in Contacts, My Leads, Pipeline, Outbox and Activities; added editable Iris handoff and confirmed-send callback in existing email compose. New source: crm/OutreachWorkspace, OutreachConfirmButton, outreachJourney, outreachWorkspace.css and hooks/useOutreachJourney. Plans/messages reuse existing tables; no migration or auth change. Unrelated pre-existing catalog retirement and shell edits remain untouched.
+
+Validation: 49 focused tests across six files pass; broad run without coverage passed 1,940 tests / 310 files, with one skipped. The two coverage runs stopped progressing and were interrupted. TypeScript, production build, full lint (zero errors / 2,508 warnings), PR checks and route smoke pass. Smoke now asserts the existing pricing publisher destination after the prior CRM proposal retirement; SMOKE_EXISTING_SERVER=1 with SMOKE_PORT reuses a running preview without disturbing its dependency cache (startup diagnostics are not captured in reuse mode). Desktop and 390px browser checks pass.
+
+User explicitly authorized a named reusable practice outreach. The existing test contact with the supplied recipient was reused, preserving its parent/customer/account links. One separate Outreach practice activity and one generated_by=practice email draft were saved through the signed-in UI. No email, real customer stage, account access or financial record changed. Practice sending/reply/outcome/reset is covered by mocks; a final saved-browser rehearsal is pending. Live company email sending remains untested. User subsequently explicitly approved live production deployment. CLI has no login; use the connected Vercel project with a scoped release branch based on the currently deployed commit so newer unrelated production account-page changes are preserved. Do not push this checkout's older main or trigger the all-functions main-branch release workflow. Exact next action in the isolated release worktree: `git status --short`.
+
 ## 2026-10-28 - Homepage drawer and customer daily actions
 
 Status: Complete — no active handoff.

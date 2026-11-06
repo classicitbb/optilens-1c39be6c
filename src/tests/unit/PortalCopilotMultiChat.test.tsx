@@ -1,12 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as renderView, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import PortalCopilotPage from "@/pages/admin/PortalCopilotPage";
 import type { CopilotState } from "@/features/admin/copilot/api";
 
-const { loadCopilotState, createCopilotConversation } = vi.hoisted(() => ({
+const render = (view: ReactElement) => renderView(<MemoryRouter>{view}</MemoryRouter>);
+
+const { loadCopilotState, createCopilotConversation, submitCopilotCommand } = vi.hoisted(() => ({
   loadCopilotState: vi.fn(),
   createCopilotConversation: vi.fn(),
+  submitCopilotCommand: vi.fn(),
 }));
 
 vi.mock("@/features/admin/copilot/api", async (importOriginal) => {
@@ -15,6 +20,7 @@ vi.mock("@/features/admin/copilot/api", async (importOriginal) => {
     ...original,
     loadCopilotState,
     createCopilotConversation,
+    submitCopilotCommand,
   };
 });
 
@@ -102,6 +108,17 @@ describe("Portal Copilot multi-chat workspace", () => {
       messages: [],
     });
     Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it("prefills a CRM handoff as an editable request without submitting it", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    renderView(<MemoryRouter initialEntries={[{ pathname: "/admin/copilot", state: { outreachCommand: "Help me draft a lens email. Do not send it." } }]}><QueryClientProvider client={client}><PortalCopilotPage /></QueryClientProvider></MemoryRouter>);
+    await screen.findByText("First chat answer");
+    const composer = screen.getByLabelText("Message the Copilot");
+    expect(composer).toHaveValue("Help me draft a lens email. Do not send it.");
+    fireEvent.change(composer, { target: { value: "Help me improve this first ask." } });
+    expect(composer).toHaveValue("Help me improve this first ask.");
+    expect(submitCopilotCommand).not.toHaveBeenCalled();
   });
 
   it("switches between independent persisted conversations", async () => {

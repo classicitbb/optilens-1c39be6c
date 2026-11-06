@@ -45,6 +45,7 @@ import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { formatVoiceTranscript } from "@/features/admin/copilot/transcriptFormatting";
+import { useLocation } from "react-router";
 
 type LocalMessage = {
   id: string;
@@ -63,8 +64,9 @@ const SUGGESTIONS = [
 ];
 
 const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
+  const location = useLocation();
   const { toast } = useToast();
-  const [command, setCommand] = useState("");
+  const [command, setCommand] = useState(() => typeof location.state?.outreachCommand === "string" ? location.state.outreachCommand.slice(0, 16000) : "");
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
   const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);

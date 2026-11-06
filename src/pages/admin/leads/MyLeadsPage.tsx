@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useCreateLead, useLeads, useSeedSampleLeads } from "@/features/admin/leads/hooks/useLeads";
-import BuildCustomPackageButton from "@/features/admin/catalog-publisher-v2/components/BuildCustomPackageButton";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -14,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { useLeadBusinessSuggestions } from "@/features/admin/leads/hooks/useLeadBusinessSuggestions";
 import { useContactEnrichment } from "@/features/admin/crm/hooks/useContactEnrichment";
+import { Link } from "react-router";
+import { outreachLink } from "@/features/admin/crm/outreachJourney";
 
 const stageBadge = (status: string) => {
   if (status === "proposal") return "bg-violet-500/10 text-violet-700 border-violet-300";
@@ -119,7 +120,6 @@ const MyLeadsPage = () => {
           <Button variant="outline" size="sm" onClick={handleSeedLeads} disabled={seedLeads.isPending}>
             <Sprout className="h-4 w-4 mr-1" /> Seed Sample Leads
           </Button>
-          <BuildCustomPackageButton source="manual" className="h-8 text-xs" />
         </div>
       </AdminPageHeader>
 
@@ -251,7 +251,7 @@ const MyLeadsPage = () => {
             {enrichContacts.isPending ? "Enriching…" : "Enrich All"}
           </Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><FileText className="h-3 w-3 mr-1" /> Generate Audits</Button>
-          <Button size="sm" variant="outline" className="h-8 text-xs"><Send className="h-3 w-3 mr-1" /> Send Sequence</Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs" asChild><Link to="/admin/crm/dashboard"><Send className="h-3 w-3 mr-1" /> Start guided outreach</Link></Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><Camera className="h-3 w-3 mr-1" /> Generate IG Posts</Button>
           <Badge variant="outline">Total: {filtered.length}</Badge>
         </CardContent>
@@ -270,6 +270,7 @@ const MyLeadsPage = () => {
                   <p className="text-muted-foreground">{lead.city || "—"}, {lead.country || "—"} · Score {lead.score}</p>
                 </div>
                 <Badge className={stageBadge(lead.status)}>{lead.status}</Badge>
+                <Button variant="outline" size="sm" asChild><Link to={outreachLink(lead.id)}>Guided outreach</Link></Button>
               </div>
             ))}
             {!isLoading && filtered.length === 0 ? <p className="text-muted-foreground">No leads found.</p> : null}
@@ -291,6 +292,7 @@ const MyLeadsPage = () => {
                   <div key={lead.id} className="border rounded p-2 text-xs">
                     <p className="font-medium truncate">{lead.name}</p>
                     <p className="text-muted-foreground">Score {lead.score}</p>
+                    <Button variant="outline" size="sm" className="mt-2" asChild><Link to={outreachLink(lead.id)}>Guided outreach</Link></Button>
                   </div>
                 ))}
               </CardContent>

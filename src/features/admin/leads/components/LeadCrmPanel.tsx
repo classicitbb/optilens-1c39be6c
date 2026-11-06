@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router";
+import { outreachLink } from "@/features/admin/crm/outreachJourney";
 import { Link2, Save, Undo2, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,7 @@ export interface LeadCrmPanelProps {
   currentUserId: string | null;
   busy: boolean;
   /** Set once this lead has been saved in this session. */
-  saved: { createdContact: boolean; taskCreated: boolean } | null;
+  saved: { createdContact: boolean; taskCreated: boolean; contactId?: string } | null;
   onLinkContact: (contact: ContactSearchResult) => Promise<void> | void;
   onMarkCustomer: () => Promise<void> | void;
   onClearLink: () => Promise<void> | void;
@@ -178,6 +180,8 @@ const LeadCrmPanel = ({
           </span>
         ) : null}
       </div>
+
+      {saved?.contactId && <Button variant="outline" size="sm" asChild><Link to={outreachLink(saved.contactId)}>Start guided outreach</Link></Button>}
 
       <LinkContactDialog
         open={pickerOpen}

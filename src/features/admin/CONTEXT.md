@@ -6,7 +6,6 @@ All admin-only business logic and UI. Each subfolder is a discrete feature:
 
 | Folder | Purpose |
 |---|---|
-| `catalog-publisher-v2/` | Catalog publisher shell and section composition |
 | `core/` | Admin shell config — sidebar apps, auth guards, shared admin layout |
 | `crm/` | Customer relationship management views |
 | `dashboard/` | Admin dashboard metrics and widgets |

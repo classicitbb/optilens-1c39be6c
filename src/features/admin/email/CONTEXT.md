@@ -1,5 +1,7 @@
 # Email context
 
+CRM outreach (2026-11-06, local source) reuses ComposeDialog with optional onSent notification carrying actual subject, plain body and recipient only after emailBridge.send succeeds. The wizard records CRM status separately, retaining a receipt and recording-only retry on failure. Opening/cancelling a composer never marks a message sent. Mailbox access, signatures and sending transport are unchanged. See docs/crm-outreach-workspace.md.
+
 `/admin/email` is the OpticAdmin Email app (launcher entry `email` in `src/features/admin/core/config/apps.ts`). It is a client for company IMAP mailboxes; it stores nothing in Supabase.
 
 Data lives on the OptiLens bridge (optilens-local, branch `feature/email-client`): `lib/email/*` syncs every connected mailbox one after another every 2 minutes (read-only, last 90 days, 500 per folder) into SQL Server schema `mail` and serves `/api/email/*`.

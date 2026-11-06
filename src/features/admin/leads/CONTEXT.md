@@ -1,5 +1,7 @@
 # Lead Finder (admin leads)
 
+My Leads (2026-11-06, local source) links saved leads into the existing dashboard's contact-specific outreach workspace. Lead Finder's save result retains the returned contact id and offers the same handoff. The inert Send Sequence shortcut now opens that workspace. Choosing a lead creates no task, cadence enrolment or send. See docs/crm-outreach-workspace.md.
+
 Search: `lead-intelligence` edge function (plan → providers → AI qualify → score → **CRM match** → limit).
 UI: `src/pages/admin/leads/LeadFinderPage.tsx`, `components/LeadCrmPanel.tsx`, `components/LinkContactDialog.tsx`.
 

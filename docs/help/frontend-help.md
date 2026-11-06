@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-11-06 — Contact to customer through guided outreach (pending release)
+
+Open CRM → Outreach workspace, choose a contact, write a brief, assign an owner and date, then save. Write/paste the email, resolve the quality warnings and approve it. Review and Send in company email, or open your mail app and explicitly confirm after sending. Keep the follow-up date, check conversation history and record the reply/next action. Assign a colleague in Plan outreach or use Ask Iris to prepare help for review. No reminder sends automatically. Full walkthrough: docs/crm-outreach-workspace.md.
+
 ## 2026-11-02 — Paste Markdown into wiki pages (pending release)
 
 Choose **Edit**, click the page body and paste Markdown. Headings, tables, lists and inline formatting become editable page content. Review the page, then use **Update** or **Publish**. Paste with Ctrl/Cmd+Shift+V for literal text; a code block also preserves Markdown characters. One Undo removes the entire paste. Existing page content is not automatically reformatted.

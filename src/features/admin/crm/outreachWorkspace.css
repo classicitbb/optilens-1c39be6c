@@ -1,0 +1,29 @@
+.outreach-workspace { --outreach-accent: hsl(var(--primary)); }
+.outreach-picker, .outreach-main, .outreach-aside { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 6px; }
+.outreach-picker-intro { display: flex; align-items: flex-start; gap: 1rem; padding: 1.5rem; border-bottom: 1px solid hsl(var(--border)); }
+.outreach-step-number { display: grid; flex-shrink: 0; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--outreach-accent); color: hsl(var(--primary-foreground)); font-weight: 600; }
+.outreach-contact-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; background: hsl(var(--muted)); border-radius: 4px; }
+.outreach-resume { padding: 1rem 1.25rem; border-inline-start: 3px solid var(--outreach-accent); background: hsl(var(--muted) / .4); }
+.outreach-resume-item { display: flex; flex-direction: column; align-items: flex-start; gap: .4rem; text-align: left; padding: .8rem; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
+.outreach-resume-item:hover { border-color: var(--outreach-accent); }
+.outreach-roadmap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; color: hsl(var(--muted-foreground)); }
+.outreach-roadmap > div { display: flex; align-items: center; gap: .75rem; font-size: .875rem; }
+.outreach-roadmap span { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; flex-shrink: 0; border: 1px solid hsl(var(--border)); border-radius: 50%; }
+.outreach-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid hsl(var(--border)); }
+.outreach-steps button { display: flex; width: 100%; min-height: 4rem; align-items: center; gap: .6rem; padding: .75rem .5rem; text-align: left; font-size: .8rem; color: hsl(var(--muted-foreground)); border-bottom: 3px solid transparent; }
+.outreach-steps button[aria-current="step"] { color: var(--outreach-accent); border-bottom-color: var(--outreach-accent); font-weight: 600; }
+.outreach-steps button:disabled { cursor: default; }
+.outreach-steps button > span { display: grid; place-items: center; flex-shrink: 0; width: 1.7rem; height: 1.7rem; border: 1px solid currentColor; border-radius: 50%; }
+.outreach-work-area { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; align-items: start; gap: 1.25rem; }
+.outreach-main { padding: 1.5rem; min-width: 0; }
+.outreach-aside { display: flex; flex-direction: column; gap: 1.25rem; padding: 1.25rem; }
+.outreach-brief-summary { padding: 1rem; background: hsl(var(--muted) / .5); border-inline-start: 3px solid var(--outreach-accent); }
+.outreach-select { min-height: 2.75rem; width: 100%; border: 1px solid hsl(var(--input)); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: .5rem .75rem; border-radius: 4px; font-size: .875rem; }
+.outreach-workspace input:not([type="checkbox"]), .outreach-workspace textarea { font-size: 1rem; }
+.outreach-workspace input:not([type="checkbox"]) { min-height: 2.75rem; }
+.outreach-workspace button:focus-visible, .outreach-select:focus-visible { outline: 2px solid var(--outreach-accent); outline-offset: 3px; }
+.outreach-send-options { padding: 1rem; border: 1px solid var(--outreach-accent); }
+.outreach-warnings { padding: 1rem; border: 1px solid hsl(var(--border)); background: hsl(var(--muted)); font-size: .875rem; }
+.outreach-error { padding: 1rem; border: 1px solid hsl(var(--destructive)); color: hsl(var(--destructive)); font-size: .875rem; }
+@media (max-width: 1000px) { .outreach-work-area { grid-template-columns: minmax(0, 1fr); } .outreach-aside { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } .outreach-aside > div { border: 0; padding-top: 0; } }
+@media (max-width: 600px) { .outreach-main, .outreach-picker-intro { padding: 1rem; } .outreach-aside { display: flex; } .outreach-roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); } .outreach-steps { display: flex; overflow-x: auto; } .outreach-steps li { min-width: 8.5rem; } .outreach-steps button { min-height: 3.5rem; } }
