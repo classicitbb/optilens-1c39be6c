@@ -335,7 +335,7 @@ Operational notes and change context for code in `src/**`.
 ## 2026-07-24 — Sales app consolidation
 
 - The Sales app is no longer registered in `ADMIN_APPS` or the launcher navigation registry.
-- Canonical admin routes are `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
+- Canonical admin routes are `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
 - `adminSalesClosure.integration.test.ts` prevents the removed Sales and standalone orders routes from being reintroduced.
 
 ## 2026-07-24 — DHL Express MyDHL integration

@@ -43,7 +43,6 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/pricing/reference", "Pricing · Reference Data"],
 ["/admin/finance/costings", "Finance · Costings"],
 ["/admin/finance", "Finance"],
-["/admin/crm/proposals", "CRM · Proposals"],
 ["/admin/orders/quotations", "Orders · Quotations"],
 ["/admin/orders", "Orders"],
 ["/admin/settings/users", "Settings · Users"],

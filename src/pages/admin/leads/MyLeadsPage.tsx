@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useCreateLead, useLeads, useSeedSampleLeads } from "@/features/admin/leads/hooks/useLeads";
-import BuildCustomPackageButton from "@/features/admin/catalog-publisher-v2/components/BuildCustomPackageButton";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -119,7 +118,6 @@ const MyLeadsPage = () => {
           <Button variant="outline" size="sm" onClick={handleSeedLeads} disabled={seedLeads.isPending}>
             <Sprout className="h-4 w-4 mr-1" /> Seed Sample Leads
           </Button>
-          <BuildCustomPackageButton source="manual" className="h-8 text-xs" />
         </div>
       </AdminPageHeader>
 

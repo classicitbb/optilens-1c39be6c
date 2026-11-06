@@ -83,7 +83,6 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/crm": "crm",
   "/admin/crm/dashboard": "crm",
   "/admin/crm/pipeline": "crm",
-  "/admin/crm/proposals": "catalog-publisher",
   "/admin/crm/outbox": "crm",
   "/admin/crm/activities": "crm",
   // Helpdesk
