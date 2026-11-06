@@ -126,7 +126,7 @@ describe("Portal Copilot multi-chat workspace", () => {
     render(<QueryClientProvider client={client}><PortalCopilotPage /></QueryClientProvider>);
 
     expect(await screen.findByText("First chat answer")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Second chat/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Second chat/i }));
 
     expect(await screen.findByText("Second chat answer")).toBeInTheDocument();
     expect(screen.queryByText("First chat answer")).not.toBeInTheDocument();
@@ -142,8 +142,8 @@ describe("Portal Copilot multi-chat workspace", () => {
 
     await waitFor(() => expect(createCopilotConversation).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("heading", { name: "What can I help you with?" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /First chat/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Second chat/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^First chat/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Second chat/i })).toBeInTheDocument();
   });
 
   it("recalls the last sent message with the up arrow, and sends without a transcript gate", async () => {
