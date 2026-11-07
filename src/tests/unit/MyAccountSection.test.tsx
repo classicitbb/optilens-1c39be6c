@@ -65,7 +65,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       }),
       upsert: mocks.upsert,
     }),
-    rpc: vi.fn(),
+    rpc: vi.fn(async () => ({ data: null, error: null })),
     auth: { resetPasswordForEmail: vi.fn(), updateUser: mocks.updateUser },
   },
 }));
@@ -128,18 +128,16 @@ describe("MyAccountSection", () => {
     });
   });
 
-  it("allows an optional organization to be cleared", async () => {
+  it("requires an organization and refuses to save it blank", async () => {
     renderSection();
     fireEvent.click(await screen.findByRole("button", { name: "Edit organization" }));
     fireEvent.change(screen.getByRole("textbox", { name: "" }), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save organization" }));
 
-    await vi.waitFor(() => expect(mocks.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ organization_name: null }),
-      { onConflict: "user_id" },
+    await vi.waitFor(() => expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Organization is required", variant: "destructive" }),
     ));
-    expect(mocks.updateUser).toHaveBeenCalledWith({
-      data: expect.objectContaining({ organization_name: "" }),
-    });
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 });

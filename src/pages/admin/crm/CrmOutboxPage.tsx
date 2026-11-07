@@ -1,4 +1,9 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
+import { parseContactEmails } from "@/lib/contactEmails";
+import { outreachLink } from "@/features/admin/crm/outreachJourney";
+import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { OutreachConfirmButton } from "@/features/admin/crm/OutreachConfirmButton";
 import { Check, Copy, Inbox, Mail, MessageCircle, RefreshCw, Send, X } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +21,9 @@ type StatusFilter = OutboxDraft["status"] | "all";
 
 const CrmOutboxPage = () => {
   const { toast } = useToast();
+  const { canEdit } = useAdminRole();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("draft");
-  const { data: drafts = [], isLoading } = useOutbox(statusFilter === "all" ? undefined : statusFilter);
+  const { data: drafts = [], isLoading, error: loadError } = useOutbox(statusFilter === "all" ? undefined : statusFilter);
   const { data: contacts = [] } = useContacts();
   const update = useUpdateOutbox();
   const generateDue = useGenerateDueSteps();
@@ -51,7 +57,7 @@ const CrmOutboxPage = () => {
               <SelectItem value="all" className="text-xs">All</SelectItem>
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" onClick={handleGenerate} disabled={generateDue.isPending}>
+          <Button size="sm" variant="outline" onClick={handleGenerate} disabled={!canEdit || generateDue.isPending}>
             <RefreshCw className="mr-1 h-4 w-4" /> Generate Due Outreach
           </Button>
         </div>
@@ -64,9 +70,10 @@ const CrmOutboxPage = () => {
       </div>
 
       {isLoading ? <p className="text-xs text-muted-foreground">Loading outbox…</p> : null}
-      {!isLoading && drafts.length === 0 ? (
+      {loadError && <p role="alert" className="text-sm text-destructive">Unable to load outreach: {loadError.message}</p>}
+      {!isLoading && !loadError && drafts.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          Nothing here. Enrol contacts in a cadence from the pipeline, then “Generate Due Outreach”.
+          No messages in this view. <Link to="/admin/crm/dashboard" className="underline">Start guided outreach</Link> to prepare a reviewed email for a contact. Existing cadence drafts can still be prepared with “Generate Due Outreach”.
         </p>
       ) : null}
     </div>
@@ -81,17 +88,20 @@ interface OutboxCardProps {
 
 const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
   const { toast } = useToast();
+  const { canEdit } = useAdminRole();
   const [subject, setSubject] = useState(draft.subject ?? "");
   const [body, setBody] = useState(draft.body ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const dirty = subject !== (draft.subject ?? "") || body !== (draft.body ?? "");
-  const editable = draft.status === "draft" || draft.status === "approved";
+  const editable = canEdit && (draft.status === "draft" || draft.status === "approved");
   const gate = useMemo(
     () => (editable ? checkOutreachDraft({ subject, body }, draft.channel === "whatsapp" ? "whatsapp" : "email") : null),
     [editable, subject, body, draft.channel],
   );
 
   const save = async () => {
-    await onUpdate({ id: draft.id, patch: { subject, body } });
+    await onUpdate({ id: draft.id, patch: { subject, body, status: "draft" } });
     toast({ title: "Draft saved" });
   };
 
@@ -101,7 +111,13 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
   };
 
   const setStatus = async (status: OutboxDraft["status"]) => {
-    await onUpdate({ id: draft.id, patch: { status, ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}) } });
+    await onUpdate({ id: draft.id, patch: { status, subject, body, ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}) } });
+  };
+  const act = async (action: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true); setError("");
+    try { await action(); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(false); }
   };
 
   const waLink = () => {
@@ -109,14 +125,8 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
     return `https://wa.me/${phone}?text=${encodeURIComponent(body)}`;
   };
   const mailLink = () =>
-    `mailto:${contact?.email ?? ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-  const markAndSend = async (href: string) => {
-    if (dirty) await save();
-    window.open(href, "_blank");
-    await setStatus("sent");
-    toast({ title: "Marked sent" });
-  };
+    `mailto:${parseContactEmails(contact?.email ?? "").map(encodeURIComponent).join(",")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const readyToSend = draft.generated_by !== "practice" && draft.status === "approved" && !dirty && gate?.ok;
 
   return (
     <Card>
@@ -133,9 +143,12 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
       </CardHeader>
       <CardContent className="space-y-2">
         {draft.channel === "email" ? (
-          <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" className="h-8 text-xs" disabled={!editable} />
+          <Input aria-label="Email subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" className="h-8 text-xs" disabled={!editable || busy} />
         ) : null}
-        <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} className="text-xs" disabled={!editable} />
+        <Textarea aria-label="Outreach message" value={body} onChange={(e) => setBody(e.target.value)} rows={5} className="text-xs" disabled={!editable || busy} />
+        {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+        {draft.generated_by === "practice" && <p className="text-sm font-medium">Practice draft. Rehearse in guided outreach; this message cannot be sent from Outbox.</p>}
+        <Button variant="link" size="sm" asChild><Link to={`${outreachLink(draft.contact_id, draft.generated_by === "practice")}&draft=${encodeURIComponent(draft.id)}`}>Continue in guided outreach</Link></Button>
 
         {gate && !gate.ok ? (
           <ul className="space-y-0.5 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-900 dark:text-amber-200" aria-label="Draft quality warnings">
@@ -143,14 +156,14 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
           </ul>
         ) : null}
 
-        <div className="flex flex-wrap gap-1">
+        <fieldset disabled={busy} className="flex flex-wrap gap-1">
           {editable ? (
             <>
               {dirty ? (
-                <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={save}>Save</Button>
+                <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => void act(save)}>Save</Button>
               ) : null}
-              {draft.status === "draft" ? (
-                <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setStatus("approved")}>
+              {draft.status === "draft" || dirty ? (
+                <Button size="sm" variant="outline" className="h-7 text-[11px]" disabled={!gate?.ok} onClick={() => void act(async () => { await setStatus("approved"); })}>
                   <Check className="mr-1 h-3 w-3" /> Approve
                 </Button>
               ) : null}
@@ -162,28 +175,31 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
                 <span className="text-[11px] text-muted-foreground">Queued for automatic send</span>
               ) : null}
               {draft.channel === "whatsapp" ? (
-                <Button size="sm" className="h-7 text-[11px]" onClick={() => markAndSend(waLink())} disabled={!contact?.phone}>
+                <Button size="sm" className="h-7 text-[11px]" onClick={() => window.open(waLink(), "_blank", "noopener,noreferrer")} disabled={!contact?.phone || !readyToSend}>
                   <Send className="mr-1 h-3 w-3" /> WhatsApp
                 </Button>
               ) : (
                 <>
-                  <Button size="sm" className="h-7 text-[11px]" onClick={() => markAndSend(mailLink())} disabled={!contact?.email}>
-                    <Send className="mr-1 h-3 w-3" /> Email
+                  <Button size="sm" className="h-7 text-[11px]" onClick={() => { window.location.href = mailLink(); }} disabled={!contact?.email || !readyToSend}>
+                    <Send className="mr-1 h-3 w-3" /> Open email app
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     className="h-7 text-[11px]"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${subject ? subject + "\n\n" : ""}${body}`);
+                    onClick={() => void act(async () => {
+                      await navigator.clipboard.writeText(`${subject ? subject + "\n\n" : ""}${body}`);
                       toast({ title: "Copied" });
-                    }}
+                    })}
                   >
                     <Copy className="mr-1 h-3 w-3" /> Copy
                   </Button>
                 </>
               )}
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-muted-foreground" onClick={() => setStatus("rejected")}>
+              {readyToSend && <OutreachConfirmButton size="sm" variant="outline" className="h-7 text-[11px]" title="Record this message as sent?" description="Confirm that you actually sent this message outside the CRM. Opening a composer does not send it." confirmLabel="Yes, record the send" onConfirm={() => void act(async () => {
+                await setStatus("sent"); toast({ title: "Send recorded" });
+              })}>I sent it — record send</OutreachConfirmButton>}
+              <Button aria-label="Reject outreach draft" size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-muted-foreground" onClick={() => void act(async () => { await setStatus("rejected"); })}>
                 <X className="h-3 w-3" />
               </Button>
             </>
@@ -192,7 +208,8 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
               {draft.sent_at ? `Sent ${new Date(draft.sent_at).toLocaleString()}` : draft.status}
             </span>
           )}
-        </div>
+        </fieldset>
+        {editable && <p className="text-[11px] text-muted-foreground">Opening a composer does not mark this message sent. Confirm the send after sending it.</p>}
       </CardContent>
     </Card>
   );

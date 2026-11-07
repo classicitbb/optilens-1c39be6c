@@ -96,6 +96,7 @@ export const useUnclassifiedContacts = () =>
   });
 
 const invalidatePipeline = (qc: ReturnType<typeof useQueryClient>) => {
+  qc.invalidateQueries({ queryKey: ["outreach-contacts"] });
   qc.invalidateQueries({ queryKey: ["pipeline-contacts"] });
   qc.invalidateQueries({ queryKey: ["unclassified-contacts"] });
   qc.invalidateQueries({ queryKey: ["contacts"] });

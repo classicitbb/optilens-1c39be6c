@@ -40,7 +40,7 @@ const appTiles = [
   },
   {
     title: "CRM",
-    description: "Contacts, leads, pipeline, proposals, and sales activities.",
+    description: "Contacts, leads, pipeline, and sales activities.",
     route: "/admin/crm/dashboard",
     icon: Target,
     featurePrefix: "contacts",

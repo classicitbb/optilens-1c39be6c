@@ -26,6 +26,7 @@ import { PublicWebResearch } from "@/features/admin/crm/PublicWebResearch";
 import { appendResearchToNotes, fetchContactResearch } from "@/features/admin/crm/contactResearch";
 import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { OutreachConfirmButton } from "@/features/admin/crm/OutreachConfirmButton";
 import { useLaunchNew } from "@/hooks/useLaunchNew";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
@@ -2254,6 +2255,11 @@ const ContactsPage = ({
                       {editContact.is_company ? <Building2 className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} /> : <User className="h-4 w-4" style={{ color: "hsl(168 76% 42%)" }} />}
                       {editContact.id ? "Edit Contact" : editContact.is_company ? "New Company" : "New Person"}
                     </DialogTitle>
+                    {editContact.id && (
+                      <OutreachConfirmButton variant="outline" size="sm" className="h-8 text-xs" title="Open guided outreach?" description="This uses the saved contact. Save any contact changes before leaving this editor." confirmLabel="Open guided outreach" onConfirm={() => {
+                        navigate(`/admin/crm/dashboard?contact=${encodeURIComponent(editContact.id!)}`);
+                      }}>Guided outreach</OutreachConfirmButton>
+                    )}
                     {editContact.id && (
                       <div className="hidden sm:flex items-center gap-2 mr-4">
                         {getOpportunityCount(editContact.id) > 0 ? (

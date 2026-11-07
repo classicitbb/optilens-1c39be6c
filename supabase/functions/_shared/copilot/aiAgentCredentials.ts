@@ -6,6 +6,10 @@
 const stringValue = (value: unknown, max = 500) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
 
+// Anthropic IDs use hyphens ("claude-sonnet-5-5"); admins often type "5.5".
+const normalizeModelId = (model: string) =>
+  /^claude-/i.test(model) ? model.trim().replace(/(\d)\.(\d)/g, "$1-$2") : model;
+
 export type ClaudeCredentials = { apiKey: string; model: string };
 export type ProviderCredentials = { apiKey: string; model: string; source: "settings" | "env" | "none" };
 
@@ -35,5 +39,5 @@ export const resolveProviderCredentials = async (
 
 export const resolveClaudeCredentials = async (db: any, fallbackModel?: unknown): Promise<ClaudeCredentials> => {
   const { apiKey, model } = await resolveProviderCredentials(db, "anthropic", fallbackModel);
-  return { apiKey, model };
+  return { apiKey, model: normalizeModelId(model) };
 };

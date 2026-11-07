@@ -65,8 +65,6 @@ const QuotePrintPreviewPage = lazyWithRetry(() => import("@/pages/admin/QuotePri
 );
 const CatalogPublisherPage = lazyWithRetry(() => import("@/pages/admin/CatalogPublisherPage"),
 );
-const CatalogPublisherV2Page = lazyWithRetry(() => import("@/pages/admin/CatalogPublisherV2Page"),
-);
 const CatalogEditorPage = lazyWithRetry(() => import("@/pages/admin/CatalogEditorPage"));
 const ContactsPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactsPage"));
 const PricingSettingsPage = lazyWithRetry(() => import("@/pages/admin/PricingSettingsPage"),
@@ -250,7 +248,6 @@ const AdminRoutes = () => (
       />
       <Route path="crm/dashboard" element={<CrmDashboardPage />} />
       <Route path="crm/pipeline" element={<CrmPipelinePage />} />
-      <Route path="crm/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="crm/outbox" element={<CrmOutboxPage />} />
       <Route path="crm/activities" element={<CrmActivitiesPage />} />
       <Route path="crm/contacts" element={<ContactsPage />} />
@@ -474,7 +471,7 @@ const AdminRoutes = () => (
       />
       <Route
         path="catalog-publisher"
-        element={<Navigate to="/admin/crm/proposals" replace />}
+        element={<Navigate to="/admin/pricing/publisher" replace />}
       />
       <Route
         path="catalogpub-old"
