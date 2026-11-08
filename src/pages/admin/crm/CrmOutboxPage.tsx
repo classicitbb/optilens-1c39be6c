@@ -105,6 +105,11 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
     toast({ title: "Draft saved" });
   };
 
+  const approveAndSend = async () => {
+    await onUpdate({ id: draft.id, patch: { subject, body, status: "approved", auto_send: true, approved_at: new Date().toISOString() } });
+    toast({ title: "Approved", description: "It will go out automatically in the next business-hours run, with an unsubscribe link." });
+  };
+
   const setStatus = async (status: OutboxDraft["status"]) => {
     await onUpdate({ id: draft.id, patch: { status, subject, body, ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}) } });
   };
@@ -161,6 +166,13 @@ const OutboxCard = ({ draft, contact, onUpdate }: OutboxCardProps) => {
                 <Button size="sm" variant="outline" className="h-7 text-[11px]" disabled={!gate?.ok} onClick={() => void act(async () => { await setStatus("approved"); })}>
                   <Check className="mr-1 h-3 w-3" /> Approve
                 </Button>
+              ) : null}
+              {draft.channel === "email" && !draft.auto_send ? (
+                <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={approveAndSend} disabled={!contact?.email || (gate !== null && !gate.ok)}>
+                  <Send className="mr-1 h-3 w-3" /> Approve &amp; send automatically
+                </Button>
+              ) : draft.auto_send ? (
+                <span className="text-[11px] text-muted-foreground">Queued for automatic send</span>
               ) : null}
               {draft.channel === "whatsapp" ? (
                 <Button size="sm" className="h-7 text-[11px]" onClick={() => window.open(waLink(), "_blank", "noopener,noreferrer")} disabled={!contact?.phone || !readyToSend}>

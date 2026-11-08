@@ -97,6 +97,10 @@ const NO_CORS_FUNCTIONS = new Set([
   // Telnyx (Iris voice assistant) take-message webhook: server-to-server POST
   // only, authed by X-Iris-Secret; 405 to anything else.
   "iris-take-message",
+  // crm-cadence-runner is cron/staff POST only; crm-unsubscribe is a token-authed
+  // GET/POST link opened from email. Neither has a CORS contract.
+  "crm-cadence-runner",
+  "crm-unsubscribe",
 ]);
 
 
