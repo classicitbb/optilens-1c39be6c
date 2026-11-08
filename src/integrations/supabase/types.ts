@@ -1789,6 +1789,8 @@ export type Database = {
           current_step: number
           enrolled_at: string
           id: string
+          last_error: string | null
+          last_run_at: string | null
           next_step_due_at: string | null
           status: string
         }
@@ -1799,6 +1801,8 @@ export type Database = {
           current_step?: number
           enrolled_at?: string
           id?: string
+          last_error?: string | null
+          last_run_at?: string | null
           next_step_due_at?: string | null
           status?: string
         }
@@ -1809,6 +1813,8 @@ export type Database = {
           current_step?: number
           enrolled_at?: string
           id?: string
+          last_error?: string | null
+          last_run_at?: string | null
           next_step_due_at?: string | null
           status?: string
         }
@@ -3106,6 +3112,54 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_stage_events: {
+        Row: {
+          actor_user_id: string | null
+          contact_id: string
+          created_at: string
+          from_stage: string | null
+          id: string
+          pipeline: string | null
+          source: string
+          to_stage: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          contact_id: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          pipeline?: string | null
+          source?: string
+          to_stage?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          contact_id?: string
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          pipeline?: string | null
+          source?: string
+          to_stage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_stage_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_stage_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
       contact_sync_dead_letters: {
         Row: {
           attempt_count: number
@@ -3423,6 +3477,8 @@ export type Database = {
           lead_segment: string | null
           lead_source: string
           linked_customer_id: number | null
+          marketing_opt_out_at: string | null
+          marketing_opt_out_source: string | null
           name: string
           next_action_at: string | null
           notes: string | null
@@ -3473,6 +3529,8 @@ export type Database = {
           lead_segment?: string | null
           lead_source?: string
           linked_customer_id?: number | null
+          marketing_opt_out_at?: string | null
+          marketing_opt_out_source?: string | null
           name: string
           next_action_at?: string | null
           notes?: string | null
@@ -3523,6 +3581,8 @@ export type Database = {
           lead_segment?: string | null
           lead_source?: string
           linked_customer_id?: number | null
+          marketing_opt_out_at?: string | null
+          marketing_opt_out_source?: string | null
           name?: string
           next_action_at?: string | null
           notes?: string | null
@@ -9665,14 +9725,17 @@ export type Database = {
         Row: {
           approved_at: string | null
           attachments: Json
+          auto_send: boolean
           body: string | null
           channel: string
+          claimed_at: string | null
           contact_id: string
           created_at: string
           enrollment_id: string | null
           error: string | null
           generated_by: string
           id: string
+          send_attempts: number
           sent_at: string | null
           status: string
           subject: string | null
@@ -9680,14 +9743,17 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           attachments?: Json
+          auto_send?: boolean
           body?: string | null
           channel: string
+          claimed_at?: string | null
           contact_id: string
           created_at?: string
           enrollment_id?: string | null
           error?: string | null
           generated_by?: string
           id?: string
+          send_attempts?: number
           sent_at?: string | null
           status?: string
           subject?: string | null
@@ -9695,14 +9761,17 @@ export type Database = {
         Update: {
           approved_at?: string | null
           attachments?: Json
+          auto_send?: boolean
           body?: string | null
           channel?: string
+          claimed_at?: string | null
           contact_id?: string
           created_at?: string
           enrollment_id?: string | null
           error?: string | null
           generated_by?: string
           id?: string
+          send_attempts?: number
           sent_at?: string | null
           status?: string
           subject?: string | null
@@ -14871,6 +14940,24 @@ export type Database = {
           wspl_enabled: boolean | null
         }
         Relationships: []
+      }
+      crm_funnel_summary: {
+        Row: {
+          avg_days_in_stage: number | null
+          contacts: number | null
+          entered_last_30_days: number | null
+          pipeline: string | null
+          stage: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_pipeline_fkey"
+            columns: ["pipeline"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       customer_account_number_duplicates: {
         Row: {
