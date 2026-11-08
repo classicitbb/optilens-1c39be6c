@@ -10750,9 +10750,11 @@ export type Database = {
           created_by: string | null
           duty_rates: Json
           freight_method: string
+          fx_fee_percent: number
           fx_rates: Json
           fx_risk_buffer: number
           id: string
+          import_charges_percent: number
           import_costing_fx_rates: Json
           insurance_percent: number
           inventory_holding: number
@@ -10783,9 +10785,11 @@ export type Database = {
           created_by?: string | null
           duty_rates?: Json
           freight_method?: string
+          fx_fee_percent?: number
           fx_rates?: Json
           fx_risk_buffer?: number
           id?: string
+          import_charges_percent?: number
           import_costing_fx_rates?: Json
           insurance_percent?: number
           inventory_holding?: number
@@ -10816,9 +10820,11 @@ export type Database = {
           created_by?: string | null
           duty_rates?: Json
           freight_method?: string
+          fx_fee_percent?: number
           fx_rates?: Json
           fx_risk_buffer?: number
           id?: string
+          import_charges_percent?: number
           import_costing_fx_rates?: Json
           insurance_percent?: number
           inventory_holding?: number
