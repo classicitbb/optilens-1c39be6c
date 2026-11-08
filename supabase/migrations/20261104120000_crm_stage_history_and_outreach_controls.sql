@@ -58,7 +58,7 @@ WHERE c.stage IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM public.contact_stage_events e WHERE e.contact_id = c.id);
 
 -- 2. Funnel read model --------------------------------------------------------
-CREATE OR REPLACE VIEW public.crm_funnel_summary AS
+CREATE OR REPLACE VIEW public.crm_funnel_summary WITH (security_invoker = true) AS
 SELECT
   c.pipeline,
   c.stage,
@@ -73,7 +73,6 @@ FROM public.contacts c
 WHERE c.pipeline IS NOT NULL AND c.stage IS NOT NULL AND COALESCE(c.is_archived, false) = false
 GROUP BY c.pipeline, c.stage;
 
-ALTER VIEW public.crm_funnel_summary SET (security_invoker = on);
 GRANT SELECT ON public.crm_funnel_summary TO authenticated;
 
 -- 3. Marketing opt-out --------------------------------------------------------
