@@ -17230,7 +17230,7 @@ export type Database = {
     }
     Enums: {
       activity_task_channel: "todo" | "agent_todo"
-      app_role: "admin" | "operator" | "viewer" | "customer" | "office_admin"
+      app_role: "admin" | "operator" | "viewer" | "customer" | "office_admin" | "accountant"
       shipment_status: "draft" | "reviewed" | "locked"
       store_variant_mode:
         | "none"
@@ -17366,7 +17366,7 @@ export const Constants = {
   public: {
     Enums: {
       activity_task_channel: ["todo", "agent_todo"],
-      app_role: ["admin", "operator", "viewer", "customer", "office_admin"],
+      app_role: ["admin", "operator", "viewer", "customer", "office_admin", "accountant"],
       shipment_status: ["draft", "reviewed", "locked"],
       store_variant_mode: [
         "none",

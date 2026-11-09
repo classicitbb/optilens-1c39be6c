@@ -21,12 +21,13 @@ import { StaffPublicCardPreviewDialog } from "@/features/staff-cards/components/
 import { isStaffRole } from "@/features/staff-cards/staffPublicCards";
 import { useConfirm } from "@/hooks/useConfirm";
 
-const ROLES: AppRole[] = ["admin", "operator", "office_admin", "viewer", "customer"];
+const ROLES: AppRole[] = ["admin", "operator", "office_admin", "accountant", "viewer", "customer"];
 
 const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
   admin: { bg: "hsl(0 72% 51% / 0.12)", color: "hsl(var(--admin-destructive))" },
   operator: { bg: "hsl(var(--admin-accent) / 0.12)", color: "hsl(var(--admin-accent))" },
   office_admin: { bg: "hsl(var(--admin-warning, 38 92% 50%) / 0.12)", color: "hsl(var(--admin-warning, 38 92% 50%))" },
+  accountant: { bg: "hsl(var(--admin-accent) / 0.12)", color: "hsl(var(--admin-accent))" },
   viewer: { bg: "hsl(var(--admin-muted-fg) / 0.12)", color: "hsl(var(--admin-muted-fg))" },
   customer: { bg: "hsl(var(--admin-success) / 0.12)", color: "hsl(var(--admin-success))" },
 };

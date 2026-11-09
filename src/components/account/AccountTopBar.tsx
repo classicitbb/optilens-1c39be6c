@@ -39,7 +39,7 @@ const AccountTopBar = ({ displayName, onSignOut, onPageHelp }: AccountTopBarProp
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
   const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useCompanionAssistant();
-  const { hasAccess, isAdmin } = useUserRole();
+  const { hasAccess, isAdmin, isAccountant } = useUserRole();
   const { annotator, isActive: isAnnotating } = useAnnotator(hasAccess);
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -202,7 +202,7 @@ const AccountTopBar = ({ displayName, onSignOut, onPageHelp }: AccountTopBarProp
                       Change password
                     </Link>
                   </DropdownMenuItem>
-                  {hasAccess ? (
+                  {hasAccess || isAccountant ? (
                     <div className="flex items-center gap-1">
                       <DropdownMenuItem asChild className="flex-1 gap-2 rounded-md px-2.5 py-2 text-sm">
                         <Link to="/admin">

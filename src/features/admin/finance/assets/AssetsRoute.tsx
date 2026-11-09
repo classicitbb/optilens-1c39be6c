@@ -3,7 +3,7 @@ import { Navigate, NavLink } from "react-router";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { cn } from "@/lib/utils";
 
-/** Asset pages mirror the can_manage_assets() RLS check: admins and the office administrator. */
+/** Asset pages mirror the can_manage_assets() RLS check: admins, the office administrator and accountants. */
 const AssetsRoute = ({ children }: { children: ReactNode }) => {
   const { isLoading, realRole } = useAdminRole();
 
@@ -15,7 +15,7 @@ const AssetsRoute = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  if (realRole !== "admin" && realRole !== "office_admin") {
+  if (realRole !== "admin" && realRole !== "office_admin" && realRole !== "accountant") {
     return <Navigate to="/admin" replace />;
   }
 
