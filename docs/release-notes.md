@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
+
+### Release Notes
+- The FreePBX agent now controls calls through Asterisk's manager interface (AMI) instead of the PBX's command line, so it can run on any office machine without a login on the PBX. Website calls now carry the staff member's extension as caller ID, so FreePBX applies that extension's outbound route. Needs an AMI user made in FreePBX (Settings > Asterisk Manager Users), limited to the agent machine. Recording uploads still need the PBX's recording folder; calls work without it. Not installed or tested on the real PBX.
+
 ## 2026-10-30 — FreePBX call panel with hang up and record (local source)
 
 ### Release Notes

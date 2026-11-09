@@ -46,3 +46,7 @@ supabase/functions/mcp/index.ts
 
 # DesignCraft exports
 output/designcraft/
+
+# PBX agent settings (secrets) and state, if run from the repo folder
+scripts/pbx-agent/pbx-agent.env
+scripts/pbx-agent/state.json

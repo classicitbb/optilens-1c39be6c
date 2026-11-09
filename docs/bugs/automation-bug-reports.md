@@ -83,3 +83,5 @@ PBX agent (2026-10-24, local source): unconfirmed on a real PBX — dialplan con
 2026-10-28 QA maintenance: retain the legacy admin lens-assistant URL as a redirect to Rx Rules; the smoke harness now checks the current Forgot password button text. Route/source contract tests follow the current explicit aliases and live-data field projections, while launcher pins now forward context-menu trigger props and are found by their disambiguated accessible link names. Validation remains enabled; no gates were removed.
 
 PBX call panel (2026-10-30, local source): the agent's channel matching assumes one `PJSIP/<ext>-` channel per staff phone during a website call and that the `channel originate PJSIP/<ext>` target is right for every staff phone (a follow-me or mobile-only extension would not ring). Unconfirmed on the real PBX.
+
+PBX agent over AMI (2026-11-09, local source): unconfirmed on the real PBX: AMI login and permissions, the caller ID the customer sees, and `ChannelId` on Originate (Asterisk 13+; the PBX runs 16.30). Recording uploads need the PBX folder reachable from the agent machine.

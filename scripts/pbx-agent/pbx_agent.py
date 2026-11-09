@@ -1,36 +1,63 @@
 #!/usr/bin/env python3
 """FreePBX LAN agent for the Classic Visions CRM.
 
-Runs on the FreePBX server (or any machine on the office LAN that has the
-`asterisk` CLI). It only makes outbound HTTPS calls, so no ports are opened.
+Runs on any machine on the office LAN (or on the FreePBX server itself). It
+controls calls through the Asterisk Manager Interface (AMI) and only makes
+outbound HTTPS calls to the website, so no ports are opened to the internet.
 
   1. Polls the `pbx-agent` edge function for click-to-call requests made on the
      website and starts them: the staff extension rings first, then the customer.
      While the call lasts it reports its progress and carries out the Hang up,
      Record and Stop buttons pressed on the website.
   2. Uploads call recordings that staff chose to make, and asks the website to
-     link them to a contact, log them in the CRM and transcribe them.
+     link them to a contact, log them in the CRM and transcribe them. This needs
+     the PBX's recording folder (PBX_MONITOR_DIR) to be readable from here; when
+     it is not, calls still work and recordings stay on the PBX.
 
 Python 3 standard library only. Setup: docs/pbx-calls-setup.md
 """
 import json
 import os
+import posixpath
 import re
-import subprocess
+import socket
 import sys
 import time
 import urllib.error
 import urllib.request
 import wave
 
+
+def load_env_file():
+    # Windows Task Scheduler cannot set environment variables, so settings may sit
+    # in pbx-agent.env beside this script (KEY=VALUE lines). The real environment wins.
+    path = os.environ.get("PBX_AGENT_ENV_FILE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "pbx-agent.env")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                key, sep, value = line.strip().partition("=")
+                if sep and not key.startswith("#"):
+                    os.environ.setdefault(key.strip(), value.strip())
+    except OSError:
+        pass
+
+
+load_env_file()
 FUNCTION_URL = os.environ["PBX_AGENT_URL"].rstrip("/")  # https://<project>.supabase.co/functions/v1/pbx-agent
 TOKEN = os.environ["PBX_AGENT_TOKEN"]
+# AMI login made in FreePBX Settings > Asterisk Manager Users, permitted from this host only.
+AMI_HOST = os.environ.get("PBX_AMI_HOST", "127.0.0.1")
+AMI_PORT = int(os.environ.get("PBX_AMI_PORT", "5038"))
+AMI_USER = os.environ["PBX_AMI_USER"]
+AMI_SECRET = os.environ["PBX_AMI_SECRET"]
+# Recording folder as this machine sees it (scanned for uploads), and as the PBX sees
+# it (where the website's Record button tells Asterisk to write).
 MONITOR_DIR = os.environ.get("PBX_MONITOR_DIR", "/var/spool/asterisk/monitor")
+PBX_RECORDING_DIR = os.environ.get("PBX_RECORDING_DIR", "/var/spool/asterisk/monitor")
 STATE_FILE = os.environ.get("PBX_AGENT_STATE", "/var/lib/pbx-agent/state.json")
-# Dialplan context used to ring the staff extension and to dial out. Confirm both
-# against the PBX (`asterisk -rx "dialplan show from-internal"`) before go-live.
+# Dialplan context staff phones dial out from (confirmed 2026-10-30).
 CONTEXT = os.environ.get("PBX_DIAL_CONTEXT", "from-internal")
-# Outside-line prefix your outbound routes expect (often "9" or empty).
+# Outside-line prefix the outbound routes expect (none on this PBX).
 DIAL_PREFIX = os.environ.get("PBX_DIAL_PREFIX", "")
 POLL_SECONDS = float(os.environ.get("PBX_POLL_SECONDS", "3"))
 SCAN_SECONDS = float(os.environ.get("PBX_SCAN_SECONDS", "30"))
@@ -39,6 +66,7 @@ SETTLE_SECONDS = 20  # a file still being written is left alone
 # and retention plan in docs/pbx-calls-setup.md are agreed. Set to 1 to allow it.
 ALLOW_RECORDING = os.environ.get("PBX_ALLOW_RECORDING", "") == "1"
 NO_CHANNEL_SECONDS = 15  # originate accepted but no channel appeared: give up
+RING_SECONDS = 30  # how long the staff phone rings before the call is dropped
 AUDIO_EXTENSIONS = (".wav", ".mp3")
 
 
@@ -57,53 +85,105 @@ def call_function(payload):
         return json.loads(response.read() or b"{}")
 
 
-def asterisk(command):
-    result = subprocess.run(["asterisk", "-rx", command], capture_output=True, text=True, timeout=15)
-    if result.returncode != 0:
-        raise subprocess.SubprocessError((result.stderr or result.stdout or "asterisk command failed").strip()[:300])
-    return result.stdout
+class AmiError(Exception):
+    pass
 
 
-def extension_channels(extension):
-    """Channels of one extension's phone, from `core show channels concise`.
+def read_message(reader):
+    fields = {}
+    while True:
+        line = reader.readline()
+        if not line:
+            raise AmiError("AMI connection closed")
+        line = line.rstrip("\r\n")
+        if not line:
+            if fields:
+                return fields
+            continue
+        key, _, value = line.partition(":")
+        fields[key.strip()] = value.strip()
 
-    Fields: Channel!Context!Exten!Priority!State!Application!Data!CallerID!
-    Accountcode!PeerAccount!AMAflags!Duration!BridgeID!Uniqueid
-    """
-    prefix = f"PJSIP/{extension}-"
-    rows = []
-    for line in asterisk("core show channels concise").splitlines():
-        fields = line.split("!")
-        if len(fields) >= 13 and fields[0].startswith(prefix):
-            rows.append({"name": fields[0], "state": fields[4], "bridged": bool(fields[12])})
-    return rows
+
+def ami(*actions):
+    """Run AMI actions on one short connection. Returns, per action, the list
+    events it sent back (empty for actions that only answer Success)."""
+    with socket.create_connection((AMI_HOST, AMI_PORT), timeout=10) as sock:
+        reader = sock.makefile("r", encoding="utf-8", newline="")
+        reader.readline()  # "Asterisk Call Manager/x.y" banner
+
+        def send(fields):
+            sock.sendall(("".join(f"{key}: {value}\r\n" for key, value in fields.items()) + "\r\n").encode())
+
+        def reply_to(action_id):
+            while True:  # skip anything that is not the answer to this action
+                message = read_message(reader)
+                if message.get("ActionID") == action_id:
+                    return message
+
+        send({"Action": "Login", "Username": AMI_USER, "Secret": AMI_SECRET, "Events": "off", "ActionID": "login"})
+        if reply_to("login").get("Response") != "Success":
+            raise AmiError("AMI login refused")
+        results = []
+        for index, fields in enumerate(actions):
+            action_id = str(index)
+            send({**fields, "ActionID": action_id})
+            reply = reply_to(action_id)
+            if reply.get("Response") != "Success":
+                raise AmiError(f"{fields['Action']}: {reply.get('Message', 'failed')}")
+            items = []
+            if reply.get("EventList") == "start":
+                while True:
+                    message = reply_to(action_id)
+                    if message.get("EventList") == "Complete":
+                        break
+                    items.append(message)
+            results.append(items)
+        send({"Action": "Logoff"})
+    return results
+
+
+def channels():
+    return ami({"Action": "CoreShowChannels"})[0]
 
 
 def call_status(channel):
-    if channel["state"] != "Up":
+    if channel.get("ChannelState") != "6":  # 6 = Up
         return "ringing"  # the staff phone is ringing
-    return "connected" if channel["bridged"] else "calling"  # customer answered / being dialled
+    return "connected" if channel.get("BridgeId") else "calling"  # customer answered / being dialled
 
 
 def start_call(request):
-    extension, destination = request["extension"], request["destination"]
-    # Digits only: these values go into an Asterisk command.
-    if not re.fullmatch(r"\d{2,8}", extension) or not re.fullmatch(r"\d{7,15}", destination):
-        return False, "Refused: extension or number was not plain digits."
+    call_id, extension, destination = request["id"], request["extension"], request["destination"]
+    # These values go into AMI headers: digits and a UUID only.
+    if (not re.fullmatch(r"\d{2,8}", extension) or not re.fullmatch(r"\d{7,15}", destination)
+            or not re.fullmatch(r"[0-9a-f-]{36}", call_id)):
+        return False, "Refused: extension, number or call id was not in the expected form."
     # Only one channel per phone is ours to control, so never start a call on a busy phone.
-    if extension_channels(extension):
+    if any(item.get("Channel", "").startswith(f"PJSIP/{extension}-") for item in channels()):
         return False, "Your phone is already on a call."
     # Rings the staff phone itself (not the extension's dialplan, which could send an
-    # unanswered call to voicemail and then dial the customer into it); when the phone
-    # is answered, the dialplan dials the customer.
-    asterisk(f"channel originate PJSIP/{extension} extension {DIAL_PREFIX}{destination}@{CONTEXT}")
+    # unanswered call to voicemail and then dial the customer into it). When it is
+    # answered, the dialplan dials the customer. The caller ID tells FreePBX which
+    # extension is calling (outbound route, caller ID) and shows the number on the
+    # phone; ChannelId lets the agent find this call's channel again.
+    ami({
+        "Action": "Originate",
+        "Channel": f"PJSIP/{extension}",
+        "Context": CONTEXT,
+        "Exten": f"{DIAL_PREFIX}{destination}",
+        "Priority": "1",
+        "CallerID": f'"Call {destination}" <{extension}>',
+        "Timeout": str(RING_SECONDS * 1000),
+        "ChannelId": call_id,
+        "Async": "true",
+    })
     return True, ""
 
 
 def recording_path(call):
     # FreePBX's own naming, so the website links the file to the call and contact.
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    return os.path.join(MONITOR_DIR, f"out-{call['destination']}-{call['extension']}-{stamp}-{time.time():.3f}.wav")
+    return posixpath.join(PBX_RECORDING_DIR, f"out-{call['destination']}-{call['extension']}-{stamp}-{time.time():.3f}.wav")
 
 
 def apply_control(call, control):
@@ -111,15 +191,15 @@ def apply_control(call, control):
     if not channel:
         return "The call has not started yet."
     if control == "hangup":
-        asterisk(f"channel request hangup {channel}")
+        ami({"Action": "Hangup", "Channel": channel})
     elif control == "record":
         if not ALLOW_RECORDING:
             return "Recording from the website is turned off on the PBX agent."
         if not call["recording"]:
-            asterisk(f"mixmonitor start {channel} {recording_path(call)}")
+            ami({"Action": "MixMonitor", "Channel": channel, "File": recording_path(call)})
             call["recording"] = True
     elif control == "stop-record" and call["recording"]:
-        asterisk(f"mixmonitor stop {channel}")
+        ami({"Action": "StopMixMonitor", "Channel": channel})
         call["recording"] = False
     return ""
 
@@ -127,11 +207,12 @@ def apply_control(call, control):
 def track_calls(active):
     """Report the state of calls started from the website and apply staff controls."""
     updates = []
+    current = {item.get("Uniqueid"): item for item in channels()}
     for call in list(active.values()):
-        channels = extension_channels(call["extension"])
-        if channels:
-            call["channel"] = channels[0]["name"]
-            status = call_status(channels[0])
+        channel = current.get(call["id"])
+        if channel:
+            call["channel"] = channel["Channel"]
+            status = call_status(channel)
         elif call.get("channel") or time.time() - call["started"] > NO_CHANNEL_SECONDS:
             status = "ended"
         else:
@@ -145,7 +226,10 @@ def track_calls(active):
     for call_id, control in controls.items():
         call = active.get(call_id)
         if call:
-            call["error"] = apply_control(call, control)
+            try:
+                call["error"] = apply_control(call, control)
+            except (AmiError, OSError) as error:
+                call["error"] = f"The phone system did not accept that: {error}"
             log(f"call {call_id}: {control} {call['error'] or 'done'}")
 
 
@@ -222,7 +306,9 @@ def main():
     save_state(state)
     last_scan = 0.0
     active = {}  # website calls in progress, by request id
-    log(f"pbx-agent started, watching {MONITOR_DIR}")
+    can_scan = os.path.isdir(MONITOR_DIR)
+    log(f"pbx-agent started, AMI {AMI_HOST}:{AMI_PORT}, "
+        + (f"uploading recordings from {MONITOR_DIR}" if can_scan else f"recording folder {MONITOR_DIR} not reachable, recordings stay on the PBX"))
     while True:
         try:
             if active:
@@ -231,17 +317,17 @@ def main():
             if request:
                 try:
                     ok, error = start_call(request)
-                except subprocess.SubprocessError as failure:
-                    ok, error = False, str(failure)
+                except (AmiError, OSError) as failure:
+                    ok, error = False, f"The phone system did not accept the call: {failure}"
                 log(f"call {request['id']}: {'started' if ok else 'failed: ' + error}")
                 call_function({"action": "report", "id": request["id"], "ok": ok, "error": error})
                 if ok:
                     active[request["id"]] = {**request, "started": time.time(), "recording": False}
                 continue  # check for another queued call straight away
-            if time.time() - last_scan >= SCAN_SECONDS:
+            if can_scan and time.time() - last_scan >= SCAN_SECONDS:
                 last_scan = time.time()
                 scan_recordings(state)
-        except (urllib.error.URLError, OSError, ValueError, subprocess.SubprocessError) as error:
+        except (urllib.error.URLError, OSError, ValueError, AmiError) as error:
             log(f"error: {error}")
         time.sleep(POLL_SECONDS)
 

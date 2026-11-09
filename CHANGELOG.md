@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
+
+### Release Notes
+- The FreePBX agent now controls calls through Asterisk's manager interface (AMI) instead of the PBX's command line, so it can run on any office machine without a login on the PBX. Website calls now carry the staff member's extension as caller ID, so FreePBX applies that extension's outbound route. Needs an AMI user made in FreePBX (Settings > Asterisk Manager Users), limited to the agent machine. Recording uploads still need the PBX's recording folder; calls work without it. Not installed or tested on the real PBX.
+
+### Technical Changelog
+- `scripts/pbx-agent/pbx_agent.py`: AMI client (stdlib sockets, `Events: off`, one short connection per poll); `Originate` with `ChannelId` = request id and the extension as caller ID; channel tracking by `Uniqueid` from `CoreShowChannels`; `Hangup` / `MixMonitor` / `StopMixMonitor`; optional `pbx-agent.env` beside the script; recording scan skipped when `PBX_MONITOR_DIR` is not reachable. `.gitignore` covers the env and state files. Verified against a fake AMI server only.
+
 ## 2026-10-30 — FreePBX call panel with hang up and record (local source)
 
 ### Release Notes
