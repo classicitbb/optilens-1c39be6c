@@ -10,8 +10,8 @@ import { AssetsNav } from "@/features/admin/finance/assets/AssetsRoute";
 import { journalCsv, reclassJournal, rollForward, toCsv, type RollForwardRow } from "@/features/admin/finance/assets/engine";
 import { downloadText, toClassAccounts, useApprovedLines, useAssetClasses, useRegister } from "@/features/admin/finance/assets/useAssets";
 
-// Reports start the day after the 31 Oct 2026 cut-over; earlier history lives in QBO.
-const FIRST_DAY = "2026-11-01";
+// Reports start the day after the 30 Sep 2026 cut-over; earlier history lives in QBO.
+const FIRST_DAY = "2026-10-01";
 const today = () => new Date().toISOString().slice(0, 10);
 
 const COLUMNS: { key: keyof Omit<RollForwardRow, "classId">; label: string }[] = [
