@@ -3,7 +3,7 @@ import { Navigate } from "react-router";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { PrivacyFilterProvider } from "@/features/admin/hr/privacy";
 
-/** HR pages mirror the can_hr() RLS check: admins and the office administrator only. */
+/** HR pages mirror the can_hr() RLS check: admins, the office administrator and accountants only. */
 const HrRoute = ({ children }: { children: ReactNode }) => {
   const { isLoading, realRole } = useAdminRole();
 
@@ -15,7 +15,7 @@ const HrRoute = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  if (realRole !== "admin" && realRole !== "office_admin") {
+  if (realRole !== "admin" && realRole !== "office_admin" && realRole !== "accountant") {
     return <Navigate to="/admin" replace />;
   }
 

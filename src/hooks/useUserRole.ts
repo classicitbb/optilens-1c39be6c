@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = "admin" | "operator" | "office_admin" | "viewer" | "customer";
+export type AppRole = "admin" | "operator" | "office_admin" | "viewer" | "customer" | "accountant";
 
 export const useUserRole = () => {
   const { user } = useAuth();
@@ -27,8 +27,11 @@ export const useUserRole = () => {
     error,
     canEdit: role === "admin" || role === "operator" || role === "office_admin",
     isAdmin: role === "admin",
-    isCustomer: role === "customer",
-    canHr: role === "admin" || role === "office_admin",
+    // Accountants shop and check out like customers, so customer-facing checks admit them too.
+    isCustomer: role === "customer" || role === "accountant",
+    // Finance-only staff: admin access to /admin/finance/** and nothing else under /admin.
+    isAccountant: role === "accountant",
+    canHr: role === "admin" || role === "office_admin" || role === "accountant",
     hasAccess: role === "admin" || role === "operator" || role === "office_admin" || role === "viewer",
   };
 };

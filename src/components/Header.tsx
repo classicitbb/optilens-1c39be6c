@@ -505,7 +505,7 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
   const { openAssistant } = useCompanionAssistant();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { hasAccess, role, isLoading: roleLoading } = useUserRole();
+  const { hasAccess, isAccountant, role, isLoading: roleLoading } = useUserRole();
   const { annotator, isActive: isAnnotating } = useAnnotator(hasAccess);
   const bannerDismissed = useAccountRequestDismissed();
   const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
@@ -692,7 +692,7 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
                             <span className="text-sm font-medium">Orders</span>
                           </Link>
                         </DropdownMenuItem>
-                        {hasAccess &&
+                        {(hasAccess || isAccountant) &&
                 <div className="flex items-center gap-1">
                           <DropdownMenuItem asChild className="flex-1 rounded-xl px-2.5 py-2 focus:bg-accent/70">
                             <Link to="/admin" {...labLinkNavigationProps} className="flex items-center gap-3">
