@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { PricingSettings } from "./usePricingSettings";
+import { fxFeePercent, importChargesPercent } from "@/lib/pricing/costModel";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -76,36 +77,42 @@ export function calculatePricingEngine(
     converted_cost = supplier_cost * rate * (1 + settings.fx_risk_buffer);
   }
 
-  // 2. CIF (only if imported / duty applicable)
+  // 2. Landed cost. Every imported item carries the blended import charges
+  // (freight, insurance, brokerage, clearance) and the 2% foreign exchange fee;
+  // duty (and VAT, if not recoverable) only where duty_applicable. Shared with
+  // the Auto Price engine through costModel.ts.
   let cif = converted_cost;
   let duty = 0;
   let charges = 0;
   let vat = 0;
   let landed_cost: number;
 
-  if (duty_applicable && !bb_item) {
-    const insurance = converted_cost * settings.insurance_percent;
-    cif = converted_cost + insurance; // freight per-unit omitted (no per-item freight field yet)
+  if (!bb_item) {
+    cif = converted_cost * (1 + importChargesPercent(settings));
+    charges = cif * fxFeePercent(settings) + settings.brokerage_fee + settings.port_charges;
 
-    const dutyRates = settings.duty_rates as Record<string, number>;
-    const dutyRate = dutyRates[category] ?? 0;
-    duty = cif * dutyRate;
-    charges = settings.brokerage_fee + settings.port_charges;
-    vat = (cif + duty + charges) * settings.vat_rate;
+    if (duty_applicable) {
+      const dutyRates = settings.duty_rates as Record<string, number>;
+      const dutyRate = dutyRates[category] ?? 0;
+      duty = cif * dutyRate;
+      vat = (cif + duty + charges) * settings.vat_rate;
+    }
 
     landed_cost = cif + duty + charges + (vat_recoverable ? 0 : vat);
   } else {
     landed_cost = converted_cost;
   }
 
-  // 3. Operational layer
-  const overhead = landed_cost * settings.overhead_percent;
+  // 3. Allowances: financing and waste only. Overhead and holding are no longer
+  // priced in; labour arrives in the supplier's currency and is converted here.
+  const overhead = 0;
+  const holding = 0;
   const financing = landed_cost * (settings.cost_of_capital * days / 365);
-  const holding = landed_cost * (settings.inventory_holding * days / 365);
   const shrinkage = landed_cost * settings.shrinkage_percent;
+  const labour = bb_item ? labour_cost : labour_cost * (fxRates[currency] ?? 1) * (1 + settings.fx_risk_buffer);
 
   // 4. Full cost
-  const full_cost = landed_cost + overhead + financing + holding + shrinkage + labour_cost;
+  const full_cost = landed_cost + financing + shrinkage + labour;
 
   // 5. Strategic price
   const catMargins = settings.category_target_margins as Record<string, number>;
@@ -158,7 +165,7 @@ export function calculatePricingEngine(
     financing,
     holding,
     shrinkage,
-    labour: labour_cost,
+    labour,
     full_cost,
     strategic_price,
     margin,

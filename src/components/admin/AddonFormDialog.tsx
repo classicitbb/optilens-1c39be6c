@@ -129,7 +129,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
     supplier_cost: form.cost,
     currency: "USD",
     bb_item: false,
-    vat_recoverable: false,
+    vat_recoverable: true, // VAT-registered importer: input VAT is claimed back, not a cost
     duty_applicable: true,
     labour_cost: 0,
     category: "addons",
