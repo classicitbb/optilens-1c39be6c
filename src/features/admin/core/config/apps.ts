@@ -1,5 +1,5 @@
 import {
-  DollarSign, Users, Calculator, Target, LifeBuoy, Globe, BookOpen, Settings,
+  DollarSign, Users, Calculator, CalendarDays, Receipt, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
   ListChecks, Camera,
   FileEdit, FileCheck2,
@@ -10,7 +10,7 @@ import {
   Ticket, MessageSquare, UsersRound, ShieldCheck,
   Layout, Palette, UserCircle, Store, Glasses, ShoppingCart,
   BookMarked, ClipboardList, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard, Wallet,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard, Wallet, GraduationCap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -66,7 +66,7 @@ export const ADMIN_APPS = {
     // (viewer: view-only), so it gates the combined Contacts/Leads/CRM app.
     featurePrefix: 'contacts',
     sidebarItems: [
-      { label: 'Dashboard', route: '/admin/crm/dashboard', icon: LayoutDashboard },
+      { label: 'Outreach workspace', route: '/admin/crm/dashboard', icon: LayoutDashboard },
       { label: 'Pipeline', route: '/admin/crm/pipeline', icon: Kanban },
       { label: 'Contacts', route: '/admin/crm/contacts', icon: Contact },
       { label: 'My Leads', route: '/admin/crm/leads', icon: UserCheck },
@@ -75,7 +75,6 @@ export const ADMIN_APPS = {
       { label: 'Lead Audit Reports', route: '/admin/crm/leads/reports', icon: PieChart },
       { label: 'Activities', route: '/admin/crm/activities', icon: CalendarCheck },
       { label: 'Outbox', route: '/admin/crm/outbox', icon: Inbox },
-      { label: 'Proposals', route: '/admin/crm/proposals', icon: FileEdit },
       { label: 'CRM Settings', route: '/admin/crm/settings', icon: Wrench },
     ] satisfies SidebarItem[],
   },
@@ -97,10 +96,9 @@ export const ADMIN_APPS = {
     title: 'Helpdesk',
     icon: LifeBuoy,
     baseRoute: '/admin/helpdesk',
-    defaultRoute: '/admin/helpdesk/overview',
+    defaultRoute: '/admin/helpdesk/tickets',
     featurePrefix: 'helpdesk',
     sidebarItems: [
-      { label: 'Overview', route: '/admin/helpdesk/overview', icon: LayoutDashboard },
       { label: 'Tickets', route: '/admin/helpdesk/tickets', icon: Ticket },
       { label: 'Config', route: '/admin/helpdesk/config', icon: Settings },
     ] satisfies SidebarItem[],
@@ -139,6 +137,8 @@ export const ADMIN_APPS = {
       { label: 'Bank Payment Portals', route: '/admin/finance/bank-payment-portals', icon: Landmark },
       { label: 'People', route: '/admin/finance/people', icon: Users },
       { label: 'Payroll', route: '/admin/finance/payroll', icon: Calculator },
+      { label: 'Leave', route: '/admin/finance/leave', icon: CalendarDays },
+      { label: 'Income tax', route: '/admin/finance/tax', icon: Receipt },
       { label: 'Fixed Assets', route: '/admin/finance/assets', icon: Building2 },
       { label: 'Depreciation Runs', route: '/admin/finance/assets/runs', icon: ScrollText },
     ] satisfies SidebarItem[],
@@ -207,6 +207,7 @@ export const ADMIN_APPS = {
       { label: 'API Keys', route: '/admin/settings/api-keys', icon: Key },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
+      { label: 'Tours & Training', route: '/admin/settings/training', icon: GraduationCap },
       { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },
       { label: 'Edge Function Status', route: '/admin/settings/edge-functions', icon: Activity },
     ] satisfies SidebarItem[],

@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import AccountSidebar from "@/components/account/AccountSidebar";
 import AccountTopBar from "@/components/account/AccountTopBar";
+import PortalHelpPanel from "@/components/account/PortalHelpPanel";
+import { portalPathToContextSlug } from "@/help/portalContexts";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
@@ -70,6 +72,7 @@ const AccountLayout = () => {
   const { user, signOut } = useAuth();
   const { emulation, portalSessionEmulation } = usePortalIdentity();
   usePresenceHeartbeat("customer");
+  const [helpOpen, setHelpOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try { return localStorage.getItem("cv.portal.sidebar-collapsed") === "true"; } catch { return false; }
   });
@@ -81,7 +84,8 @@ const AccountLayout = () => {
   return (
     <div className={isRxOrder ? "flex h-dvh flex-col overflow-hidden bg-background" : "h-dvh overflow-y-auto bg-background"}>
       <EmulationBanner />
-      <AccountTopBar displayName={displayName} onSignOut={signOut} />
+      <AccountTopBar displayName={displayName} onSignOut={signOut} onPageHelp={() => setHelpOpen(true)} />
+      <PortalHelpPanel open={helpOpen} onOpenChange={setHelpOpen} contextSlug={portalPathToContextSlug(location.pathname)} />
 
       <div className={`flex w-full gap-6 px-4 py-6 sm:px-6 xl:px-8 2xl:px-10 ${isRxOrder ? "min-h-0 flex-1 overflow-hidden" : ""}`}>
         <aside className={`${isRxOrder ? "relative" : "sticky top-16"} hidden shrink-0 self-start border-r pr-4 transition-[width] lg:block ${sidebarCollapsed ? "w-14" : "w-64 xl:w-72 xl:pr-6"}`}>

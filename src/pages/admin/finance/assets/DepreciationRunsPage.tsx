@@ -13,8 +13,8 @@ import { AssetsNav } from "@/features/admin/finance/assets/AssetsRoute";
 import { periodLabel } from "@/features/admin/finance/assets/engine";
 import { RUN_STATUS_LABELS, useCreateDepreciationRun, useDepreciationRuns } from "@/features/admin/finance/assets/useAssets";
 
-// The register starts from QBO balances at 31 Oct 2026, so the first run is November.
-const FIRST_PERIOD = "2026-11";
+// The register starts from QBO balances at 30 Sep 2026 (QBO was depreciated to September), so the first run is October.
+const FIRST_PERIOD = "2026-10";
 
 const nextPeriod = (latest: string | undefined) => {
   if (!latest) return FIRST_PERIOD;
@@ -68,7 +68,7 @@ const DepreciationRunsPage = () => {
             ) : isLoading ? (
               <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
             ) : runs.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No runs yet. The first is for November 2026.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">No runs yet. The first is for October 2026.</TableCell></TableRow>
             ) : (
               runs.map((r) => (
                 <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/admin/finance/assets/runs/${r.id}`)}>

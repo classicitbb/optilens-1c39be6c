@@ -1,12 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as renderView, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import PortalCopilotPage from "@/pages/admin/PortalCopilotPage";
 import type { CopilotState } from "@/features/admin/copilot/api";
 
-const { loadCopilotState, createCopilotConversation } = vi.hoisted(() => ({
+const render = (view: ReactElement) => renderView(<MemoryRouter>{view}</MemoryRouter>);
+
+const { loadCopilotState, createCopilotConversation, submitCopilotCommand } = vi.hoisted(() => ({
   loadCopilotState: vi.fn(),
   createCopilotConversation: vi.fn(),
+  submitCopilotCommand: vi.fn(),
 }));
 
 vi.mock("@/features/admin/copilot/api", async (importOriginal) => {
@@ -15,6 +20,7 @@ vi.mock("@/features/admin/copilot/api", async (importOriginal) => {
     ...original,
     loadCopilotState,
     createCopilotConversation,
+    submitCopilotCommand,
   };
 });
 
@@ -104,12 +110,23 @@ describe("Portal Copilot multi-chat workspace", () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
+  it("prefills a CRM handoff as an editable request without submitting it", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    renderView(<MemoryRouter initialEntries={[{ pathname: "/admin/copilot", state: { outreachCommand: "Help me draft a lens email. Do not send it." } }]}><QueryClientProvider client={client}><PortalCopilotPage /></QueryClientProvider></MemoryRouter>);
+    await screen.findByText("First chat answer");
+    const composer = screen.getByLabelText("Message the Copilot");
+    expect(composer).toHaveValue("Help me draft a lens email. Do not send it.");
+    fireEvent.change(composer, { target: { value: "Help me improve this first ask." } });
+    expect(composer).toHaveValue("Help me improve this first ask.");
+    expect(submitCopilotCommand).not.toHaveBeenCalled();
+  });
+
   it("switches between independent persisted conversations", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     render(<QueryClientProvider client={client}><PortalCopilotPage /></QueryClientProvider>);
 
     expect(await screen.findByText("First chat answer")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Second chat/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Second chat/i }));
 
     expect(await screen.findByText("Second chat answer")).toBeInTheDocument();
     expect(screen.queryByText("First chat answer")).not.toBeInTheDocument();
@@ -125,8 +142,24 @@ describe("Portal Copilot multi-chat workspace", () => {
 
     await waitFor(() => expect(createCopilotConversation).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("heading", { name: "What can I help you with?" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /First chat/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Second chat/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^First chat/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Second chat/i })).toBeInTheDocument();
+  });
+
+  it("recalls the last sent message with the up arrow, and sends without a transcript gate", async () => {
+    loadCopilotState.mockResolvedValue({
+      ...stateFor("chat-a"),
+      messages: [{ id: "u1", conversation_id: "chat-a", role: "user", content: "Show lapsed buyers", attachments: [], created_at: "2026-08-14T01:00:00Z" }],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(<QueryClientProvider client={client}><PortalCopilotPage /></QueryClientProvider>);
+    await screen.findByText("Show lapsed buyers");
+
+    const box = screen.getByLabelText("Message the Copilot") as HTMLTextAreaElement;
+    fireEvent.keyDown(box, { key: "ArrowUp" });
+
+    expect(box.value).toBe("Show lapsed buyers");
+    expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
   });
 
   it("renders CRM evidence and keeps a suggestion pending for explicit approval", async () => {

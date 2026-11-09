@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+import { computeShipmentCosting } from "../_shared/shipments/landedCost.ts";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -18,20 +19,31 @@ Deno.serve(async (request) => {
   if (!shipmentId) return json(400, { error: "shipmentId required" });
   const { data: allowed } = await db.rpc("has_edit_role", { _user_id: user.id });
   if (!allowed) return json(403, { error: "Editor access required" });
-  const [{ data: shipment, error: shipmentError }, { data: charges }, { data: lines }, { data: docs }] = await Promise.all([
-    db.from("shipments").select("*").eq("id", shipmentId).single(),
+  const [{ data: shipment, error: shipmentError }, { data: charges }, { data: lines }, { data: docs }, { data: settings }] = await Promise.all([
+    db.from("shipments").select("*, suppliers(name)").eq("id", shipmentId).single(),
     db.from("shipment_charges").select("*").eq("shipment_id", shipmentId).order("sort_order"),
     db.from("shipment_lines").select("*").eq("shipment_id", shipmentId).order("sort_order"),
     db.from("shipment_documents").select("*").eq("shipment_id", shipmentId).order("created_at"),
+    // Same active row the app's usePricingEngine reads, so the exchange rate matches the screen.
+    db.from("pricing_settings").select("import_costing_fx_rates").eq("is_active", true).order("version", { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (shipmentError || !shipment) return json(404, { error: "Shipment not found" });
   try {
+    const { totals, lines: costedLines } = computeShipmentCosting(shipment, charges ?? [], lines ?? [], settings);
+    const money = (value: number) => Number(value || 0).toFixed(2);
     const binder = await PDFDocument.create(); const font = await binder.embedFont(StandardFonts.Helvetica); const bold = await binder.embedFont(StandardFonts.HelveticaBold);
-    const page = binder.addPage([595, 842]); let y = 800;
-    const line = (text: string, strong = false) => { page.drawText(text, { x: 42, y, size: 9, font: strong ? bold : font, color: rgb(.1, .1, .1) }); y -= 16; };
-    line("Classic Visions — Shipment Landed Cost Binder", true); line(`Shipment: ${shipment.invoice_number || shipment.id}`); line(`Supplier: ${shipment.supplier_id}`); line(`FOB: ${Number(shipment.fob_foreign || 0).toFixed(2)} ${shipment.currency || "USD"}`); line(`FXF: ${Number(shipment.fxf_actual_bbd || 0).toFixed(2)} BBD`); line("Landed charges", true);
-    for (const charge of charges ?? []) line(`${charge.charge_type}: ${Number(charge.amount_bbd || 0).toFixed(2)} BBD`);
-    line("Invoice lines", true); for (const item of lines ?? []) line(`${item.description || "Unspecified"} × ${item.quantity}: ${Number(item.line_fob_foreign || 0).toFixed(2)}`);
+    let page = binder.addPage([595, 842]); let y = 800;
+    const line = (text: string, strong = false) => {
+      if (y < 50) { page = binder.addPage([595, 842]); y = 800; }
+      page.drawText(text, { x: 42, y, size: 9, font: strong ? bold : font, color: rgb(.1, .1, .1) }); y -= 16;
+    };
+    line("Classic Visions — Shipment Landed Cost Binder", true); line(`Shipment: ${shipment.invoice_number || shipment.id}`); line(`Supplier: ${shipment.suppliers?.name || shipment.supplier_id}`); line(`FOB: ${money(shipment.fob_foreign)} ${shipment.currency || "USD"} (${money(totals.fobBbd)} BBD @ ${totals.exchangeRate})`); line(`FXF: ${money(totals.actualFxfBbd)} BBD`);
+    line("Landed charges", true);
+    for (const charge of charges ?? []) line(`${charge.charge_type}: ${money(charge.amount_bbd)} BBD${Number(charge.duty_bbd) ? ` + duty ${money(charge.duty_bbd)}` : ""}${Number(charge.vat_bbd) ? ` + VAT ${money(charge.vat_bbd)}` : ""}`);
+    line("Landed cost", true);
+    line(`Charges excluding VAT: ${money(totals.chargeSubtotalExcludingVatBbd)} BBD`); line(`VAT (reported separately): ${money(totals.vatTotal)} BBD`); line(`Total landed: ${money(totals.totalLandedBbd)} BBD`); line(`Landed multiplier: ${totals.multiplier.toFixed(4)}`);
+    line("Invoice lines", true);
+    for (const { line: item, costs } of costedLines) line(`${item.description || "Unspecified"} × ${item.quantity}: FOB ${money(item.line_fob_foreign)} · landed ${money(costs.landedUnitBbd)} BBD each`);
     for (const doc of docs ?? []) {
       const { data: file, error } = await db.storage.from("shipment-costing-documents").download(doc.storage_path); if (error || !file) continue;
       const bytes = await file.arrayBuffer();

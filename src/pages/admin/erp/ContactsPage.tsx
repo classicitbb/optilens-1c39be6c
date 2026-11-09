@@ -1,5 +1,5 @@
 import { Fragment, memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
+import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, deleteUnlinkedContacts, type Contact, type ContactDeleteResult } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { PublicWebResearch } from "@/features/admin/crm/PublicWebResearch";
 import { appendResearchToNotes, fetchContactResearch } from "@/features/admin/crm/contactResearch";
 import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { OutreachConfirmButton } from "@/features/admin/crm/OutreachConfirmButton";
 import { useLaunchNew } from "@/hooks/useLaunchNew";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
@@ -34,6 +35,7 @@ import { paginate } from "@/lib/pagination";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { ContactEmailHistory } from "@/features/admin/email/ContactEmailHistory";
 import { ContactCalls } from "@/features/admin/crm/ContactCalls";
+import { ContactEmailVerify } from "@/features/admin/crm/ContactEmailVerify";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -1756,9 +1758,7 @@ const ContactsPage = ({
         if (error) throw error;
         toast({ title: `Archived ${selectedContactIds.length} contacts` });
       } else {
-        const { error } = await (supabase.from("contacts") as any).delete().in("id", selectedContactIds as any);
-        if (error) throw error;
-        toast({ title: `Deleted ${selectedContactIds.length} contacts` });
+        reportContactDelete(await deleteUnlinkedContacts(selectedContactIds));
       }
       setSelectedContactIds([]);
       setBulkAction(null);
@@ -1768,12 +1768,23 @@ const ContactsPage = ({
     }
   };
 
+  // Linked contacts are skipped by the server; say which so nobody thinks the delete failed.
+  const reportContactDelete = ({ deleted, skipped }: ContactDeleteResult) => {
+    toast({
+      title: `Deleted ${deleted} contact${deleted === 1 ? "" : "s"}`,
+      description: skipped.length
+        ? `${skipped.length} kept because other records link to them: ${skipped.slice(0, 3).map((s) => `${s.name ?? "Unnamed"} (${s.links.join(", ")})`).join("; ")}${skipped.length > 3 ? "…" : ""}`
+        : undefined,
+    });
+  };
+
   const purgeArchivedContacts = async () => {
     try {
-      const { error } = await (supabase.from("contacts") as any).delete().eq("is_archived", true as any);
+      const { data: archived, error } = await (supabase.from("contacts") as any).select("id").eq("is_archived", true as any);
       if (error) throw error;
+      const result = await deleteUnlinkedContacts((archived ?? []).map((c: { id: string }) => c.id));
       setIsPurgeDialogOpen(false);
-      toast({ title: "Archived contacts purged" });
+      reportContactDelete(result);
       await qc.invalidateQueries({ queryKey: ["contacts"] });
     } catch (error: any) {
       toast({ title: "Purge failed", description: error.message ?? "Please try again.", variant: "destructive" });
@@ -2244,6 +2255,11 @@ const ContactsPage = ({
                       {editContact.is_company ? <Building2 className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} /> : <User className="h-4 w-4" style={{ color: "hsl(168 76% 42%)" }} />}
                       {editContact.id ? "Edit Contact" : editContact.is_company ? "New Company" : "New Person"}
                     </DialogTitle>
+                    {editContact.id && (
+                      <OutreachConfirmButton variant="outline" size="sm" className="h-8 text-xs" title="Open guided outreach?" description="This uses the saved contact. Save any contact changes before leaving this editor." confirmLabel="Open guided outreach" onConfirm={() => {
+                        navigate(`/admin/crm/dashboard?contact=${encodeURIComponent(editContact.id!)}`);
+                      }}>Guided outreach</OutreachConfirmButton>
+                    )}
                     {editContact.id && (
                       <div className="hidden sm:flex items-center gap-2 mr-4">
                         {getOpportunityCount(editContact.id) > 0 ? (
@@ -2793,6 +2809,7 @@ const ContactsPage = ({
 
                   {editContact?.id ? (
                     <TabsContent value="email" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                      <ContactEmailVerify contactId={editContact.id} emails={editContact.email} />
                       <ContactEmailHistory email={editContact.email} />
                     </TabsContent>
                   ) : null}

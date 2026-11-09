@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, GripVertical } from "lucide-react";
 import CurrencyFxSection from "./CurrencyFxSection";
+import { DEFAULT_FX_FEE_PERCENT, DEFAULT_IMPORT_CHARGES_PERCENT } from "@/lib/pricing/costModel";
 
 type FormData = Omit<PricingSettings, "id" | "created_at" | "created_by" | "version" | "is_active">;
 
@@ -28,6 +29,8 @@ const DEFAULTS: FormData = {
   port_charges: 0,
   freight_method: "per_unit",
   insurance_percent: 0.01,
+  import_charges_percent: DEFAULT_IMPORT_CHARGES_PERCENT,
+  fx_fee_percent: DEFAULT_FX_FEE_PERCENT,
   cost_of_capital: 0.08,
   inventory_holding: 0.05,
   avg_days_in_stock: 90,
@@ -468,7 +471,8 @@ const PricingSettingsTab = () => {
               </SelectContent>
             </Select>
           </div>
-          <PercentField label="Insurance" value={form.insurance_percent} onChange={(v) => setField("insurance_percent", v)} disabled={disabled} />
+          <PercentField label="Import Charges (freight, insurance, brokerage, clearance)" value={form.import_charges_percent ?? DEFAULT_IMPORT_CHARGES_PERCENT} onChange={(v) => setField("import_charges_percent", v)} disabled={disabled} />
+          <PercentField label="Foreign Exchange Fee" value={form.fx_fee_percent ?? DEFAULT_FX_FEE_PERCENT} onChange={(v) => setField("fx_fee_percent", v)} disabled={disabled} />
         </Section>
 
         {/* Duty Rates */}
@@ -479,10 +483,8 @@ const PricingSettingsTab = () => {
         {/* Financial & Operational */}
         <Section title="Financial & Operational">
           <PercentField label="Cost of Capital" value={form.cost_of_capital} onChange={(v) => setField("cost_of_capital", v)} disabled={disabled} />
-          <PercentField label="Inventory Holding" value={form.inventory_holding} onChange={(v) => setField("inventory_holding", v)} disabled={disabled} />
           <NumField label="Avg Days in Stock" value={form.avg_days_in_stock} onChange={(v) => setField("avg_days_in_stock", Math.round(v))} disabled={disabled} />
-          <PercentField label="Overhead" value={form.overhead_percent} onChange={(v) => setField("overhead_percent", v)} disabled={disabled} />
-          <PercentField label="Shrinkage" value={form.shrinkage_percent} onChange={(v) => setField("shrinkage_percent", v)} disabled={disabled} />
+          <PercentField label="Waste (shrinkage)" value={form.shrinkage_percent} onChange={(v) => setField("shrinkage_percent", v)} disabled={disabled} />
         </Section>
 
         {/* Pricing Strategy */}

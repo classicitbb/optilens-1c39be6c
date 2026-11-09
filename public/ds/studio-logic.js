@@ -193,7 +193,7 @@
         emHeading: 'Your Classic Visions access is ready',
         emBody: `<p>Hi ${this.esc(firstName)},</p><p>Your Classic Visions access has been set up.</p><p><strong>Email:</strong> ${this.esc(email)}<br><strong>Temporary password:</strong> ${this.esc(password)}</p><p>Please sign in and change this temporary password as soon as possible.</p><p>If you need help, simply reply to this email.</p>`,
         emCta: 'Open Classic Visions',
-        emCtaUrl: window.location.origin,
+        emCtaUrl: this.SITE_ORIGIN,
         emailTo: email,
         emailSubject: 'Your Classic Visions access is ready',
         emailSendOpen: true,
@@ -334,6 +334,53 @@
       emailSubject: s.emailSubject || this.emailSubjectLine()
     }));
   };
+  // Invoice email: prefills the email composer with the invoice context and a Pay now button.
+  // The one-time /pay link is minted only when the email is actually sent (see sendEmailNow).
+  // Links in outgoing documents always use the public site, never the admin host (Lovable, localhost, an IP).
+  SITE_ORIGIN = 'https://classicvisions.net';
+  PAY_URL_SENTINEL = '__PAY_TOKEN__';
+  payRequest = null;
+  emailInvoice = async () => {
+    const d = this.state;
+    if (d.billType !== 'invoice') return;
+    const t = this.billTotals();
+    const cur = d.blCurrency || 'BBD';
+    const amount = Math.round(t.balance * 100) / 100;
+    if (!(amount > 0)) return this.toast('This invoice has no balance due to collect.');
+    if (cur !== 'BBD') return this.toast('Online payment is only available for BBD invoices.');
+    this.syncActive();
+    if (!d.emailDefaultReplyTo || !(d.emailContacts || []).length) await this.loadEmailSendData();
+    const esc = this.esc, b = this.brand();
+    const money = cur + ' ' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const number = d.blNumber || this.billMeta().title;
+    const who = d.blToAttn || d.blToName || d.blToCompany;
+    const lines = [
+      ['Invoice', number], ['Date', d.blDate], ['Due', d.blDue], ['PO', d.blPO]
+    ].filter(([, v]) => v).map(([l, v]) => `<strong>${l}:</strong> ${esc(v)}`).join('<br>');
+    this.payRequest = {
+      amount,
+      customerName: String(d.blToCompany || d.blToName || 'Customer').trim(),
+      reference: number,
+      reason: 'Invoice ' + number
+    };
+    const subject = `Invoice ${number} from ${b.name}`;
+    const selected = this.selectedEmailCandidates();
+    this.setState((s) => ({
+      tab: 'email',
+      emEyebrow: 'Invoice',
+      emPreheader: `Invoice ${number} — ${money} due`,
+      emHeading: `Invoice ${number}`,
+      emBody: `<p>${who ? 'Hi ' + esc(String(who).split(/\s+/)[0]) + ',' : 'Hello,'}</p><p>Thank you for your business. Your invoice is ready.</p><p>${lines}<br><strong>Amount due:</strong> ${esc(money)}</p><p>You can pay securely online with a card using the button below. The amount is already filled in for you.</p>`,
+      emCta: 'Pay now',
+      emCtaUrl: this.SITE_ORIGIN + '/pay?token=' + this.PAY_URL_SENTINEL,
+      emailTo: s.emailTo || selected.join(', '),
+      emailReplyTo: s.emailReplyTo || s.emailDefaultReplyTo || b.email,
+      emailSubject: subject,
+      emailSendOpen: true,
+      emailContactsOpen: false,
+      emailSendError: ''
+    }), () => { this.refreshTinyContent(); });
+  };
   closeEmailSend = () => this.setState({ emailSendOpen: false, emailContactsOpen: false, emailContactSearch: '', emailSendError: '', emailSending: false });
   toggleEmailContacts = () => this.setState(s => ({ emailContactsOpen: !s.emailContactsOpen, emailContactSearch: '' }), () => {
     if (this.state.emailContactsOpen) requestAnimationFrame(() => document.getElementById('ds-contact-search')?.focus());
@@ -384,6 +431,12 @@
     if (!String(this.state.emailSubject || '').trim()) return this.setState({ emailSendError: 'Add a subject line.' });
     this.setState({ emailSending: true, emailSendError: '' });
     try {
+      let html = this.emailDocHtml();
+      if (this.payRequest && html.includes(this.PAY_URL_SENTINEL)) {
+        if (!window.__docStudioCreatePayLink) throw new Error('Payment links are available in the admin Doc Studio.');
+        const link = await window.__docStudioCreatePayLink({ ...this.payRequest, customerEmail: to[0] });
+        html = html.split(this.SITE_ORIGIN + '/pay?token=' + this.PAY_URL_SENTINEL).join(this.esc(link));
+      }
       await this.docApi('/api/docstudio/email/send', {
         method: 'POST',
         body: {
@@ -392,9 +445,10 @@
           bcc,
           replyTo,
           subject: this.state.emailSubject,
-          html: this.emailDocHtml()
+          html
         }
       });
+      this.payRequest = null;
       this.setState({ emailSending: false, emailSendOpen: false, emailTo: '', emailCc: '', emailBcc: '', emailSendError: '' });
       this.toast('Email queued for sending');
     } catch (err) {
@@ -698,6 +752,7 @@
   };
 
   composeNewEmail = () => {
+    this.payRequest = null;
     this.syncTiny('email');
     this.destroyTiny('email');
     this.setState({
@@ -889,7 +944,7 @@
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#F4F2ED" style="background:#F4F2ED;margin:0;padding:0;border-collapse:collapse">
  <tr><td align="center" style="padding:8px 14px">
   ${pre}
-  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid #ece9e0;border-radius:14px;overflow:hidden;border-collapse:collapse;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid #ece9e0;overflow:hidden;border-collapse:collapse;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">
    ${this.emailHeader(d.emHeader)}
    ${hero}
    <tr><td style="padding:38px 44px 30px">
@@ -1255,7 +1310,7 @@
   loadPost = (it) => { this.setState({ smBody: '', ...it.fields }, () => { const ed = this.TINY.social; if (ed) { try { ed.setContent(this.state.smBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded "' + it.name + '"'); };
 
   // ---------- view helpers ----------
-  tabStyle = (active) => `padding:7px 16px;border:0;border-radius:7px;cursor:pointer;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;background:${active ? '#F4F2ED' : 'transparent'};color:${active ? '#0B1E35' : '#cdd8e4'};transition:.15s`;
+  tabStyle = (active) => `padding:9px 16px 8px;border:0;border-top:2px solid ${active ? '#1A8A9C' : 'transparent'};border-radius:4px 4px 0 0;cursor:pointer;font:500 11px/1 'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;background:${active ? '#fafaf8' : 'transparent'};color:${active ? '#0B1E35' : '#cdd8e4'};transition:.15s`;
   segStyle = (active) => `flex:1;padding:9px 6px;border-radius:8px;border:1px solid ${active ? '#0B1E35' : '#d9d7cf'};background:${active ? '#0B1E35' : '#fff'};color:${active ? '#fff' : '#0B1E35'};font:700 11.5px/1.2 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:center;transition:.15s`;
   seg = (key, opts) => opts.map(o => ({ label: o.l, pressed: this.state[key] === o.k, style: this.segStyle(this.state[key] === o.k), onClick: () => this.set(key, o.k) }));
 
@@ -1463,7 +1518,7 @@
         <div style="margin-left:auto;text-align:right;min-width:150px"><div style="font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Balance due</div><div style="font:800 ${this.fitFont(26, fit, 15)}px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${cur} ${bal.toFixed(2)}</div></div>
       </div>
       <div style="padding:22px 52px 0">
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7e4db;border-radius:10px;overflow:hidden">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7e4db;overflow:hidden">
           <thead><tr style="background:#0B1E35"><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#F4F2ED;text-align:left">Date</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#F4F2ED;text-align:left">Description</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#c0392b;text-align:right">Debit</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#C89130;text-align:right">Credit</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#F4F2ED;text-align:right">Balance</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
@@ -1627,7 +1682,7 @@
 
         <!-- AGEING -->
         ${secTitle('Ageing')}
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #dde3ea;border-radius:4px;overflow:hidden;margin-top:-4px">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #dde3ea;overflow:hidden;margin-top:-4px">
           <thead>
             <tr style="background:#f2f6f8">
               <th style="padding:6px 10px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:center;color:#0B1E35;border-right:1px solid #dde3ea;border-bottom:1px solid #dde3ea">Current</th>
@@ -2526,7 +2581,7 @@
     if (m.showPay) {
       const paidOff = t.balance <= 0.001;
       payBlock = `<div style="padding:20px 52px 0">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#f3f7f5;border:1px solid #d8e5df;border-radius:12px"><tr>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#f3f7f5;border:1px solid #d8e5df;"><tr>
           <td style="padding:18px 22px;vertical-align:middle">
             <div style="font:700 10px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Payment received</div>
             <div style="font:800 22px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#1c7a52">${money(t.amountPaid)}</div>
@@ -2590,7 +2645,7 @@
       </div>
       <div style="padding:24px 52px 0;display:flex;gap:30px;align-items:flex-start">${billTo}${callout}</div>
       <div style="padding:22px 52px 0">
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7e4db;border-radius:10px;overflow:hidden">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7e4db;overflow:hidden">
           <thead><tr style="background:#0B1E35">
             <th style="padding:11px 16px;font:700 10.5px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#F4F2ED;text-align:left">Description</th>
             <th style="padding:11px 16px;font:700 10.5px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#F4F2ED;text-align:right;white-space:nowrap">Qty</th>
@@ -2653,9 +2708,9 @@
       );
     } else {
       const html = tab === 'email' ? this.buildEmail() : tab === 'letter' ? this.buildLetter() : tab === 'shiplabel' ? this.buildShippingLabel() : tab === 'statement' ? (d.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement()) : tab === 'billing' ? this.buildBilling() : this.buildSignatureBoard();
-      previewNode = React.createElement('div', { style: { width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }, dangerouslySetInnerHTML: { __html: html } });
+      previewNode = React.createElement('div', { className: 'ds-doc-preview', style: { width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }, dangerouslySetInnerHTML: { __html: html } });
     }
-    const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ key: k, label: l, onClick: () => this.switchTab(k), style: this.tabStyle(tab === k) }));
+    const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ key: k, label: l, onClick: () => this.switchTab(k), active: tab === k, style: this.tabStyle(tab === k) }));
     // Render real React buttons. Inline onclick attributes are blocked by the
     // production CSP and previously left every native-mounted tab except Email inert.
     const _styleObject = (css) => Object.fromEntries(css.split(';').filter(Boolean).map(rule => {
@@ -2776,7 +2831,7 @@
     const sidebarWidth = this.clampSidebarWidth(d.sidebarWidth || 396);
     return {
       tab,
-      isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
+      isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing', showEmailInvoice: tab === 'billing' && d.billType === 'invoice', emailInvoice: this.emailInvoice,
       f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
       showPreviewHeader: tab !== 'files',
       previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? (d.slMode === 'customer' ? 'Customer label preview' : 'Shipping label preview') : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',

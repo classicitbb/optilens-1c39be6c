@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Compensation, Employee, PaySplit, RecurringItem } from "@/features/admin/hr/useEmployees";
-import { calculatePayslip, type PayItemInput, type Payslip, type PayslipLine } from "./engine";
+import { calculatePayslip, type DeductionOverrides, type PayItemInput, type Payslip, type PayslipLine } from "./engine";
+import { unpaidLeaveInPeriod, workingDaysBetween, type LeavePolicy, type LeaveRequest, type LeaveType } from "../leave/leaveBalance";
+import { fetchLeavePolicy, fetchLeaveTypes } from "../leave/useLeave";
 
 export type PayrollRunStatus = "draft" | "approved" | "paid";
 
@@ -39,8 +41,15 @@ export interface PayslipRow {
   lines: PayslipLine[];
   splits: Payslip["splits"];
   adjustments: Adjustment[];
+  overrides: DeductionOverrides;
   warnings: string[];
   rules_source: string | null;
+}
+
+/** HR's own entries on a payslip, carried through every recalculation. */
+export interface PayslipEdits {
+  adjustments: Adjustment[];
+  overrides: DeductionOverrides;
 }
 
 // Payroll tables are newer than the generated Supabase types.
@@ -82,20 +91,46 @@ interface PayrollData {
   compensation: Compensation[];
   items: RecurringItem[];
   splits: PaySplit[];
+  leaveTypes: LeaveType[];
+  leavePolicy: LeavePolicy;
+  leave: LeaveRequest[];
 }
 
-const loadPayrollData = async (): Promise<PayrollData> => {
-  const [employees, compensation, items, splits] = await Promise.all([
+const loadPayrollData = async (periodStart: string): Promise<PayrollData> => {
+  const [employees, compensation, items, splits, leave, leaveTypes, leavePolicy] = await Promise.all([
     db.from("employees").select("*").neq("status", "terminated"),
     db.from("employee_compensation").select("*"),
     db.from("employee_recurring_items").select("*").eq("active", true),
     db.from("employee_pay_splits").select("*").eq("active", true).order("sort_order"),
+    db.from("leave_requests").select("*").eq("status", "approved").lte("start_date", periodEnd(periodStart)).gte("end_date", periodStart),
+    fetchLeaveTypes(),
+    fetchLeavePolicy(),
   ]);
-  return { employees: unwrap(employees), compensation: unwrap(compensation), items: unwrap(items), splits: unwrap(splits) };
+  return {
+    employees: unwrap(employees),
+    compensation: unwrap(compensation),
+    items: unwrap(items),
+    splits: unwrap(splits),
+    leave: unwrap(leave),
+    leaveTypes,
+    leavePolicy,
+  };
+};
+
+/** Unpaid leave comes off pay before tax, as a negative earning: base pay per working day of the month. */
+const unpaidLeaveItems = (data: PayrollData, employeeId: string, basePay: number, periodStart: string): PayItemInput[] => {
+  const end = periodEnd(periodStart);
+  const monthDays = workingDaysBetween(periodStart, end, data.leavePolicy.work_days);
+  if (!monthDays) return [];
+  return unpaidLeaveInPeriod(employeeId, data.leave, data.leaveTypes, data.leavePolicy, periodStart, end).map(({ type, days }) => ({
+    kind: "earning",
+    label: `${type.name}, ${days} day${days === 1 ? "" : "s"} unpaid`,
+    amount: -Math.round((basePay * days * 100) / monthDays) / 100,
+  }));
 };
 
 /** Works out one employee's payslip for the period, or why it can't be. */
-const buildPayslip = (data: PayrollData, employee: Employee, periodStart: string, adjustments: Adjustment[]) => {
+const buildPayslip = (data: PayrollData, employee: Employee, periodStart: string, { adjustments, overrides }: PayslipEdits) => {
   const end = periodEnd(periodStart);
   const comp = data.compensation
     .filter((c) => c.employee_id === employee.id && inPeriod(c.effective_from, c.effective_to, periodStart, end))
@@ -115,6 +150,7 @@ const buildPayslip = (data: PayrollData, employee: Employee, periodStart: string
         taxable: i.taxable,
         loanBalance: i.loan_balance,
       })),
+    ...unpaidLeaveItems(data, employee.id, comp.base_amount, periodStart),
     ...adjustments,
   ];
   const annualAllowances = comp.annual_personal_allowance + comp.annual_child_allowance + comp.annual_other_allowance;
@@ -124,6 +160,7 @@ const buildPayslip = (data: PayrollData, employee: Employee, periodStart: string
     annualAllowances,
     rrLevyExempt: employee.rr_levy_exempt,
     items,
+    overrides,
     splits: data.splits
       .filter((s) => s.employee_id === employee.id)
       .map((s) => ({ label: s.label, method: s.method, amount: s.amount, isRemainder: s.is_remainder })),
@@ -143,6 +180,7 @@ const buildPayslip = (data: PayrollData, employee: Employee, periodStart: string
       lines: slip.lines,
       splits: slip.splits,
       adjustments,
+      overrides,
       warnings: slip.warnings,
       rules_source: slip.rulesSource,
     },
@@ -154,13 +192,13 @@ export interface Skipped {
   reason: string;
 }
 
-/** Recalculates every payslip in a draft run from current employee pay data, keeping one-off adjustments. */
-const calculateRun = async (runId: string, periodStart: string, adjustmentsByEmployee: Map<string, Adjustment[]>) => {
-  const data = await loadPayrollData();
+/** Recalculates every payslip in a draft run from current employee pay data, keeping one-off adjustments and overrides. */
+const calculateRun = async (runId: string, periodStart: string, editsByEmployee: Map<string, PayslipEdits>) => {
+  const data = await loadPayrollData(periodStart);
   const rows = [];
   const skipped: Skipped[] = [];
   for (const employee of data.employees) {
-    const result = buildPayslip(data, employee, periodStart, adjustmentsByEmployee.get(employee.id) ?? []);
+    const result = buildPayslip(data, employee, periodStart, editsByEmployee.get(employee.id) ?? { adjustments: [], overrides: {} });
     if (result.row) rows.push({ ...result.row, run_id: runId });
     else skipped.push({ employeeId: employee.id, reason: result.skip });
   }
@@ -184,9 +222,14 @@ export const useCreatePayrollRun = () => {
 export const useRecalculatePayrollRun = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ run, payslips, adjustments }: { run: PayrollRun; payslips: PayslipRow[]; adjustments?: { employeeId: string; items: Adjustment[] } }) => {
-      const byEmployee = new Map(payslips.map((p) => [p.employee_id, p.adjustments ?? []]));
-      if (adjustments) byEmployee.set(adjustments.employeeId, adjustments.items);
+    mutationFn: async ({ run, payslips, edit }: { run: PayrollRun; payslips: PayslipRow[]; edit?: { employeeId: string } & Partial<PayslipEdits> }) => {
+      const byEmployee = new Map<string, PayslipEdits>(
+        payslips.map((p) => [p.employee_id, { adjustments: p.adjustments ?? [], overrides: p.overrides ?? {} }]),
+      );
+      if (edit) {
+        const current = byEmployee.get(edit.employeeId) ?? { adjustments: [], overrides: {} };
+        byEmployee.set(edit.employeeId, { adjustments: edit.adjustments ?? current.adjustments, overrides: edit.overrides ?? current.overrides });
+      }
       return calculateRun(run.id, run.period_start, byEmployee);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["hr"] }),

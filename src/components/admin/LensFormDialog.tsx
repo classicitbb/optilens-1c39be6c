@@ -431,14 +431,12 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                 <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-xs">
                     <ReadOnly label="FX Rate" value={calc.fx_rate_used.toFixed(4)} />
                     <ReadOnly label="Converted (BBD)" value={fmt(calc.converted_cost)} />
-                    <ReadOnly label="CIF (BBD)" value={fmt(calc.cif)} />
+                    <ReadOnly label="CIF + import (BBD)" value={fmt(calc.cif)} />
                     <ReadOnly label="Duty (BBD)" value={fmt(calc.duty)} />
-                    <ReadOnly label="Charges (BBD)" value={fmt(calc.charges)} />
+                    <ReadOnly label="FX fee (BBD)" value={fmt(calc.charges)} />
                     <ReadOnly label="VAT (BBD)" value={fmt(calc.vat)} />
                     <ReadOnly label="Landed (BBD)" value={fmt(calc.landed_cost)} highlight />
-                    <ReadOnly label="Overhead (BBD)" value={fmt(calc.overhead)} />
                     <ReadOnly label="Financing (BBD)" value={fmt(calc.financing)} />
-                    <ReadOnly label="Holding (BBD)" value={fmt(calc.holding)} />
                     <ReadOnly label="Shrinkage (BBD)" value={fmt(calc.shrinkage)} />
                     <ReadOnly label="Labour (BBD)" value={fmt(calc.labour)} />
                     <ReadOnly label="Full Cost (BBD)" value={fmt(calc.full_cost)} highlight />

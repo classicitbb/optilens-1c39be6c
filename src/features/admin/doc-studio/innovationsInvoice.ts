@@ -8,7 +8,7 @@ export interface InnovationsInvoice {
 }
 
 export function invoiceBillingFields(data: InnovationsInvoice, invoiceId: number) {
-  if (!data.invoice || Number(data.invoice.id) !== invoiceId) throw new Error('Invoice not found for this customer account.');
+  if (!data.invoice || Number(data.invoice.id) !== invoiceId) throw new Error('Invoice not found.');
   if (!data.lines?.length) throw new Error('No itemized invoice lines are available. The template has not changed.');
   const rows = data.lines.map((line, index) => {
     if (line.amount == null || !Number.isFinite(Number(line.amount))) throw new Error('An invoice line has no amount. The template has not changed.');
@@ -37,17 +37,22 @@ export function invoiceBillingFields(data: InnovationsInvoice, invoiceId: number
 export async function loadInnovationsInvoice(rawNumber: string, account: string, signal?: AbortSignal) {
   if (!/^\d+$/.test(rawNumber.trim()) || !Number.isSafeInteger(Number(rawNumber)) || Number(rawNumber) <= 0) throw new Error('Enter a positive Innovations invoice number.');
   const invoiceId = Number(rawNumber);
-  let accountNumber = account;
-  if (!accountNumber) {
-    const { data: lines, error } = await supabase.from('statement_lines').select('innovations_statement_id').eq('invoice_id', invoiceId).limit(1001);
-    if (error) throw error;
-    const statementIds = [...new Set((lines || []).map(line => line.innovations_statement_id))];
-    if (!statementIds.length || (lines?.length || 0) > 1000) throw new Error('Select the invoice customer under Fill from customer, then import again. This invoice has no unique synced account lookup.');
+  // The invoice number alone identifies the customer through the synced statements; a
+  // selected customer is only a fallback for invoices that are not synced yet.
+  const { data: lines, error: linesError } = await supabase.from('statement_lines').select('innovations_statement_id').eq('invoice_id', invoiceId).limit(1001);
+  if (linesError) throw linesError;
+  const statementIds = [...new Set((lines || []).map(line => line.innovations_statement_id))];
+  let accounts: string[] = [];
+  if (statementIds.length && (lines?.length || 0) <= 1000) {
     const { data: statements, error: statementError } = await supabase.from('statements').select('account_number').in('innovations_statement_id', statementIds).limit(1001);
     if (statementError) throw statementError;
-    const accounts = [...new Set((statements || []).map(row => row.account_number).filter(Boolean))];
-    if (accounts.length !== 1 || (statements?.length || 0) > 1000) throw new Error('Select the invoice customer under Fill from customer, then import again.');
-    accountNumber = accounts[0]!;
+    if ((statements?.length || 0) <= 1000) accounts = [...new Set((statements || []).map(row => row.account_number).filter(Boolean))] as string[];
+  }
+  const accountNumber = accounts.length === 1 ? accounts[0] : account;
+  if (!accountNumber) {
+    throw new Error(accounts.length > 1
+      ? 'Select the invoice customer under Fill from customer, then import again.'
+      : `Invoice ${invoiceId} is not in the synced statements yet, so its customer cannot be found. Try again after the next sync.`);
   }
   const { data: customer, error } = await supabase.from('customers').select('id,name,account_number,address,innovations_customer_id,portal_orders_use_bill_to_account').eq('account_number', accountNumber).single();
   if (error || !customer) throw new Error('The invoice customer could not be resolved. Select its customer account and try again.');

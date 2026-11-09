@@ -12,4 +12,9 @@ describe("formatLegacyRichText", () => {
     expect(formatLegacyRichText("## Setup\\n<script>alert(1)</script>"))
       .toBe("<h2>Setup</h2><p>&lt;script&gt;alert(1)&lt;/script&gt;</p>");
   });
+
+  it("turns a Markdown pipe table into an HTML table", () => {
+    expect(formatLegacyRichText(["## Tabs", "| Tab | Holds |", "| --- | --- |", "| Profile | **Save** it |", "After"].join("\n")))
+      .toBe("<h2>Tabs</h2><table><tr><th>Tab</th><th>Holds</th></tr><tr><td>Profile</td><td><strong>Save</strong> it</td></tr></table><p>After</p>");
+  });
 });

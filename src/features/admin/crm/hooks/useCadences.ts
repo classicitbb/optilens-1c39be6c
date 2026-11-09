@@ -32,6 +32,8 @@ export interface OutboxDraft {
   generated_by: string;
   created_at: string;
   sent_at: string | null;
+  approved_at?: string | null;
+  auto_send?: boolean;
 }
 
 export const useCadences = (pipeline: PipelineKey) =>
@@ -57,7 +59,7 @@ const fetchSteps = async (cadenceId: string): Promise<CadenceStep[]> => {
   return (data ?? []) as CadenceStep[];
 };
 
-/** Turn one cadence step into work: an AI draft (email/whatsapp) or a task (call/visit). */
+/** Turn the first cadence step into work: an AI draft (email/whatsapp) or a task (call/visit). */
 const materializeStep = async (contactId: string, enrollmentId: string, step: CadenceStep) => {
   if (step.channel === "email" || step.channel === "whatsapp") {
     const { error } = await supabase.functions.invoke("crm-draft-outreach", {
@@ -117,48 +119,17 @@ export const useEnrollContact = () => {
 };
 
 /**
- * Scheduler-lite: process every active enrolment whose next step is due, drafting
- * or tasking it and advancing the enrolment. Run from the outbox on demand (the
- * operator opens it daily) until a cron replaces it.
+ * Runs the server-side cadence runner now (it also runs on a 15-minute schedule):
+ * prepares due steps as drafts/tasks and sends drafts approved for automatic
+ * sending. Returns how many steps were prepared.
  */
 export const useGenerateDueSteps = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const nowIso = new Date().toISOString();
-      const { data: due, error } = await (supabase.from("cadence_enrollments") as any)
-        .select("id,contact_id,cadence_id,current_step,enrolled_at")
-        .eq("status", "active")
-        .not("next_step_due_at", "is", null)
-        .lte("next_step_due_at", nowIso);
+      const { data, error } = await supabase.functions.invoke("crm-cadence-runner", { body: {} });
       if (error) throw error;
-
-      let processed = 0;
-      for (const e of (due ?? []) as any[]) {
-        const steps = await fetchSteps(e.cadence_id);
-        const nextIndex = e.current_step; // current_step is 1-based count already done
-        const nextStep = steps[nextIndex];
-        if (!nextStep) {
-          await (supabase.from("cadence_enrollments") as any)
-            .update({ status: "completed", next_step_due_at: null, completed_at: nowIso })
-            .eq("id", e.id);
-          continue;
-        }
-        await materializeStep(e.contact_id, e.id, nextStep);
-        const following = steps[nextIndex + 1];
-        const enrolledAt = new Date(e.enrolled_at).getTime();
-        const nextDue = following ? new Date(enrolledAt + following.delay_days * 86400000).toISOString() : null;
-        await (supabase.from("cadence_enrollments") as any)
-          .update({
-            current_step: e.current_step + 1,
-            next_step_due_at: nextDue,
-            status: following ? "active" : "completed",
-            completed_at: following ? null : nowIso,
-          })
-          .eq("id", e.id);
-        processed++;
-      }
-      return processed;
+      return Number((data as { stepsPrepared?: number } | null)?.stepsPrepared ?? 0);
     },
     onSuccess: () => invalidate(qc),
   });
@@ -169,7 +140,7 @@ export const useOutbox = (status?: OutboxDraft["status"]) =>
     queryKey: ["outreach-outbox", status ?? "all"],
     queryFn: async () => {
       let q = (supabase.from("outreach_outbox") as any)
-        .select("id,contact_id,enrollment_id,channel,subject,body,status,generated_by,created_at,sent_at")
+        .select("id,contact_id,enrollment_id,channel,subject,body,status,generated_by,created_at,sent_at,auto_send,error")
         .order("created_at", { ascending: false })
         .limit(200);
       if (status) q = q.eq("status", status);

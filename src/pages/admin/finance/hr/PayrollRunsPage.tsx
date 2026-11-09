@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { day, Field, fieldInputClass, formValues } from "@/features/admin/hr/formFields";
+import HelpTip from "@/help/HelpTip";
 import { periodLabel, RUN_STATUS_LABELS, useCreatePayrollRun, usePayrollRuns, type PayrollRunStatus } from "@/features/admin/hr/payroll/usePayroll";
 
 const statusVariant = (status: PayrollRunStatus) => (status === "paid" ? "default" : status === "approved" ? "secondary" : "outline");
@@ -42,12 +43,15 @@ const PayrollRunsPage = () => {
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <AdminPageHeader icon={Calculator} title="Payroll" tooltip="Monthly payroll runs: NIS, PAYE and R&R levy worked out from each employee's pay setup.">
-        <Button size="sm" onClick={() => setAdding(true)}>
-          <Plus className="mr-1 h-4 w-4" /> New payroll run
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <HelpTip id="hr.payroll.newRun" side="left" />
+          <Button size="sm" onClick={() => setAdding(true)} data-tour="hr-payroll-new">
+            <Plus className="mr-1 h-4 w-4" /> New payroll run
+          </Button>
+        </div>
       </AdminPageHeader>
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-md border" data-tour="hr-payroll-list">
         <Table>
           <TableHeader>
             <TableRow>
@@ -86,10 +90,10 @@ const PayrollRunsPage = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>New payroll run</DialogTitle></DialogHeader>
           <form id="new-payroll-run" onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2">
-            <Field label="Month" htmlFor="period">
+            <Field label="Month" htmlFor="period" tip="hr.payroll.month">
               <Input id="period" name="period" type="month" required defaultValue={nextPeriod(runs[0]?.period_start)} className={fieldInputClass} />
             </Field>
-            <Field label="Pay date" htmlFor="pay_date"><Input id="pay_date" name="pay_date" type="date" /></Field>
+            <Field label="Pay date" htmlFor="pay_date" tip="hr.payroll.payDate"><Input id="pay_date" name="pay_date" type="date" /></Field>
           </form>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAdding(false)}>Cancel</Button>

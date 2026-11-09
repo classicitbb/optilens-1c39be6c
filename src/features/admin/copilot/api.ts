@@ -157,6 +157,9 @@ export const loadCopilotState = (conversationId?: string, runId?: string) =>
 export const createCopilotConversation = () =>
   invokePortalCopilot({ operation: "create-conversation" });
 
+export const deleteCopilotConversation = (conversationId: string) =>
+  invokePortalCopilot({ operation: "delete-conversation", conversationId });
+
 export const submitCopilotCommand = (input: {
   command: string;
   inputMode: "text" | "voice";

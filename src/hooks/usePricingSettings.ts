@@ -18,6 +18,10 @@ export interface PricingSettings {
   port_charges: number;
   freight_method: string;
   insurance_percent: number;
+  /** Blended freight + insurance + brokerage + clearance as a % of converted cost. Optional until the column is migrated. */
+  import_charges_percent?: number;
+  /** Central Bank foreign exchange fee, % of CIF. Optional until the column is migrated. */
+  fx_fee_percent?: number;
   cost_of_capital: number;
   inventory_holding: number;
   avg_days_in_stock: number;

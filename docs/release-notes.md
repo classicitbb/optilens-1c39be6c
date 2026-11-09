@@ -5,6 +5,48 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
 
 ### Release Notes
+
+## 2026-11-02 — Atlas Markdown paste (local, not deployed)
+
+### Release Notes
+
+## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
+
+### Release Notes
+- Shipment costing: per-line **Landed/unit** and the **Sell** price and markup beside it were overstated on non-BBD shipments (about double for USD) because the exchange rate was applied twice. Line landed costs now add up to the shipment's landed total. Saved shipment totals are unchanged; the line figures on screen and in the Lines CSV export change.
+- Shipment lines can be linked to an Innovations order; the order's lens total then fixes the sell price and markup is derived.
+- The binder cover now shows the supplier name, VAT, total landed cost, the multiplier and each line's landed cost, and continues onto further pages when a shipment is long.
+- HR: employee assessments, departments and manager reporting lines.
+- Copilot: updated composer and push-to-talk.
+
+## 2026-11-01 — HR privacy filter
+
+### Release Notes
+- Salary figures, tax estimates and HR notes now start blurred on the payroll run, income tax and employee pages and on /me. **Show figures** reveals them for 30 seconds; they blur again on their own, or straight away on **Hide**, on leaving the page, or on switching browser tab.
+
+## 2026-11-01 — CRM email verification button
+
+### Release Notes
+- Contact editor, Email tab: a **Verify email** button checks each address on the contact and shows Verified, Catch-all, Invalid or Unknown beside it. Nothing is blocked or sent because of the result yet.
+- Needs the `contact_email_checks` migration applied and a `REOON_API_KEY` secret; until then the list shows "Not checked" and the button reports the missing setup.
+
+## 2026-11-01 — CRM outreach quality and lead profiles
+
+### Release Notes
+- CRM outreach drafts now follow one marketing-psychology principle per pipeline stage, tuned to a buyer persona (for example, a word-of-mouth shop gets a short WhatsApp with one easy question).
+- Every draft is checked for spam and AI-sounding phrases, length, unfilled placeholders, more than one link and a missing ask. A failing draft is rewritten once. The Outbox shows live warnings while you edit.
+- Pipeline cards show a persona badge; hover it to see the evidence and the suggested angle.
+- Sending is unchanged: every draft still waits for staff approval.
+
+## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
+
+### Release Notes
+- New **Finance → Leave**: record or approve leave, see every employee's balances, and set up leave types. Defaults follow Barbados law: vacation 3 weeks after each year of service and 4 weeks from the fifth year (Holidays with Pay Act, 2017), maternity 14 weeks and paternity 3 weeks (Family Leave Act, 2025), sick leave tracked (NIS sickness benefit), unpaid leave. Entitlements, carry-over, working days and how each type is paid are all editable. Each employee has a Leave tab with balances, history and opening-balance adjustments.
+- Unpaid and NIS-paid leave comes off pay automatically in that month's payroll run.
+- New **Finance → Income tax**: each employee's estimated 2026 income tax (11.5% on the first $50,000, 27.5% above, after the $25,000 allowance) against PAYE withheld, the expected refund or amount owed, and reliefs they haven't claimed (spouse allowance, medical examination from 40, trade union dues) with what each would save. Each employee has a Tax tab to enter pay from before the app and their claims.
+- Payroll: NIS, PAYE and R&R now round to the nearest dollar (halves up). On a draft payslip every deduction can be edited; edits are marked with the calculated figure, survive Recalculate, and can be reset.
+- Employees can be linked to a CRM contact (or have one created from their details). A contact that an employee, customer account, portal account, opportunity, helpdesk ticket, order, walk-in payment or call points to can no longer be deleted; bulk delete and purge skip those and say which were kept.
+- Employee notes can be edited.
 - The FreePBX agent now controls calls through Asterisk's manager interface (AMI) instead of the PBX's command line, so it can run on any office machine without a login on the PBX. Website calls now carry the staff member's extension as caller ID, so FreePBX applies that extension's outbound route. Needs an AMI user made in FreePBX (Settings > Asterisk Manager Users), limited to the agent machine. Recording uploads still need the PBX's recording folder; calls work without it. Not installed or tested on the real PBX.
 
 ## 2026-10-30 — FreePBX call panel with hang up and record (local source)

@@ -44,6 +44,7 @@ const roleLabels: Record<Exclude<AppRole, "customer">, string> = {
   admin: "Admin — full control",
   operator: "Operator — day-to-day work",
   office_admin: "Office admin — operator work plus HR & payroll",
+  accountant: "Accountant — shops like a customer, plus the Finance module only",
   viewer: "Viewer — read-only",
 };
 

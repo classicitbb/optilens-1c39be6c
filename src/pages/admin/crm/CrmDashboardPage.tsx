@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, LayoutDashboard, PhoneCall } from "lucide-react";
+import { AlertTriangle, CheckCircle2, PhoneCall } from "lucide-react";
 import { useNavigate } from "react-router";
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ import { useActivities, useCompleteActivity, useStaffNames } from "@/features/ad
 import { useCrmCallKpis } from "@/features/admin/crm/hooks/useCrmCallKpis";
 import { useCustomerHealth } from "@/features/admin/crm/hooks/useCustomerHealth";
 import { useToast } from "@/hooks/use-toast";
+import { OutreachWorkspace } from "@/features/admin/crm/OutreachWorkspace";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -38,9 +38,10 @@ const CrmDashboardPage = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="CRM Dashboard" icon={LayoutDashboard}>
-        <p className="text-xs text-muted-foreground">v1 KPI cards backed by aggregated Supabase RPC with period filters.</p>
-      </AdminPageHeader>
+      <OutreachWorkspace />
+
+      <details className="border-t pt-4">
+      <summary className="cursor-pointer py-3 text-sm font-medium">CRM reports & other tasks</summary>
 
       <TodayQueue />
 
@@ -126,6 +127,7 @@ const CrmDashboardPage = () => {
       </section>
 
       <CallKpis period={period} startDate={startDate} endDate={endDate} />
+      </details>
     </div>
   );
 };

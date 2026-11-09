@@ -76,6 +76,12 @@ export interface PaySplitInput {
   isRemainder: boolean;
 }
 
+/**
+ * Amounts typed over calculated deductions, keyed by `deductionKey`. They are used
+ * as given (no rounding), and the calculated figure is kept on the line for reset.
+ */
+export type DeductionOverrides = Record<string, number>;
+
 export interface PayslipInput {
   periodStart: string;
   basePay: number;
@@ -83,6 +89,9 @@ export interface PayslipInput {
   rrLevyExempt?: boolean;
   items?: PayItemInput[];
   splits?: PaySplitInput[];
+  overrides?: DeductionOverrides;
+  /** Company policy: NIS, PAYE and R&R are rounded to the nearest dollar (halves up). "cent" keeps BRA's exact figures. */
+  statutoryRounding?: "dollar" | "cent";
 }
 
 export interface PayslipLine {
@@ -91,7 +100,13 @@ export interface PayslipLine {
   amount: number;
   taxable?: boolean;
   recurringItemId?: string;
+  /** Set on deductions that can be overridden: the statutory code, or `item:<recurring item id>`. */
+  deductionKey?: string;
+  /** The calculated amount, present only when an override replaced it. */
+  calculated?: number;
 }
+
+const roundToDollar = (cents: number) => Math.sign(cents) * Math.floor((Math.abs(cents) + 50) / 100) * 100;
 
 export interface Payslip {
   rulesSource: string;
@@ -118,13 +133,22 @@ export const monthlyPayeCents = (taxableCents: number, annualAllowances: number,
 export const calculatePayslip = (input: PayslipInput, rules = rulesFor(input.periodStart)): Payslip => {
   const warnings: string[] = [];
   const baseCents = toCents(input.basePay);
-  const lines: (Omit<PayslipLine, "amount"> & { cents: number })[] = [{ code: "base", label: "Base pay", cents: baseCents, taxable: true }];
+  const overrides = input.overrides ?? {};
+  const lines: (Omit<PayslipLine, "amount" | "calculated"> & { cents: number; calculatedCents?: number })[] = [
+    { code: "base", label: "Base pay", cents: baseCents, taxable: true },
+  ];
 
   const itemCents = (item: PayItemInput) =>
     item.amount != null ? toCents(item.amount) : pct(baseCents, (item.percent ?? 0) / 100);
 
+  // Swaps in an override for a deduction, remembering what was calculated.
+  const overridden = (key: string | undefined, cents: number) =>
+    key && overrides[key] != null ? { cents: toCents(overrides[key]), calculatedCents: cents } : { cents };
+
   for (const item of input.items ?? []) {
-    let cents = itemCents(item);
+    const key = item.kind === "deduction" && item.recurringItemId ? `item:${item.recurringItemId}` : undefined;
+    const calc = overridden(key, itemCents(item));
+    let cents = calc.cents;
     if (item.kind === "deduction" && item.loanBalance != null) {
       const balance = toCents(item.loanBalance);
       if (cents > balance) {
@@ -132,13 +156,16 @@ export const calculatePayslip = (input: PayslipInput, rules = rulesFor(input.per
         warnings.push(`${item.label}: limited to the remaining loan balance`);
       }
     }
-    if (cents === 0) continue;
+    // An overridden deduction stays on the slip even at zero, so it can be reset.
+    if (cents === 0 && calc.calculatedCents == null) continue;
     lines.push({
       code: item.kind,
       label: item.label,
       cents,
+      calculatedCents: calc.calculatedCents,
       taxable: item.kind === "earning" ? item.taxable !== false : undefined,
       recurringItemId: item.recurringItemId,
+      deductionKey: key,
     });
   }
 
@@ -146,13 +173,17 @@ export const calculatePayslip = (input: PayslipInput, rules = rulesFor(input.per
   const grossCents = earnings.reduce((sum, l) => sum + l.cents, 0);
   const taxableCents = earnings.filter((l) => l.taxable).reduce((sum, l) => sum + l.cents, 0);
 
-  const nisCents = pct(Math.min(grossCents, toCents(rules.nisMonthlyCeiling)), rules.nisRate);
-  const payeCents = monthlyPayeCents(taxableCents, input.annualAllowances, rules);
-  const rrCents = input.rrLevyExempt ? 0 : pct(grossCents, rules.rrLevyRate);
+  const round = input.statutoryRounding === "cent" ? (c: number) => c : roundToDollar;
+  const nis = overridden("nis", round(pct(Math.min(grossCents, toCents(rules.nisMonthlyCeiling)), rules.nisRate)));
+  const paye = overridden("paye", round(monthlyPayeCents(taxableCents, input.annualAllowances, rules)));
+  const rr = overridden("rr_levy", input.rrLevyExempt ? 0 : round(pct(grossCents, rules.rrLevyRate)));
+  const nisCents = nis.cents;
+  const payeCents = paye.cents;
+  const rrCents = rr.cents;
   lines.push(
-    { code: "nis", label: "NIS", cents: nisCents },
-    { code: "paye", label: "PAYE", cents: payeCents },
-    { code: "rr_levy", label: "Resilience & Regeneration levy", cents: rrCents },
+    { code: "nis", label: "NIS", ...nis, deductionKey: "nis" },
+    { code: "paye", label: "PAYE", ...paye, deductionKey: "paye" },
+    { code: "rr_levy", label: "Resilience & Regeneration levy", ...rr, deductionKey: "rr_levy" },
   );
 
   const otherCents = lines.filter((l) => l.code === "deduction").reduce((sum, l) => sum + l.cents, 0);
@@ -182,7 +213,9 @@ export const calculatePayslip = (input: PayslipInput, rules = rulesFor(input.per
     rrLevy: rrCents / 100,
     otherDeductions: otherCents / 100,
     net: netCents / 100,
-    lines: lines.map(({ cents, ...l }) => ({ ...l, amount: cents / 100 })),
+    lines: lines.map(({ cents, calculatedCents, ...l }) =>
+      calculatedCents == null ? { ...l, amount: cents / 100 } : { ...l, amount: cents / 100, calculated: calculatedCents / 100 },
+    ),
     splits,
     warnings,
   };

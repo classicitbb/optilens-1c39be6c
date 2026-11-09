@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useRef, useEffect, DragEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil, ChevronRight, ChevronDown, Plus, Clock3 } from "lucide-react";
+import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil, ChevronRight, ChevronDown, Plus, Clock3, X } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useOpenTicket } from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
+import { useLocation, useSearchParams } from "react-router";
 
 
 interface OverviewTicket {
@@ -217,6 +218,11 @@ const StageCreateTicketDialog = ({ stageName, defaultStageId }: { stageName: str
 
 /* ═══════════════════ Main Page ═══════════════════ */
 const HelpdeskOverviewPage = () => {
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const embedded = searchParams.get("embedded") === "1";
+  const popupMode = searchParams.get("popup") === "1";
+  const inTicketsView = location.pathname === "/admin/helpdesk/tickets" && !popupMode;
   const { canView, canEditFeature } = useRolePermissions();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -225,9 +231,10 @@ const HelpdeskOverviewPage = () => {
   const canEdit = canEditFeature("helpdesk");
 
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
-  const [search, setSearch] = useState("");
-  const [teamFilter, setTeamFilter] = useState("all");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [teamFilter, setTeamFilter] = useState(() => searchParams.get("team") ?? "all");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState("");
   const [editTicket, setEditTicket] = useState<OverviewTicket | null>(null);
   const [activeNow, setActiveNow] = useState(() => new Date());
   const openTicket = useOpenTicket();
@@ -365,14 +372,10 @@ const HelpdeskOverviewPage = () => {
 
   // Sync fullscreen state with browser fullscreen change (e.g. user presses Escape)
   useEffect(() => {
-    const handler = () => {
-      if (!document.fullscreenElement && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
+    const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
-  }, [isFullscreen]);
+  }, []);
 
   const handleDrop = useCallback(async (ticketId: string, targetStageId: string) => {
     if (targetStageId === "__unstaged") return;
@@ -394,24 +397,38 @@ const HelpdeskOverviewPage = () => {
     }
   }, [updateStage, user, qc, toast]);
 
+  const togglePopupFullscreen = () => {
+    setFullscreenError("");
+    if (!document.fullscreenEnabled || !document.documentElement.requestFullscreen) {
+      setFullscreenError("Fullscreen is unavailable in this browser window. Use the window's maximize button instead.");
+      return;
+    }
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => setFullscreenError("Could not exit fullscreen. Press Escape to leave fullscreen."));
+    } else {
+      void document.documentElement.requestFullscreen().catch(() => setFullscreenError("Fullscreen was blocked. Use the window's maximize button instead."));
+    }
+  };
+
   if (!canViewHelpdesk) {
     return <p className="text-sm text-muted-foreground p-4">You do not have access to the Helpdesk.</p>;
   }
 
-  const containerClass = isFullscreen ? "fixed inset-0 z-50 bg-background flex flex-col" : "flex flex-col h-full";
+  const containerClass = embedded || popupMode ? "flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-background [&>*]:min-w-0" : isFullscreen ? "fixed inset-0 z-50 bg-background flex flex-col" : "flex flex-col h-full";
 
   return (
     <div className={containerClass}>
       {/* Header bar */}
-      <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <AdminPageHeader title="Helpdesk Overview" icon={LayoutDashboard} />
-          <Badge variant="outline" className="text-xs">{filtered.length} tickets</Badge>
+      <div className={cn("shrink-0 border-b border-border bg-muted/30", embedded ? "px-2 py-2" : "px-4 py-3")}>
+       <div className={cn("flex min-w-0 items-center justify-between gap-2", (embedded || popupMode) ? "flex-wrap" : "")}>
+        <div className="flex min-w-0 items-center gap-2">
+          {embedded || popupMode ? <div className="flex min-w-0 items-center gap-2"><LayoutDashboard className="h-4 w-4 shrink-0 text-[hsl(var(--admin-accent))]" /><span className="text-sm font-semibold">Overview</span></div> : !inTicketsView && <AdminPageHeader title="Helpdesk Overview" icon={LayoutDashboard} />}
+          <Badge variant="outline" className="shrink-0 text-xs">{filtered.length} tickets</Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tickets…" className="h-8 w-56 text-xs" />
+        <div className={cn("flex min-w-0 items-center gap-2", (embedded || popupMode) ? "w-full flex-wrap" : "")}>
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tickets…" className={cn("h-8 text-xs", (embedded || popupMode) ? "min-w-[140px] flex-1" : "w-56")} />
           <Select value={teamFilter} onValueChange={setTeamFilter}>
-            <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+            <SelectTrigger className={cn("h-8 text-xs", (embedded || popupMode) ? "w-32 shrink-0" : "w-40")}><SelectValue placeholder="Team" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="text-xs">All teams</SelectItem>
               {teams.map((t: any) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
@@ -425,7 +442,9 @@ const HelpdeskOverviewPage = () => {
               <List className="h-3.5 w-3.5" /> List
             </Button>
           </div>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+          {popupMode && <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={togglePopupFullscreen}>{isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</Button>}
+          {popupMode && <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Close overview window" title="Close window" onClick={() => window.close()}><X className="h-4 w-4" /></Button>}
+          {!embedded && !popupMode && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
             setIsFullscreen((f) => {
               const next = !f;
               if (next) {
@@ -437,14 +456,17 @@ const HelpdeskOverviewPage = () => {
             });
           }} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
+          </Button>}
         </div>
+       </div>
       </div>
 
-      <div className="px-4 py-2 border-b border-border/60 bg-muted/20 flex items-center gap-2 shrink-0">
+      {!embedded && !popupMode && <div className="px-3 py-1.5 border-b border-border/60 bg-muted/20 flex items-center gap-2 shrink-0">
         <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">{activeNow.toLocaleString()}</span>
-      </div>
+      </div>}
+
+      {popupMode && fullscreenError && <p role="status" className="shrink-0 px-3 py-1 text-xs text-amber-700 dark:text-amber-300">{fullscreenError}</p>}
 
       {/* Content */}
       {isLoading ?
@@ -533,7 +555,7 @@ const KanbanView = ({
   };
 
   return (
-    <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain">
+    <div className="flex-1 min-h-0 min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain">
       <div className="flex w-max gap-3 p-4 min-h-0 h-full">
         {columns.map((col) => {
           const isCollapsed = collapsedCols.has(col.id);
@@ -698,30 +720,48 @@ const ListView = ({
 
 
 
-}: {columns: StageColumn[];getOwnerName: (t: OverviewTicket) => string | null;stages: {id: string;name: string;is_closed?: boolean;is_folded?: boolean;}[];canEdit: boolean;onStageChange: (ticketId: string, stageId: string) => void;onEdit?: (t: OverviewTicket) => void;alertingTicketIds?: Set<string>;}) =>
-<ScrollArea className="flex-1">
+}: {columns: StageColumn[];getOwnerName: (t: OverviewTicket) => string | null;stages: {id: string;name: string;is_closed?: boolean;is_folded?: boolean;}[];canEdit: boolean;onStageChange: (ticketId: string, stageId: string) => void;onEdit?: (t: OverviewTicket) => void;alertingTicketIds?: Set<string>;}) => {
+  const [collapsedStages, setCollapsedStages] = useState<Set<string>>(() => new Set());
+  const toggleStage = (stageId: string) => {
+    setCollapsedStages((current) => {
+      const next = new Set(current);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      return next;
+    });
+  };
+
+  return <ScrollArea className="flex-1">
     <div className="p-4 space-y-4">
-      {columns.map((col) =>
+      {columns.map((col) => {
+        const isCollapsed = collapsedStages.has(col.id);
+        return (
     <div key={col.id}>
           {/* Stage group header */}
-          <div className="flex items-center gap-2 py-2 border-b border-border mb-1">
+          <button
+            type="button"
+            aria-expanded={!isCollapsed}
+            onClick={() => toggleStage(col.id)}
+            className="flex w-full items-center gap-2 py-2 border-b border-border mb-1 text-left hover:bg-muted/30"
+          >
+            {isCollapsed ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
             <span className={cn("h-2 w-2 rounded-full", col.is_closed ? "bg-emerald-500" : col.is_folded ? "bg-muted-foreground" : "bg-primary")} />
             <h3 className="text-sm font-semibold text-foreground">{col.name}</h3>
             <Badge variant="secondary" className="text-[10px]">{col.tickets.length}</Badge>
-          </div>
+          </button>
 
-          {col.tickets.length > 0 ?
+          {!isCollapsed && (col.tickets.length > 0 ?
       <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left py-1.5 px-2 font-medium w-20">ID</th>
-                  <th className="text-left py-1.5 px-2 font-medium">Priority</th>
-                  <th className="text-left py-1.5 px-2 font-medium text-2xl">Name</th>
-                  <th className="text-left py-1.5 px-2 font-medium">Contact</th>
-                  <th className="text-left py-1.5 px-2 font-medium">Assigned to</th>
-                  <th className="text-left py-1.5 px-2 font-medium">SLA Deadline</th>
-                  <th className="text-left py-1.5 px-2 font-medium">Stage</th>
-                  {canEdit && <th className="text-left py-1.5 px-2 font-medium w-12"></th>}
+              <thead className="[&_th]:rounded-none">
+                <tr className="text-xs text-muted-foreground border-b border-border [&>th]:rounded-none">
+                  <th className="rounded-none text-left py-1.5 px-2 font-medium w-20">ID</th>
+                  <th className="rounded-none text-left py-1.5 px-2 font-medium">Priority</th>
+                  <th className="rounded-none text-left py-1.5 px-2 font-medium text-2xl">Name</th>
+                  <th className="rounded-none text-left py-1.5 px-2 font-medium">Contact</th>
+                  <th className="rounded-none text-left py-1.5 px-2 font-medium">Assigned to</th>
+                  <th className="rounded-none text-left py-1.5 px-2 font-medium">SLA Deadline</th>
+                  <th className="rounded-none text-left py-1.5 px-2 font-medium">Stage</th>
+                  {canEdit && <th className="rounded-none text-left py-1.5 px-2 font-medium w-12"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -729,7 +769,7 @@ const ListView = ({
             const owner = getOwnerName(ticket);
             const isAlerting = alertingTicketIds?.has(ticket.id) ?? false;
             return (
-              <tr key={ticket.id} className={cn("border-b border-border/50 hover:bg-muted/30 transition-colors", isAlerting && "animate-unstaged-row-flash")}>
+              <tr key={ticket.id} className={cn("[&>td]:rounded-none border-b border-border/50 hover:bg-muted/30 transition-colors", isAlerting && "animate-unstaged-row-flash")}>
                       <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{ticket.ticket_number}</td>
                       <td className="py-2 px-2"><PriorityStars priority={ticket.priority} /></td>
                       <td className="py-2 px-2 font-medium text-foreground">{ticket.title}</td>
@@ -787,11 +827,13 @@ const ListView = ({
             </table> :
 
       <p className="text-xs text-muted-foreground py-2 px-2">No tickets in this stage.</p>
-      }
+      )}
         </div>
-    )}
+    );
+    })}
     </div>
   </ScrollArea>;
+};
 
 
 export default HelpdeskOverviewPage;

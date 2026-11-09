@@ -1,12 +1,40 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-06 — Guided CRM outreach
+
+The existing dashboard route hosts OutreachWorkspace with explicit steps, editable activity briefs/owners/due dates, outbox approval and confirmed sending through existing ComposeDialog. External composer opening never marks sent. Contacts, saved Lead Finder results, My Leads, Pipeline and Activities share links to this workspace. Iris receives an editable router-state request without auto-submit. See docs/crm-outreach-workspace.md for persistence, recovery and live-verification limits. No new route, service, schema or auth boundary.
+
+## 2026-11-02 — Atlas Markdown clipboard conversion
+
+`editor/markdownPaste.ts` registers a ProseMirror paste plugin through `buildBaseExtensions`. Plain clipboard text is converted with the existing `textToBlocks` GFM parser and canonical-to-editor adapter, then inserted in one transaction. Rich HTML and code blocks keep native handling. The plugin records the plain-paste keyboard chord because ClipboardEvent has no standard shiftKey field. No storage, permissions or schema changes. Six clipboard-event regressions pass; browser verification remains pending and the change is not deployed.
+
+## 2026-11-01 - HR privacy filter
+
+`src/features/admin/hr/privacy.tsx` provides `PrivacyFilterProvider`, `Private` and `PrivacyToggle`. `HrRoute` wraps every HR admin page in the provider and `MyHrPage` wraps itself, so each page load starts hidden. Wrap new salary/tax/notes output in `<Private>` (inline) or `<Private block>` (sections and forms); without a provider `Private` stays hidden. Reveal lasts `REVEAL_SECONDS` (30) and resets on `visibilitychange` to hidden. It is a shoulder-surfing blur only, not access control.
+
+## 2026-11-01 - CRM email verification button
+
+- `ContactEmailVerify` renders on the contact editor's Email tab. It parses `contacts.email` with `parseEmailList`, reads `contact_email_checks` (errors read as no results, so it renders before the migration), and invokes `crm-email-verify` for stale or unchecked addresses.
+
+## 2026-11-01 - CRM outreach quality and lead profiles
+
+- `buildLeadProfile` (`supabase/functions/_shared/crm/leadProfile.ts`) derives a persona, evidence signals, suggested angle and channel from contact fields and `customer_order_health`. It is pure and stores nothing. The pipeline board renders it; `crm-draft-outreach` feeds it into the prompt.
+- `checkOutreachDraft` gates drafts; the Outbox card re-runs it as the draft is edited. `psychologyPrompt(stage)` adds the stage principle and the ethics rules (no invented urgency, numbers or testimonials).
+
+## 2026-10-30 - HR phase 3: Leave, income tax, deduction overrides, employee contacts
+
+- `/admin/finance/leave` (feature `hr`) and `/admin/finance/tax` (feature `payroll`) sit behind `HrRoute`. The employee page gains Leave and Tax tabs; `?tab=<value>` opens a tab directly.
+- Leave balances are computed in the browser by `src/features/admin/hr/leave/leaveBalance.ts`: entitlement tiers granted on each hire anniversary from `leave_policy.tracking_from`, the carry-over cap applied before each grant, then adjustments and approved requests. `unpaidLeaveInPeriod` feeds `usePayroll.buildPayslip`, which adds a negative taxable earning (base pay ÷ working days in the month × days), so NIS and PAYE fall with it.
+- Payroll engine: `statutoryRounding` (default `dollar`, halves up; tests use `cent` for BRA's examples) and `overrides` keyed by `deductionKey` (`nis`, `paye`, `rr_levy`, `item:<recurring item id>`). Overridden lines keep `calculated`; overrides live in `payslips.overrides` and are carried through recalculation with adjustments.
+- `src/features/admin/hr/tax/annualTax.ts` holds dated `TAX_YEAR_RULES` (add a row per year, never edit a past one); `useTax.estimateYear` adds opening figures from `employee_tax_years`, the year's payslips (drafts included) and projects the remaining months from the latest payslip.
+- Contacts: deletes go through the `delete_unlinked_contacts` RPC (`deleteUnlinkedContacts` in `useContacts.ts`); the `contacts_delete_guard` trigger also blocks direct deletes of linked contacts. `ContactPickerSelect` is reused on the employee profile.
 ## 2026-10-30 - In-app confirm dialogs
 
 Native `window.confirm/alert/prompt` are banned by ESLint `no-alert`. React code uses `useConfirm()` from `src/hooks/useConfirm.tsx`: render `{confirmDialog}` once in the component and `if (!(await confirm({ title }))) return;`. Vanilla engines bundled by Vite use `inAppConfirm`/`inAppPrompt` from `src/lib/inAppDialog.ts`; static scripts under `public/ds` use `window.__cvDialog` from `public/ds/in-app-dialog.js`. The pricelist editor's capture-phase link guard now always cancels the click and re-navigates after the dialog resolves.
 
 ## 2026-10-30 - HR phase 2: Payroll runs
 
-`/admin/finance/payroll` and `/admin/finance/payroll/:runId` sit behind `HrRoute`; the sidebar link maps to the `payroll` feature. `src/features/admin/hr/payroll/engine.ts` is a pure monthly payslip calculator (integer cents, half-up rounding) driven by the dated `STATUTORY_RULES` table: add a row when BRA/NIS change a rate, never edit a past row. `usePayroll.ts` loads employees, compensation, recurring items and splits, calculates in the browser and replaces a draft run's payslips on every create/recalculate (one-off adjustments are carried over). Approval goes through the `approve_payroll_run` RPC; DB triggers lock approved/paid runs.
+`/admin/finance/payroll` and `/admin/finance/payroll/:runId` sit behind `HrRoute`; the sidebar link maps to the `payroll` feature. `src/features/admin/hr/payroll/engine.ts` is a pure monthly payslip calculator (integer cents, half-up rounding) driven by the dated `STATUTORY_RULES` table: add a row when BRA/NIS change a rate, never edit a past row. `usePayroll.ts` loads employees, compensation, recurring items and splits, calculates in the browser and replaces a draft run's payslips on every create/recalculate (one-off adjustments are carried over). Approval goes through the `approve_payroll_run` RPC; DB triggers lock approved/paid runs. Run actions confirm through an `AlertDialog`, not `window.confirm` (embedded browsers dismiss native dialogs silently).
 
 ## 2026-10-29 - HR phase 1: People module and office_admin role
 
@@ -311,7 +339,7 @@ Operational notes and change context for code in `src/**`.
 ## 2026-07-24 — Sales app consolidation
 
 - The Sales app is no longer registered in `ADMIN_APPS` or the launcher navigation registry.
-- Canonical admin routes are `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
+- Canonical admin routes are `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
 - `adminSalesClosure.integration.test.ts` prevents the removed Sales and standalone orders routes from being reintroduced.
 
 ## 2026-07-24 — DHL Express MyDHL integration

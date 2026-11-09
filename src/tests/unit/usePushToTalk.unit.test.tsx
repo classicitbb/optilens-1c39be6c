@@ -92,7 +92,7 @@ describe("usePushToTalk", () => {
     vi.restoreAllMocks();
   });
 
-  it("starts recording without depending on the browser speech-recognition service", async () => {
+  it("keeps recording when the browser speech-recognition preview is blocked", async () => {
     const { result } = renderHook(() => usePushToTalk(vi.fn()));
 
     gestureActive = true;
@@ -106,7 +106,7 @@ describe("usePushToTalk", () => {
       await startPromise;
     });
 
-    expect(recognitionStartCount).toBe(0);
+    expect(recognitionStartCount).toBe(1);
     expect(result.current.isListening).toBe(true);
     expect(result.current.error).toBeNull();
 

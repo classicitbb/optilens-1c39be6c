@@ -2,7 +2,6 @@ import { Bot, Server, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import BuildCustomPackageButton from "@/features/admin/catalog-publisher-v2/components/BuildCustomPackageButton";
 import { buildInstagramPostPackPrompt } from "@/features/admin/leads/hooks/useInstagramPostPack";
 import { ASSISTANT_ROUTE_DOMAINS, KNOWLEDGE_ASSISTANT_ARCHITECTURE } from "@/features/assistant/knowledgeAssistantArchitecture";
 import { SUPPORTED_ROLES, SUPPORTED_ANSWER_MODES, ASSISTANT_MODULE_MAP } from "@/features/admin/leads/assistant/ui/assistantModuleMap";
@@ -26,9 +25,7 @@ const LeadsAiAssistantPage = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="Leads Assistant" icon={Bot}>
-        <BuildCustomPackageButton source="leads_ai" className="h-8 text-xs" />
-      </AdminPageHeader>
+      <AdminPageHeader title="Leads Assistant" icon={Bot} />
 
       <Card>
         <CardHeader>

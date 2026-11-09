@@ -79,7 +79,7 @@
   </div>
 
   <!-- EMBEDDED TAB BAR (only when iframe, shown via JS) -->
-  <div id="embedded-tabbar" style="display:none;height:48px;flex:none;align-items:center;background:#0B1E35;padding:0 16px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <div id="embedded-tabbar" role="tablist" style="display:none;height:48px;flex:none;align-items:center;background:#0B1E35;padding:0 16px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch">
     {{ tabBarNodeB }}
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
       <button onClick="{{ toggleBrand }}" title="Brand details" style="{{ gearStyle }}">
@@ -663,7 +663,7 @@
               <input id="ds-innovations-invoice" class="cv-in" inputmode="numeric" value="{{ innovationsInvoiceNumber }}" onChange="{{ onInnovationsInvoiceNumber }}" disabled="{{ invoiceImportDisabled }}" placeholder="Invoice number" style="flex:1;min-width:100px;width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;color:#0B1E35;background:#fff">
               <button type="button" onClick="{{ importInnovationsInvoice }}" disabled="{{ invoiceImportDisabled }}" style="padding:9px 11px;border:0;border-radius:8px;background:#1A8A9C;color:#fff;font-weight:700">{{ invoiceImportLabel }}</button>
             </div>
-            <p style="font-size:11px;line-height:1.5;margin:7px 0 0">Fills a new draft with the customer and invoice lines. If the account cannot be found, select it under Fill from customer first.</p>
+            <p style="font-size:11px;line-height:1.5;margin:7px 0 0">Enter an invoice number. The customer, address and invoice lines are filled in automatically.</p>
             <sc-if value="{{ innovationsInvoiceLoading }}"><progress aria-label="Loading Innovations invoice" style="width:100%"></progress></sc-if>
             <div role="status" aria-live="polite" style="font-size:12px;line-height:1.5;margin-top:7px">{{ innovationsInvoiceMessage }}</div>
           </div>
@@ -910,6 +910,7 @@
             </div>
           </sc-if>
           <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ showEmailInvoice }}" hint-placeholder-val="{{ false }}"><button onClick="{{ emailInvoice }}" title="Email this invoice with a Pay now button" style="min-height:38px;padding:10px 18px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Email Invoice</button></sc-if>
             <span class="ds-save-status" role="status" aria-live="polite">{{ billSaveState }}</span>
             <button onClick="{{ saveBillingFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg></button>
             <button onClick="{{ saveBillingFileAs }}" title="Save As" aria-label="Save As" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v3M7 3v6h10V3M7 21v-8h5"/><path d="m14 18 6-6 3 3-6 6-4 1 1-4Z"/></svg></button>

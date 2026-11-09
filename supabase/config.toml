@@ -150,6 +150,14 @@ verify_jwt = false
   [functions.crm-enrich-contacts]
     verify_jwt = false
 
+  # Cadence timing runner: pg_cron calls it with X-Scheduler-Secret and has no
+  # Supabase session; staff-initiated runs authenticate in-function.
+  [functions.crm-cadence-runner]
+    verify_jwt = false
+  # Public unsubscribe link in outreach email; authed by the signed token.
+  [functions.crm-unsubscribe]
+    verify_jwt = false
+
 
   # Staging mirror of the app MCP server. The managed "mcp" function only
   # deploys on publish, so this copy makes the OAuth metadata observable now.

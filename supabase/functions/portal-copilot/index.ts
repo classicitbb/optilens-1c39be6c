@@ -126,6 +126,8 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
 
 const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS, ...HELPDESK_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
+// 1024 cut long answers off mid-sentence; a chat reply should be able to finish.
+const COPILOT_MAX_TOKENS = 4096;
 
 type RouteResult =
   | { kind: "workflow"; workflow: "erp_portal_rollout" | "crm_opportunity_scan" }
@@ -153,7 +155,7 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
 
   for (let iteration = 0; iteration < MAX_LOOKUP_ITERATIONS; iteration += 1) {
     const response = await callClaude(apiKey, model, {
-      max_tokens: 1024,
+      max_tokens: COPILOT_MAX_TOKENS,
       system,
       tools: COPILOT_TOOLS,
       tool_choice: { type: "auto" },
@@ -213,7 +215,7 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
   // Iteration cap reached — force one final best-effort answer from whatever
   // was gathered rather than looping forever or erroring.
   const finalResponse = await callClaude(apiKey, model, {
-    max_tokens: 1024,
+    max_tokens: COPILOT_MAX_TOKENS,
     system,
     messages,
   });
@@ -619,6 +621,15 @@ Deno.serve(async (req) => {
     if (operation === "create-conversation") {
       const conversation = await createConversation(db, actorUserId);
       return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id));
+    }
+
+    if (operation === "delete-conversation") {
+      const conversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
+      // Messages cascade. Runs, actions and audit events are kept as the
+      // approval trail: their conversation_id is set to null by the FK.
+      const { error: deleteError } = await db.from("copilot_conversations").delete().eq("id", conversation.id).eq("created_by", actorUserId);
+      if (deleteError) throw deleteError;
+      return jsonResponse(req, 200, await loadState(db, actorUserId));
     }
 
     if (operation === "prepare-erp-rollout" || operation === "submit-command") {

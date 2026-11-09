@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
-import { Ticket, Plus } from "lucide-react";
+import { Ticket, Plus, LayoutDashboard, ExternalLink, List } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,12 +21,11 @@ import { normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normali
 import { supabase } from "@/integrations/supabase/client";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
-import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useOpenTicket } from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
 import CreateHelpdeskTicketDialog from "@/features/admin/helpdesk/components/CreateHelpdeskTicketDialog";
+import HelpdeskOverviewPage from "@/pages/admin/helpdesk/HelpdeskOverviewPage";
 
 
 interface TeamOption { id: string; name: string; }
@@ -44,14 +43,14 @@ const HelpdeskTicketsPage = () => {
   const openTicket = useOpenTicket();
   const [searchParams, setSearchParams] = useSearchParams();
   const { canView, canEditFeature } = useRolePermissions();
-  const { isAdmin } = useUserRole();
-  const isMobile = useIsMobile();
   const canViewTickets = canView("helpdesk");
   const canEditTickets = canEditFeature("helpdesk");
 
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState<string>("all");
   const [onlyOpen, setOnlyOpen] = useState(true);
+  const [overviewMode, setOverviewMode] = useState(false);
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   // Edit dialog state
@@ -132,43 +131,80 @@ const HelpdeskTicketsPage = () => {
     setEditTicket(null);
   };
 
+  const popOutOverview = () => {
+    const params = new URLSearchParams();
+    params.set("popup", "1");
+    params.set("search", search);
+    params.set("team", teamId);
+    const popupUrl = `${window.location.origin}/admin/helpdesk/overview?${params.toString()}`;
+    const popup = window.open(popupUrl, "classic-visions-helpdesk-overview", "popup=yes,width=1200,height=850,left=80,top=60,resizable=yes,scrollbars=yes");
+    if (!popup) {
+      setPopupBlocked(true);
+      setOverviewMode(true);
+      return;
+    }
+    popup.focus();
+    setPopupBlocked(false);
+  };
+
   if (!canViewTickets) {
     return <p className="text-sm text-muted-foreground">You do not have access to Helpdesk tickets.</p>;
   }
 
   return (
-    <div className="space-y-4">
-      <AdminPageHeader title="Helpdesk Tickets" icon={Ticket}>
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <AdminPageHeader title={overviewMode ? "Helpdesk Overview" : "Helpdesk Tickets"} icon={overviewMode ? LayoutDashboard : Ticket}>
         <div className="flex gap-2 flex-wrap items-center">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ticket number or title" className="h-8 w-full sm:w-72 text-xs" />
-          <Select value={teamId} onValueChange={setTeamId}>
-            <SelectTrigger className="h-8 w-full sm:w-44 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">All teams</SelectItem>
-              {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setOnlyOpen((p) => !p)}>
-            {onlyOpen ? "Showing Open" : "Showing All"}
-          </Button>
+          {!overviewMode && <>
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ticket number or title" className="h-8 w-full sm:w-72 text-xs" />
+            <Select value={teamId} onValueChange={setTeamId}>
+              <SelectTrigger className="h-8 w-full sm:w-44 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">All teams</SelectItem>
+                {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setOnlyOpen((p) => !p)}>
+              {onlyOpen ? "Showing Open" : "Showing All"}
+            </Button>
+          </>}
           {canEditTickets && (
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-3.5 w-3.5" />
               New Ticket
             </Button>
           )}
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" aria-pressed={overviewMode} onClick={() => {
+            const next = !overviewMode;
+            setOverviewMode(next);
+            const params = new URLSearchParams(searchParams);
+            if (next) {
+              params.set("search", search);
+              params.set("team", teamId);
+            } else {
+              params.delete("search");
+              params.delete("team");
+            }
+            setSearchParams(params, { replace: true });
+          }}>
+            {overviewMode ? <List className="h-3.5 w-3.5" /> : <LayoutDashboard className="h-3.5 w-3.5" />} {overviewMode ? "List" : "Overview"}
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={popOutOverview}>
+            <ExternalLink className="h-3.5 w-3.5" /> Pop out overview
+          </Button>
         </div>
       </AdminPageHeader>
 
       <CreateHelpdeskTicketDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      {popupBlocked && <p role="status" className="text-xs text-amber-700 dark:text-amber-300">The browser blocked the overview window. Allow pop-ups for this site to open it separately.</p>}
 
-      <Card>
-        <CardHeader className="py-3">
+      {overviewMode ? <div className="min-h-0 flex-1 overflow-hidden"><HelpdeskOverviewPage /></div> : <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <CardHeader className="shrink-0 py-3">
           <CardTitle className="text-sm flex items-center justify-between">
             Ticket Queue <Badge variant="outline">{ticketQuery.data?.length ?? 0}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {ticketQuery.isLoading && <p className="text-xs text-muted-foreground">Loading tickets…</p>}
           {ticketQuery.isError && (
             <div className="space-y-2">
@@ -180,7 +216,7 @@ const HelpdeskTicketsPage = () => {
             <p className="text-xs text-muted-foreground">No tickets found. Create one to get started.</p>
           )}
           {!ticketQuery.isLoading && !ticketQuery.isError && (ticketQuery.data?.length ?? 0) > 0 && (
-            <div className="overflow-x-auto">
+            <div className="min-h-0 flex-1 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -274,7 +310,7 @@ const HelpdeskTicketsPage = () => {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Edit ticket dialog */}
       <Dialog open={!!editTicket} onOpenChange={(open) => { if (!open) setEditTicket(null); }}>

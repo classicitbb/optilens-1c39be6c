@@ -65,8 +65,6 @@ const QuotePrintPreviewPage = lazyWithRetry(() => import("@/pages/admin/QuotePri
 );
 const CatalogPublisherPage = lazyWithRetry(() => import("@/pages/admin/CatalogPublisherPage"),
 );
-const CatalogPublisherV2Page = lazyWithRetry(() => import("@/pages/admin/CatalogPublisherV2Page"),
-);
 const CatalogEditorPage = lazyWithRetry(() => import("@/pages/admin/CatalogEditorPage"));
 const ContactsPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactsPage"));
 const PricingSettingsPage = lazyWithRetry(() => import("@/pages/admin/PricingSettingsPage"),
@@ -99,6 +97,8 @@ const EmployeesPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/Emplo
 const EmployeeDetailPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/EmployeeDetailPage"));
 const PayrollRunsPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/PayrollRunsPage"));
 const PayrollRunPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/PayrollRunPage"));
+const LeavePage = lazyWithRetry(() => import("@/pages/admin/finance/hr/LeavePage"));
+const TaxPage = lazyWithRetry(() => import("@/pages/admin/finance/hr/TaxPage"));
 const AssetsPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetsPage"));
 const AssetDetailPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetDetailPage"));
 const DepreciationRunsPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/DepreciationRunsPage"));
@@ -107,6 +107,7 @@ const AssetReportsPage = lazyWithRetry(() => import("@/pages/admin/finance/asset
 const AssetImportPage = lazyWithRetry(() => import("@/pages/admin/finance/assets/AssetImportPage"));
 const StatementDeliveryPreviewPage = lazyWithRetry(() => import("@/pages/admin/StatementDeliveryPreviewPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
+const TrainingHubPage = lazyWithRetry(() => import("@/pages/admin/settings/TrainingHubPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
 );
 const EdgeFunctionStatusPage = lazyWithRetry(() => import("@/pages/admin/settings/EdgeFunctionStatusPage"),
@@ -247,7 +248,6 @@ const AdminRoutes = () => (
       />
       <Route path="crm/dashboard" element={<CrmDashboardPage />} />
       <Route path="crm/pipeline" element={<CrmPipelinePage />} />
-      <Route path="crm/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="crm/outbox" element={<CrmOutboxPage />} />
       <Route path="crm/activities" element={<CrmActivitiesPage />} />
       <Route path="crm/contacts" element={<ContactsPage />} />
@@ -259,7 +259,7 @@ const AdminRoutes = () => (
       <Route path="email" element={<EmailPage />} />
       <Route
         path="helpdesk"
-        element={<Navigate to="/admin/helpdesk/overview" replace />}
+        element={<Navigate to="/admin/helpdesk/tickets" replace />}
       />
       <Route path="helpdesk/overview" element={<HelpdeskOverviewPage />} />
       <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
@@ -408,6 +408,8 @@ const AdminRoutes = () => (
       <Route path="finance/people/:employeeId" element={<HrRoute><EmployeeDetailPage /></HrRoute>} />
       <Route path="finance/payroll" element={<HrRoute><PayrollRunsPage /></HrRoute>} />
       <Route path="finance/payroll/:runId" element={<HrRoute><PayrollRunPage /></HrRoute>} />
+      <Route path="finance/leave" element={<HrRoute><LeavePage /></HrRoute>} />
+      <Route path="finance/tax" element={<HrRoute><TaxPage /></HrRoute>} />
       <Route path="finance/assets" element={<AssetsRoute><AssetsPage /></AssetsRoute>} />
       <Route path="finance/assets/runs" element={<AssetsRoute><DepreciationRunsPage /></AssetsRoute>} />
       <Route path="finance/assets/runs/:runId" element={<AssetsRoute><DepreciationRunPage /></AssetsRoute>} />
@@ -424,6 +426,7 @@ const AdminRoutes = () => (
       />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
+      <Route path="settings/training" element={<TrainingHubPage />} />
       <Route path="settings/email-previews" element={<EmailPreviewsPage />} />
       <Route
         path="settings/edge-functions"
@@ -468,7 +471,7 @@ const AdminRoutes = () => (
       />
       <Route
         path="catalog-publisher"
-        element={<Navigate to="/admin/crm/proposals" replace />}
+        element={<Navigate to="/admin/pricing/publisher" replace />}
       />
       <Route
         path="catalogpub-old"

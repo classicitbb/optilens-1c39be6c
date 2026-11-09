@@ -18,6 +18,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useVoiceEngine } from "@/hooks/useVoiceEngine";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { CopyMessageButton } from "@/features/admin/copilot/CopyMessageButton";
+import { useAutoGrowTextarea } from "@/features/admin/copilot/useAutoGrowTextarea";
 import { supabase } from "@/integrations/supabase/client";
 import { HELPDESK_ATTACHMENT_ACCEPT, isAudioAttachment, isImageAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 
@@ -147,6 +149,7 @@ const AssistantResultCard = ({
       ) : null}
 
       <div className="flex items-center justify-end gap-1 border-t border-border/40 pt-2">
+        <CopyMessageButton text={result.answer} />
         {onSpeak ? (
           <Button
             type="button"
@@ -215,6 +218,9 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollContainerRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation with Iris"
         className="flex-1 overflow-y-auto assistant-scrollbar px-4 py-4"
         onScroll={(event) => {
           const element = event.currentTarget;
@@ -259,6 +265,7 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
                         <AssistantFeedbackControls
                           messageId={message.id}
                           feedback={message.feedback}
+                          copyText={message.text}
                           onSpeak={onSpeak ? () => onSpeak(message.text) : undefined}
                         />
                       ) : null}
@@ -337,15 +344,18 @@ const AttachmentChip = ({ name, mimeType, previewUrl, onRemove, className }: { n
 const AssistantFeedbackControls = ({
   messageId,
   feedback,
+  copyText,
   onSpeak,
 }: {
   messageId: string;
   feedback?: "helpful" | "not_helpful";
+  copyText?: string;
   onSpeak?: () => void;
 }) => {
   const { markFeedback } = useCompanionAssistant();
   return (
     <div className="flex items-center justify-end gap-1 border-t border-border/40 pt-2">
+      {copyText ? <CopyMessageButton text={copyText} /> : null}
       {onSpeak ? (
         <Button
           type="button"
@@ -701,6 +711,8 @@ const CompanionAssistant = () => {
   const [attachments, setAttachments] = useState<{ id: string; file: File; previewUrl: string }[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const queryInputRef = useRef<HTMLTextAreaElement | null>(null);
+  useAutoGrowTextarea(queryInputRef, currentQuery, 5);
 
   const addAttachmentFiles = (files: File[]) => {
     if (!files.length) return;
@@ -753,7 +765,7 @@ const CompanionAssistant = () => {
 
   const submitWithAttachments = () => {
     const trimmed = currentQuery.trim();
-    if (!trimmed && attachments.length === 0) return;
+    if ((!trimmed && attachments.length === 0) || isSubmitting) return;
     void submitQuery(trimmed, undefined, undefined, attachments.length ? attachments.map(({ file, previewUrl }) => ({ name: file.name, previewUrl, mimeType: file.type })) : undefined);
     // Object URLs are kept alive so the sent files keep rendering inline in the chat history.
     setAttachments([]);
@@ -1035,21 +1047,18 @@ const CompanionAssistant = () => {
               {voiceInput.isListening ? <MicOff className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4 text-accent" />}
             </Button>
             <Textarea
+              ref={queryInputRef}
               dir="ltr"
               value={currentQuery}
-              onChange={(event) => {
-                setCurrentQuery(event.target.value);
-                event.currentTarget.style.height = "auto";
-                event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 144)}px`;
-              }}
+              onChange={(event) => setCurrentQuery(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                   event.preventDefault();
                   submitWithAttachments();
                 }
               }}
               placeholder={voiceInput.isListening ? "Listening..." : voiceInput.isTranscribing ? "Transcribing your recording..." : "Ask anything"}
-              disabled={isSubmitting}
+              aria-label="Ask Iris"
               rows={1}
               className="max-h-36 min-h-11 resize-none border-0 bg-transparent px-2 py-3 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0 assistant-scrollbar"
             />
@@ -1057,6 +1066,8 @@ const CompanionAssistant = () => {
               type="button"
               size="icon"
               className="h-9 w-9 shrink-0 rounded-full"
+              aria-label="Send message"
+              title="Send (Enter)"
               disabled={(!currentQuery.trim() && attachments.length === 0) || isSubmitting}
               onClick={submitWithAttachments}
             >

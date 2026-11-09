@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import BuildCustomPackageButton from "@/features/admin/catalog-publisher-v2/components/BuildCustomPackageButton";
 import { useOpportunities } from "@/features/admin/crm/hooks/useOpportunities";
 import { useGenerateLeadAuditReport } from "@/features/admin/leads/hooks/useLeadActions";
 import { useToast } from "@/hooks/use-toast";
@@ -38,9 +37,7 @@ const LeadAuditReportsPage = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="Audit Reports" icon={PieChart}>
-        <BuildCustomPackageButton source="crm_opportunity" context={{ opportunityId: opportunityId || "from-audit" }} className="h-8 text-xs" />
-      </AdminPageHeader>
+      <AdminPageHeader title="Audit Reports" icon={PieChart} />
 
       <Card>
         <CardHeader>

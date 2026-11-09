@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Columns3, ExternalLink, Sparkles, Target, UserPlus, X } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Columns3, Sparkles, Target, UserPlus, X } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { outreachLink } from "@/features/admin/crm/outreachJourney";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ import {
 } from "@/features/admin/crm/hooks/usePipeline";
 import { useCadences, useEnrollContact } from "@/features/admin/crm/hooks/useCadences";
 import { useToast } from "@/hooks/use-toast";
+import { useCustomerHealth, type CustomerHealthRow } from "@/features/admin/crm/hooks/useCustomerHealth";
+import { buildLeadProfile } from "@/features/admin/crm/leadProfile";
 
 const isOverdue = (iso: string | null) => !!iso && new Date(iso).getTime() < Date.now();
 
@@ -39,6 +42,8 @@ const CrmPipelinePage = () => {
 
   const { data = [], isLoading } = usePipelineContacts(pipeline);
   const { data: cadences = [] } = useCadences(pipeline);
+  const { data: healthRows = [] } = useCustomerHealth();
+  const healthById = useMemo(() => new Map(healthRows.map((h) => [h.contact_id, h])), [healthRows]);
   const setStage = useSetContactStage();
   const removeFromPipeline = useRemoveFromPipeline();
   const enroll = useEnrollContact();
@@ -120,7 +125,7 @@ const CrmPipelinePage = () => {
             onMove={handleMove}
             onEnroll={handleEnroll}
             onRemove={(c) => removeFromPipeline.mutate(c.id)}
-            onBuildPackage={(c) => navigate("/admin/crm/proposals", { state: { contactId: c.id, country: c.country } })}
+            healthById={healthById}
           />
         ))}
         <StageColumn
@@ -131,6 +136,7 @@ const CrmPipelinePage = () => {
           onMove={handleMove}
           onEnroll={handleEnroll}
           onRemove={(c) => removeFromPipeline.mutate(c.id)}
+          healthById={healthById}
           muted
         />
       </div>
@@ -153,11 +159,11 @@ interface StageColumnProps {
   onMove: (c: PipelineContact, stage: PipelineStageKey) => void;
   onEnroll: (c: PipelineContact, cadenceId: string) => void;
   onRemove: (c: PipelineContact) => void;
-  onBuildPackage?: (c: PipelineContact) => void;
+  healthById: Map<string, CustomerHealthRow>;
   muted?: boolean;
 }
 
-const StageColumn = ({ title, hint, rows, cadences, onMove, onEnroll, onRemove, onBuildPackage, muted }: StageColumnProps) => (
+const StageColumn = ({ title, hint, rows, cadences, onMove, onEnroll, onRemove, healthById, muted }: StageColumnProps) => (
   <div className="w-64 flex-shrink-0">
     <Card className={muted ? "bg-muted/30" : undefined}>
       <CardHeader className="py-3">
@@ -172,6 +178,7 @@ const StageColumn = ({ title, hint, rows, cadences, onMove, onEnroll, onRemove, 
             <div>
               <p className="truncate font-medium">{c.business_name || c.name}</p>
               <p className="text-muted-foreground">{locationLabel(c)}</p>
+              <ProfileBadge contact={c} health={healthById.get(c.id)} />
             </div>
             {c.next_action_at ? (
               <Badge variant={isOverdue(c.next_action_at) ? "destructive" : "outline"} className="text-[10px]">
@@ -197,11 +204,7 @@ const StageColumn = ({ title, hint, rows, cadences, onMove, onEnroll, onRemove, 
               </Select>
             ) : null}
             <div className="flex gap-1">
-              {onBuildPackage ? (
-                <Button size="sm" variant="outline" className="h-6 flex-1 text-[10px]" onClick={() => onBuildPackage(c)}>
-                  <ExternalLink className="mr-1 h-3 w-3" /> Package
-                </Button>
-              ) : null}
+              <Button size="sm" variant="outline" className="h-8 flex-1 text-xs" asChild><Link to={outreachLink(c.id)}>Guided outreach</Link></Button>
               <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-muted-foreground" onClick={() => onRemove(c)} title="Remove from pipeline">
                 <X className="h-3 w-3" />
               </Button>
@@ -287,3 +290,19 @@ const ClassifyPanel = ({ pipeline, onClose }: ClassifyPanelProps) => {
 };
 
 export default CrmPipelinePage;
+
+const ProfileBadge = ({ contact, health }: { contact: PipelineContact; health?: CustomerHealthRow }) => {
+  const profile = buildLeadProfile(contact, health);
+  const title = [
+    profile.summary,
+    ...profile.signals.map((s) => `- ${s.label}: ${s.evidence}`),
+    `Lead with: ${profile.angle.lead}`,
+    `Why it works: ${profile.angle.principle}`,
+    `Best channel: ${profile.channel}`,
+  ].join("\n");
+  return (
+    <Badge variant="secondary" className="mt-1 text-[10px] font-normal" title={title}>
+      {profile.persona}
+    </Badge>
+  );
+};

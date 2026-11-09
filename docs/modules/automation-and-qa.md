@@ -79,5 +79,9 @@ PBX agent (2026-10-24, local source): `scripts/pbx-agent/pbx_agent.py` polls `pb
 2026-10-28 QA maintenance: retain the legacy admin lens-assistant URL as a redirect to Rx Rules; the smoke harness now checks the current Forgot password button text. Route/source contract tests follow the current explicit aliases and live-data field projections, while launcher pins now forward context-menu trigger props and are found by their disambiguated accessible link names. Validation remains enabled; no gates were removed.
 
 PBX call panel (2026-10-30, local source): the agent reports website calls with the `sync` action (`ringing`, `calling`, `connected`, `ended`) and applies staff controls it receives in the reply. Verified with a fake `asterisk` and stubbed function calls only.
+## CRM release smoke verification — 2026-11-06
+
+The admin smoke harness now verifies the current admin-only pricing publisher and its existing legacy redirect after the CRM proposal editor retirement. Optional SMOKE_EXISTING_SERVER=1 reuses the running listener chosen by SMOKE_PORT; it never starts or stops that listener. All route, wiring, redirect and role checks still run. Startup/transform output is captured only when the harness starts its own server. This prevents a parallel smoke server from replacing the active preview's optimized dependency cache.
+
 
 PBX agent over AMI (2026-11-09, local source): the agent talks to Asterisk's manager interface on port 5038 instead of `asterisk -rx`, so it can run on a LAN machine. Settings may come from `pbx-agent.env` beside the script (gitignored). Exercised against a fake AMI server speaking the wire protocol; not run against the real PBX.

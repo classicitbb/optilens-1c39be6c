@@ -1,3 +1,15 @@
+## 2026-11-06 — Guided CRM outreach workspace
+
+Status: Complete — no active handoff
+
+Implemented the dashboard wizard and entry points in Contacts, My Leads, Pipeline, Outbox and Activities; added editable Iris handoff and confirmed-send callback in existing email compose. New source: crm/OutreachWorkspace, OutreachConfirmButton, outreachJourney, outreachWorkspace.css and hooks/useOutreachJourney. Plans/messages reuse existing tables; no migration or auth change. Unrelated pre-existing catalog retirement and shell edits remain untouched.
+
+Validation: 49 focused tests across six files pass; broad run without coverage passed 1,940 tests / 310 files, with one skipped. The two coverage runs stopped progressing and were interrupted. TypeScript, production build, full lint (zero errors / 2,508 warnings), PR checks and route smoke pass. Smoke now asserts the existing pricing publisher destination after the prior CRM proposal retirement; SMOKE_EXISTING_SERVER=1 with SMOKE_PORT reuses a running preview without disturbing its dependency cache (startup diagnostics are not captured in reuse mode). Desktop and 390px browser checks pass.
+
+User explicitly authorized a named reusable practice outreach. The existing test contact with the supplied recipient was reused, preserving its parent/customer/account links. One separate Outreach practice activity and one generated_by=practice email draft were saved through the signed-in UI. No email, real customer stage, account access or financial record changed. Practice sending/reply/outcome/reset is covered by mocks; live company email sending remains untested.
+
+Production publication was explicitly approved and completed on 2026-11-06 through the existing Vercel Git connection. Release commit 0409d407 on codex/crm-outreach-wizard is based on the prior deployed commit, preserving the newer production account-page changes absent from this checkout's main. Vercel reports READY with www.classicvisions.net and classicvisions.net assigned and no alias error. Release-checkout build, typecheck, PR checks and 54 focused tests pass. No Edge Function, schema, authorization or credential deployment. The release branch is retained for review; incorporate it before a future main-branch frontend release. The original checkout and its pre-existing staging remain intact. No required continuation or approval remains.
+
 ## 2026-10-28 - Homepage drawer and customer daily actions
 
 Status: Complete — no active handoff.
@@ -1080,3 +1092,24 @@ The prior `rounded-l-none` class was overridden by the workspace theme's unlayer
 Affected files: `src/components/admin/AdminSidebar.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and this handoff.
 
 Validation: `npx.cmd vitest run --coverage=false src/tests/unit/adminMobileSidebar.test.tsx` passes (2 tests); `npm run build` passes. No deployment or backend changes.
+## 2026-11-02 — Helpdesk combined tickets and overview
+
+Status: Complete — no active handoff.
+
+Affected: `src/routes/admin/AdminRoutes.tsx`, `src/features/admin/core/config/apps.ts`, `src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx`, `src/pages/admin/helpdesk/HelpdeskOverviewPage.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and `docs/agent/INTEGRATIONS.md`.
+
+The Tickets page is now the Helpdesk landing surface. Its **Overview** button toggles the main content between ticket queue and overview board. **Pop out overview** opens the existing overview route in a reusable named browser window and carries over search/team filters. In popup mode `AdminLayout` omits the admin top bar and sidebar; the board fills the page and its own toolbar includes fullscreen. Popup-block feedback leaves Tickets available and explains the browser setting. The browser/OS owns popup placement and taskbar behavior. The separate overview route remains available.
+
+Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json`, `npm run build`, and `git diff --check` pass. Scoped ESLint: 0 errors, 19 warnings in legacy code. Connected Edge opened the button-triggered popup in a distinct native Edge window; its compact Overview toolbar and board rendered, and the original Tickets tab/window remained open. A subsequent reload lost Helpdesk permission, so drag/resize and view switching were not rechecked in this follow-up. No hosted writes, deployment, auth changes, or schema changes.
+
+The browser/OS controls the popup's taskbar presence and placement on another monitor. Connected Edge confirmed the separate popup omits AdminTopBar/sidebar and exposes **Enter fullscreen**. The Fullscreen/Escape interaction itself could not be rechecked after the popup closed during HMR. `npm run build` and `git diff --check` pass; scoped ESLint has 0 errors and 19 warnings. TypeScript check was stopped after it continued consuming CPU without producing output; run `npx.cmd tsc --noEmit -p tsconfig.app.json` separately. Do not deploy without explicit production approval.
+
+## 2026-11-02 — Helpdesk queue scrolling and list stages
+
+Status: Complete — no active handoff.
+
+Affected: `src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx`, `src/pages/admin/helpdesk/HelpdeskOverviewPage.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and `docs/agent/INTEGRATIONS.md`.
+
+Ticket Queue card uses bounded flex sizing and internal overflow so the title/count stays in place while rows scroll. Overview List stage groups can be collapsed from keyboard-accessible buttons, and list table headings/data cells explicitly use square corners.
+
+Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json` and `npm run build` pass; `git diff --check` passes. Scoped ESLint reports 0 errors and 19 existing warnings. Connected Edge rendered the bounded queue with the Ticket Queue title visible at the top while rows extend below the viewport. Overview interaction could not be rechecked because its toggle did not accept the attempted CUA action. No backend, schema, authorization or deployment changes.

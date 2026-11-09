@@ -19,7 +19,7 @@ describe.skipIf(!exportPath)("payroll engine vs salary workbook", () => {
     for (const m of emp.months) {
       const period = `2026-${String(m.month).padStart(2, "0")}-01`;
       // A blank R&R column means the employee was not charged the levy.
-      const slip = calculatePayslip({ periodStart: period, basePay: m.gross, annualAllowances: emp.annual_allowances, rrLevyExempt: m.rr === 0 });
+      const slip = calculatePayslip({ periodStart: period, basePay: m.gross, annualAllowances: emp.annual_allowances, rrLevyExempt: m.rr === 0, statutoryRounding: "cent" });
       const at = `${emp.employee_no} ${period.slice(0, 7)}`;
       if (slip.nis !== m.nis) mismatches.push(`${at} NIS engine ${slip.nis} workbook ${m.nis}`);
       // CV-02's R&R column holds a flat amount that is not the levy. Elsewhere the

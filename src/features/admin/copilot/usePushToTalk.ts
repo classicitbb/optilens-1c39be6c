@@ -22,6 +22,19 @@ const DEFAULT_SETTINGS: SpeechSettings = {
   vocabulary: "Innovations, ERP, Classic Visions, portal access, pricelist, lens",
 };
 const AUTO_TRANSCRIBE_SILENCE_MS = 5_000;
+const LIVE_PREVIEW_RESTART_MS = 300;
+
+type LivePreviewRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  abort: () => void;
+};
+type LivePreviewConstructor = new () => LivePreviewRecognition;
 
 export const usePushToTalk = (
   onTranscript: (transcript: string, confidence: number) => void,
@@ -40,6 +53,11 @@ export const usePushToTalk = (
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  // Browser speech recognition shown while recording, so the speaker can see
+  // what is being picked up. Preview only: the server transcript is what is used.
+  const [interim, setInterim] = useState("");
+  const previewRef = useRef<LivePreviewRecognition | null>(null);
+  const previewTimerRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -75,7 +93,60 @@ export const usePushToTalk = (
     };
   }, [refreshDevices]);
 
+  const stopLivePreview = useCallback(() => {
+    if (previewTimerRef.current != null) window.clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = null;
+    const recognition = previewRef.current;
+    previewRef.current = null;
+    if (recognition) {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      try {
+        recognition.abort();
+      } catch {
+        // Already stopped.
+      }
+    }
+    setInterim("");
+  }, []);
+
+  const startLivePreview = useCallback((language: string) => {
+    const speechWindow = window as unknown as { SpeechRecognition?: LivePreviewConstructor; webkitSpeechRecognition?: LivePreviewConstructor };
+    const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!Recognition) return;
+    let finished = "";
+    const run = () => {
+      const recognition = new Recognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = language === "en-BB" ? "en-GB" : language;
+      let current = "";
+      let usable = true;
+      recognition.onresult = (event) => {
+        current = Array.from(event.results, (result) => result[0]?.transcript ?? "").join(" ").trim();
+        setInterim([finished, current].filter(Boolean).join(" "));
+      };
+      // The preview is best-effort; a blocked or offline service must never
+      // interrupt the recording itself.
+      recognition.onerror = () => { usable = false; };
+      recognition.onend = () => {
+        if (previewRef.current !== recognition || !usable) return;
+        finished = [finished, current].filter(Boolean).join(" ");
+        previewTimerRef.current = window.setTimeout(run, LIVE_PREVIEW_RESTART_MS);
+      };
+      previewRef.current = recognition;
+      try {
+        recognition.start();
+      } catch {
+        previewRef.current = null;
+      }
+    };
+    run();
+  }, []);
+
   const releaseAudio = useCallback(() => {
+    stopLivePreview();
     if (silenceTimerRef.current != null) window.clearTimeout(silenceTimerRef.current);
     silenceTimerRef.current = null;
     if (animationRef.current != null) window.cancelAnimationFrame(animationRef.current);
@@ -85,7 +156,7 @@ export const usePushToTalk = (
     void audioContextRef.current?.close();
     audioContextRef.current = null;
     setLevel(0);
-  }, []);
+  }, [stopLivePreview]);
 
   const transcribeRecording = useCallback(async () => {
     const chunks = chunksRef.current;
@@ -215,6 +286,7 @@ export const usePushToTalk = (
       };
       recorderMimeRef.current = recorder.mimeType || "audio/webm";
       recorder.start();
+      startLivePreview(settingsRef.current.language);
       recorderRef.current = recorder;
       setIsStarting(false);
       setIsListening(true);
@@ -237,11 +309,11 @@ export const usePushToTalk = (
       }
       releaseAudio();
     }
-  }, [isListening, isStarting, isTranscribing, refreshDevices, releaseAudio, settings.deviceId, stop, transcribeRecording]);
+  }, [isListening, isStarting, isTranscribing, refreshDevices, releaseAudio, settings.deviceId, startLivePreview, stop, transcribeRecording]);
 
   const activeDeviceLabel = devices.find((device) => device.deviceId === settings.deviceId)?.label
     || devices.find((device) => device.deviceId === "default")?.label
     || "System default microphone";
 
-  return { settings, setSettings, devices, activeDeviceLabel, isStarting, isListening, isTranscribing, level, error, start, stop };
+  return { settings, setSettings, devices, activeDeviceLabel, isStarting, isListening, isTranscribing, level, interim, error, start, stop };
 };

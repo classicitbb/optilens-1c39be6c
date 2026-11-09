@@ -10,6 +10,7 @@ import Suggestion, { type SuggestionOptions, type SuggestionProps } from "@tipta
 import StarterKit from "@tiptap/starter-kit";
 import { isBlogColorName } from "@/components/blog/BlogPostRenderer";
 import { inAppPrompt } from "@/lib/inAppDialog";
+import { MarkdownPaste } from "./markdownPaste";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -638,6 +639,7 @@ export const createSuggestionExtension = <TItem,>({
 // ── Assembly ───────────────────────────────────────────────────────────────
 
 export const buildBaseExtensions = (options: { onAskIris?: (request: AskIrisRequest) => void }) => [
+  MarkdownPaste,
   StarterKit.configure({
     heading: { levels: [1, 2, 3, 4] },
     link: false,

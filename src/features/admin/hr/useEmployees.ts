@@ -17,6 +17,8 @@ export interface Employee {
   address: string | null;
   job_title: string | null;
   department: string | null;
+  department_id: string | null;
+  /** Summary of the primary line manager; managed through employee_managers. */
   manager_id: string | null;
   employment_type: EmploymentType;
   status: EmployeeStatus;
@@ -25,6 +27,7 @@ export interface Employee {
   termination_reason: string | null;
   tax_code: string | null;
   rr_levy_exempt: boolean;
+  contact_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +81,7 @@ export interface EmployeeNote {
   body: string;
   visibility: "hr_only" | "shared";
   created_at: string;
+  updated_at: string | null;
 }
 
 export interface EmployeeSensitive {
@@ -136,6 +140,19 @@ export const useHrMutation = (table: string) => {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["hr"] }),
   });
+};
+
+/** Creates a CRM contact from the employee's details and links it. */
+export const createContactForEmployee = async (e: Employee) => {
+  const contact = unwrap(
+    await db
+      .from("contacts")
+      .insert({ name: `${e.first_name} ${e.last_name}`, email: e.email, phone: e.phone, street: e.address ?? "", is_company: false, type: "individual", status: "active", lead_source: "employee" })
+      .select("id")
+      .single(),
+  ) as { id: string };
+  unwrap(await db.from("employees").update({ contact_id: contact.id }).eq("id", e.id));
+  return contact.id;
 };
 
 /** Reading sensitive fields is logged server-side, so it only happens on an explicit click. */

@@ -168,7 +168,7 @@ const IMPLEMENTED_ADMIN_ROUTE_SNIPPETS = [
   { path: "knowledge/wiki", snippet: 'path="knowledge/wiki" element={<AtlasLegacyRedirect spaceId="wiki" />}' },
   { path: "knowledge/sops", snippet: 'path="knowledge/sops" element={<AtlasLegacyRedirect spaceId="sops" />}' },
   { path: "website/content", snippet: 'path="website/content" element={<AtlasLegacyRedirect spaceId="website" />}' },
-  { path: "crm/proposals", snippet: 'path="crm/proposals" element={<CatalogPublisherV2Page />}' },
+  { path: "pricing/publisher", snippet: 'path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>}' },
   { path: "settings/runtime-errors", snippet: 'path="settings/runtime-errors" element={<RuntimeErrorsPage />}' },
 ];
 
@@ -178,7 +178,7 @@ const LEGACY_REDIRECT_EXPECTATIONS = [
   { legacy: "imports", canonical: "/admin/pricing/imports", snippet: 'path="imports" element={<Navigate to="/admin/pricing/imports" replace />}' },
   { legacy: "users", canonical: "/admin/settings/users", snippet: 'path="users" element={<Navigate to="/admin/settings/users" replace />}' },
   { legacy: "erp/crm", canonical: "/admin/crm/dashboard", snippet: 'path="erp/crm" element={<Navigate to="/admin/crm/dashboard" replace />}' },
-  { legacy: "catalog-publisher", canonical: "/admin/crm/proposals", snippet: 'path="catalog-publisher" element={<Navigate to="/admin/crm/proposals" replace />}' },
+  { legacy: "catalog-publisher", canonical: "/admin/pricing/publisher", snippet: 'path="catalog-publisher" element={<Navigate to="/admin/pricing/publisher" replace />}' },
   { legacy: "leads", canonical: "/admin/crm/leads", snippet: 'path="leads" element={<LegacyCrmRedirect />}' },
   { legacy: "leads/finder", canonical: "/admin/crm/leads/finder", snippet: 'path="leads/finder" element={<LegacyCrmRedirect />}' },
 ];
@@ -329,7 +329,7 @@ async function main() {
   // the current Node binary avoids Windows' inability to execute npm.cmd with
   // shell:false while preserving the same behavior on macOS/Linux.
   const npmExecPath = process.env.npm_execpath;
-  const devServer = npmExecPath
+  const devServer = process.env.SMOKE_EXISTING_SERVER === "1" ? null : npmExecPath
     ? spawn(process.execPath, [npmExecPath, "run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, CI: "1" },
@@ -352,11 +352,11 @@ async function main() {
     return text;
   };
 
-  devServer.stdout.on("data", (chunk) => {
+  devServer?.stdout.on("data", (chunk) => {
     const text = captureDevOutput(chunk);
     process.stdout.write(`[dev] ${text}`);
   });
-  devServer.stderr.on("data", (chunk) => {
+  devServer?.stderr.on("data", (chunk) => {
     const text = captureDevOutput(chunk);
     process.stderr.write(`[dev] ${text}`);
   });
@@ -376,7 +376,9 @@ async function main() {
 
     console.log("\nSmoke harness passed.");
   } finally {
-    if (process.platform === "win32" && devServer.pid) {
+    if (!devServer) {
+      console.log("Existing dev server left running; startup output was not captured by this run.");
+    } else if (process.platform === "win32" && devServer.pid) {
       // Killing npm alone leaves its Vite child holding the output pipes open.
       // Terminate only this harness's process tree, so the command can finish.
       spawnSync("taskkill", ["/PID", String(devServer.pid), "/T", "/F"], { stdio: "ignore" });

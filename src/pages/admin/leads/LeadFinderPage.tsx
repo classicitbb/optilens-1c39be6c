@@ -85,7 +85,7 @@ const LeadFinderPage = () => {
   const [showCustomers, setShowCustomers] = useState(false);
   const [lastBrief, setLastBrief] = useState("");
   const [crmOverrides, setCrmOverrides] = useState<Record<string, LeadCrmState>>({});
-  const [savedLeads, setSavedLeads] = useState<Record<string, { createdContact: boolean; taskCreated: boolean }>>({});
+  const [savedLeads, setSavedLeads] = useState<Record<string, { createdContact: boolean; taskCreated: boolean; contactId?: string }>>({});
   const [busyLeadId, setBusyLeadId] = useState<string | null>(null);
 
   const { data: staff = [] } = useQuery({
@@ -201,7 +201,7 @@ const LeadFinderPage = () => {
     withBusy(lead, async () => {
       const result = await saveLead.mutateAsync({ lead: { ...lead, score: scoreForSave(lead) }, ...input });
       const taskCreated = !!result.task_id && input.followUp.needsFollowUp;
-      setSavedLeads((prev) => ({ ...prev, [lead.id]: { createdContact: result.created_contact, taskCreated } }));
+      setSavedLeads((prev) => ({ ...prev, [lead.id]: { createdContact: result.created_contact, taskCreated, contactId: result.contact_id } }));
       toast({
         title: result.already_saved ? "Updated in CRM" : "Saved to CRM",
         description: `${lead.name} ${result.created_contact ? "created as a new contact" : "saved to the existing contact"}${taskCreated ? " with a follow-up task" : ""}.`,

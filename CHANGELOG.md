@@ -2,7 +2,76 @@
 
 ## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
 
+### 2026-11-06 — Guided CRM outreach (local, not deployed)
+
+- Repeatable practice mode uses separate saved activities/drafts and simulates sending, replies and outcomes without delivery or customer-stage changes; Reset practice preserves reusable content. Outbox blocks sending practice messages.
+
+- CRM opens with a contact-to-email wizard, named owners, handoff briefs, explicit review/send, mailbox history and operator-recorded outcomes. Existing reports and specialist CRM views remain available.
+- External email/WhatsApp composers no longer mark messages sent when opened. Confirmed company sends retain a recording-only retry after CRM save failure. No schema, permissions, background sending or deployment change.
+- Usage and verification boundaries: docs/crm-outreach-workspace.md.
+
+## 2026-11-02 — Atlas Markdown paste (local, not deployed)
+
+- Plain-text Markdown paste now creates editable headings, tables, lists and inline formatting through the existing GFM/canonical converter. Rich HTML, code-block paste and paste-as-plain-text retain their existing behavior; one Undo removes the paste.
+- Six focused paste regressions pass, including a 59-row table; TypeScript, lint and build pass. Full tests reported failures in customer internal-data access, Rx keyboard navigation and email recipient input before the broad run was stopped. Local browser verification timed out. No deployment or schema change.
+
+## 2026-11-01 — Shipment costing: line landed cost fix, HR assessments, Copilot composer
+
 ### Release Notes
+- Shipment costing: per-line **Landed/unit** and the **Sell** price and markup beside it were overstated on non-BBD shipments (about double for USD) because the exchange rate was applied twice. Line landed costs now add up to the shipment's landed total. Saved shipment totals are unchanged; the line figures on screen and in the Lines CSV export change.
+- Shipment lines can be linked to an Innovations order; the order's lens total then fixes the sell price and markup is derived.
+- The binder cover now shows the supplier name, VAT, total landed cost, the multiplier and each line's landed cost, and continues onto further pages when a shipment is long.
+- HR: employee assessments, departments and manager reporting lines.
+- Copilot: updated composer and push-to-talk.
+
+### Technical Changelog
+- Landed-cost math now lives in `supabase/functions/_shared/shipments/landedCost.ts`; `src/lib/importCostings.ts` re-exports it and `shipment-binder` imports it. `computeLineCosts` moved there from `useShipments.ts` (still re-exported).
+- Migrations written, not applied: `20261101140000_hr_assessments`, `20261101150000_hr_departments_managers`, `20261101160000_shipment_line_innovations_order_link`. `shipment-binder` not deployed.
+- Proposed shipment document-intake design recorded in `docs/architecture/adr-001-shipment-intake-pipeline.md`; no intake code yet.
+
+## 2026-11-01 — HR privacy filter
+
+### Release Notes
+- Salary figures, tax estimates and HR notes now start blurred on the payroll run, income tax and employee pages and on /me. **Show figures** reveals them for 30 seconds; they blur again on their own, or straight away on **Hide**, on leaving the page, or on switching browser tab.
+
+### Technical Changelog
+- `src/features/admin/hr/privacy.tsx`: `PrivacyFilterProvider` (mounted in `HrRoute` and `MyHrPage`), `Private` (blur + `inert` + `aria-hidden` while hidden; defaults to hidden without a provider) and `PrivacyToggle`. Visual filter only; data access is unchanged.
+
+## 2026-11-01 — CRM email verification button
+
+### Release Notes
+- Contact editor, Email tab: a **Verify email** button checks each address on the contact and shows Verified, Catch-all, Invalid or Unknown beside it. Nothing is blocked or sent because of the result yet.
+- Needs the `contact_email_checks` migration applied and a `REOON_API_KEY` secret; until then the list shows "Not checked" and the button reports the missing setup.
+
+### Technical Changelog
+- `ContactEmailVerify` (`src/features/admin/crm/`) calls `crm-email-verify` and reads `contact_email_checks`. Migration `20261101120000_contact_email_checks.sql` is written, not applied. Not deployed.
+
+## 2026-11-01 — CRM outreach quality and lead profiles
+
+### Release Notes
+- CRM outreach drafts now follow one marketing-psychology principle per pipeline stage, tuned to a buyer persona (for example, a word-of-mouth shop gets a short WhatsApp with one easy question).
+- Every draft is checked for spam and AI-sounding phrases, length, unfilled placeholders, more than one link and a missing ask. A failing draft is rewritten once. The Outbox shows live warnings while you edit.
+- Pipeline cards show a persona badge; hover it to see the evidence and the suggested angle.
+- Sending is unchanged: every draft still waits for staff approval.
+
+### Technical Changelog
+- Shared modules `supabase/functions/_shared/crm/outreachGate.ts`, `outreachPsychology.ts` and `leadProfile.ts` (re-exported at `src/features/admin/crm/leadProfile.ts`). `crm-draft-outreach` returns `{ draft, gate }`. No migration or new service; not deployed.
+
+## 2026-10-30 — HR phase 3: Leave, income tax, editable deductions, employee contacts
+
+### Release Notes
+- New **Finance → Leave**: record or approve leave, see every employee's balances, and set up leave types. Defaults follow Barbados law: vacation 3 weeks after each year of service and 4 weeks from the fifth year (Holidays with Pay Act, 2017), maternity 14 weeks and paternity 3 weeks (Family Leave Act, 2025), sick leave tracked (NIS sickness benefit), unpaid leave. Entitlements, carry-over, working days and how each type is paid are all editable. Each employee has a Leave tab with balances, history and opening-balance adjustments.
+- Unpaid and NIS-paid leave comes off pay automatically in that month's payroll run.
+- New **Finance → Income tax**: each employee's estimated 2026 income tax (11.5% on the first $50,000, 27.5% above, after the $25,000 allowance) against PAYE withheld, the expected refund or amount owed, and reliefs they haven't claimed (spouse allowance, medical examination from 40, trade union dues) with what each would save. Each employee has a Tax tab to enter pay from before the app and their claims.
+- Payroll: NIS, PAYE and R&R now round to the nearest dollar (halves up). On a draft payslip every deduction can be edited; edits are marked with the calculated figure, survive Recalculate, and can be reset.
+- Employees can be linked to a CRM contact (or have one created from their details). A contact that an employee, customer account, portal account, opportunity, helpdesk ticket, order, walk-in payment or call points to can no longer be deleted; bulk delete and purge skip those and say which were kept.
+- Employee notes can be edited.
+
+### Technical Changelog
+- Migrations (all applied live 2026-10-30): `20261030140000_employee_contact_link.sql` (`employees.contact_id`, `contact_link_kinds`, `contacts_delete_guard` trigger, `delete_unlinked_contacts` RPC, `employee_notes.updated_at`), `20261030150000_payslip_overrides.sql` (`payslips.overrides`), `20261030160000_hr_leave.sql` (leave_policy, leave_types seeded with statutory defaults, leave_requests, leave_adjustments, `cancel_own_leave_request`), `20261030170000_employee_tax_years.sql`.
+- `src/features/admin/hr/leave/leaveBalance.ts` and `src/features/admin/hr/tax/annualTax.ts`: pure balance and annual-tax calculations with unit tests; payroll engine gains `overrides` and `statutoryRounding`.
+
+## Release Notes
 - The FreePBX agent now controls calls through Asterisk's manager interface (AMI) instead of the PBX's command line, so it can run on any office machine without a login on the PBX. Website calls now carry the staff member's extension as caller ID, so FreePBX applies that extension's outbound route. Needs an AMI user made in FreePBX (Settings > Asterisk Manager Users), limited to the agent machine. Recording uploads still need the PBX's recording folder; calls work without it. Not installed or tested on the real PBX.
 
 ### Technical Changelog
@@ -33,7 +102,8 @@
 ### Release Notes
 - New **Finance → Payroll**: start a monthly payroll run and every active employee's payslip is worked out from their pay setup — NIS (11% up to $5,360/month), PAYE (BRA monthly method, 11.5%/27.5% from April 2026) and the R&R levy (0.25%) — with totals and the 15th-of-next-month remittance date.
 - Open a payslip to see each line, how net pay is split, and to add one-off earnings or deductions (bonus, adjustment) while the run is a draft.
-- Approving locks the run and takes loan repayments off loan balances; then mark it paid. Employees can mark themselves R&R-exempt on their profile (Job section).
+- Approving locks the run and takes loan repayments off loan balances; then mark it paid. HR can mark an employee R&R-exempt on their profile (Job section).
+- Delete draft, Approve and Mark paid now confirm in an in-app dialog (the browser pop-up was silently dismissed in some browsers, so the buttons appeared to do nothing).
 
 ### Technical Changelog
 - `src/features/admin/hr/payroll/engine.ts`: pure payslip calculation in integer cents with dated statutory rules; unit tests use BRA Policy Note OGC No. 001/2026 worked examples.

@@ -13,7 +13,7 @@ import { toCsv } from "@/features/admin/finance/assets/engine";
 import { IMPORT_COLUMNS, parseImport, totalsByAccount, type ImportRow } from "@/features/admin/finance/assets/importRows";
 import { downloadText, useAssetClasses, useImportAssets, useRegister } from "@/features/admin/finance/assets/useAssets";
 
-const CUT_OVER = "2026-10-31";
+const CUT_OVER = "2026-09-30";
 const cents = (v: string) => (v.trim() === "" ? null : Math.round(Number(v.replace(/[$,\s]/g, "")) * 100));
 
 const AssetImportPage = () => {

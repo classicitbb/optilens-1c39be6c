@@ -49,10 +49,16 @@ export interface PipelineContact {
   lead_score: number;
   is_company: boolean;
   google_place_id: string | null;
+  instagram_handle: string | null;
+  google_rating: number | null;
+  google_reviews_count: number | null;
+  phone: string | null;
+  email: string | null;
+  is_customer: boolean;
 }
 
 const CONTACT_COLUMNS =
-  "id,name,business_name,city,country,website,pipeline,stage,stage_entered_at,next_action_at,lead_score,is_company,google_place_id";
+  "id,name,business_name,city,country,website,pipeline,stage,stage_entered_at,next_action_at,lead_score,is_company,google_place_id,instagram_handle,google_rating,google_reviews_count,phone,email,is_customer";
 
 /** Contacts already in a pipeline (any stage), for the board. */
 export const usePipelineContacts = (pipeline: PipelineKey) =>
@@ -90,6 +96,7 @@ export const useUnclassifiedContacts = () =>
   });
 
 const invalidatePipeline = (qc: ReturnType<typeof useQueryClient>) => {
+  qc.invalidateQueries({ queryKey: ["outreach-contacts"] });
   qc.invalidateQueries({ queryKey: ["pipeline-contacts"] });
   qc.invalidateQueries({ queryKey: ["unclassified-contacts"] });
   qc.invalidateQueries({ queryKey: ["contacts"] });

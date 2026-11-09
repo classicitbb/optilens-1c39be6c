@@ -209,12 +209,12 @@ The vehicle tab borrows the layout of the Odoo reference: driver and future driv
 
 ## 7. Import and cut-over
 
-- **Cut-over date: 31 Oct 2026, using QBO balances** (see §9, decision 6).
+- **Cut-over date: 30 Sep 2026, using QBO balances** (see §9, decision 6).
   - Each QBO per-asset sub-account becomes an asset with an `opening_balance` event.
   - `cost` is the "Original cost" balance, and `asset_books.opening_accum_dep` is the "Depreciation" balance.
   - The accountant's sheet is matched to it by name and fills in life, purchase date, COGS flag and class.
   - We don't recalculate history.
-  - The QBO balances are captured once into a reviewed CSV, from the Account List or Balance Sheet report at 31 Oct. Live API access isn't needed for this.
+  - The QBO balances are captured once into a reviewed CSV, from the Balance Sheet report (with sub-accounts) as at 31 Oct, which equals 30 Sep for fixed assets because no October depreciation was posted. Live API access isn't needed for this.
 - The importer reads the workbook in the browser and maps each sheet to a class. No spreadsheet parser is installed on `main` yet, so this adds one as a dependency.
   - Fixtures & Fittings is split into Computer Equipment, F&F and Software by keyword.
   - The importer suggests those splits, and you confirm them.
@@ -225,7 +225,7 @@ The vehicle tab borrows the layout of the Odoo reference: driver and future driv
   - Rows with `Disposals` = cost become `disposed`.
   - Total rows and blank rows are skipped.
 - The preview flags every problem in §1 (negative NBV, depreciation greater than cost, zero cost, never depreciated) and won't import those rows until each one has been fixed or acknowledged.
-- **Reconciliation check:** the imported cost, accumulated depreciation and NBV per class must match the QBO parent balances (157, 159 and 161) at 31 Oct 2026 to the cent before the import can be committed.
+- **Reconciliation check:** the imported cost, accumulated depreciation and NBV per class must match the QBO parent balances (157, 159 and 161) at the cut-over to the cent before the import can be committed.
 
 ## 8. Phases
 
@@ -246,17 +246,17 @@ Each phase is its own PR. Migrations are applied to the live DB through the Lova
 3. **Proration** is a full year in the year of purchase. It is the default `convention` for both books. It applies to assets acquired after the cut-over. Existing assets carry on at the annual charge ÷ 12 from their QBO opening balances (decision 6).
 4. **Vehicles:** all of the 2024 vehicles (XL7, Grand Vitara, BYD T3, Kia Sonet) are leased or on a loan. Each one is linked to a `lease_contracts` or `loans` row, so leases and loans are needed sooner than originally planned (see §8).
 5. **Operators** can log fuel, mileage (odometer) and services. Admin and office admin can do everything. Under RLS, operators can insert into `vehicle_fuel_logs`, `vehicle_odometer_logs` and `asset_service_logs`, and can read the register and fleet. They can't change assets, books, runs, leases or loans.
-6. **Opening balances come from QBO at 31 Oct 2026** (decided 2026-10-30).
-   - **What is imported.** Each asset's "Original cost" and "Depreciation" sub-account balance as at 31 Oct 2026 becomes its opening cost and opening accumulated depreciation, with October's depreciation already posted in QBO.
+6. **Opening balances come from QBO, cut-over 30 Sep 2026** (decided 2026-10-30; date moved from 31 Oct on 2026-11-09).
+   - **What is imported.** Each asset's "Original cost" and "Depreciation" sub-account balance becomes its opening cost and opening accumulated depreciation. QBO's monthly depreciation runs only to September 2026: the balances at 31 Oct match 30 Sep, so the cut-over is 30 Sep.
    - **Role of the accountant's sheet.** It supplies only the useful life, purchase date, COGS flag and class.
    - **Mismatches.** Where an asset is in QBO but not the sheet, or the reverse, the importer shows it for a decision. It doesn't guess.
-   - **First run.** The register's first depreciation run is November 2026.
+   - **First run.** The register's first depreciation run is October 2026. Its journal is the October depreciation entry for QBO; the accountant does not post October separately.
    - **Ongoing charge.** The monthly charge continues at the annual charge ÷ 12, which is what QBO has been doing. The full-year convention (decision 3) applies to assets acquired after the cut-over.
-   - **Errors still in QBO.** The negative-NBV and missing-sub-account cases in §10 must be corrected in QBO by the accountant before 31 Oct closes, or by a correcting JE in November. The importer won't accept a negative NBV.
+   - **Errors still in QBO.** The negative-NBV and missing-sub-account cases in §10 were still uncorrected on 2026-11-09. Those with depreciation above cost were imported with depreciation capped at cost (book value nil), and each asset's notes record the QBO difference. The accountant's correcting JE brings QBO into line with the register.
 7. **QBO posting is per class** (decided 2026-10-30). The class parents become control accounts, and the register is the subledger that holds per-asset detail.
    - **Accounts per class.** Each `asset_classes` row maps to one QBO cost account and one accumulated-depreciation account. For example, Machinery & Equipment maps to 157 for cost and a new "157 Accumulated depreciation" account, so cost and depreciation stay separate on the balance sheet.
    - **Monthly JE.** It has one Dr/Cr line per class per expense target (COS or overhead), not one per asset.
-   - **One-off reclass.** After the 31 Oct import reconciles, the accountant posts one reclass JE in QBO. It moves every per-asset "Original cost" and "Depreciation" balance into the class cost and accumulated-depreciation accounts. The emptied per-asset sub-accounts are then made inactive.
+   - **One-off reclass.** After the opening import reconciles, the accountant posts one reclass JE in QBO. It moves every per-asset "Original cost" and "Depreciation" balance into the class cost and accumulated-depreciation accounts. The emptied per-asset sub-accounts are then made inactive.
    - **The register generates that reclass JE** from the imported balances, so it matches to the cent.
    - **Stray balance.** The small balance on account 450 is investigated and cleared as part of the reclass.
 8. **Ocuco "Innovations software" (2016):** this line covers 2 servers plus the software. The import splits it into Computer Equipment (servers) and Software if the invoice gives a breakdown. Otherwise it goes into Computer Equipment as one asset. "Ocuco – additional software" (2020) moves to the Software class.

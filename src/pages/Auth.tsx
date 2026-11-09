@@ -1,6 +1,6 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ArrowRight, Building2, CheckCircle2, ChevronLeft, Eye, EyeOff, FileBadge, Globe, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
+import { AlertCircle, ArrowRight, Building2, CheckCircle2, ChevronLeft, Eye, EyeOff, FileBadge, Globe, Loader2, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
@@ -67,6 +67,8 @@ const Auth = () => {
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [magicLinkMode, setMagicLinkMode] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
+  const [magicLinkSentTo, setMagicLinkSentTo] = useState<string | null>(null);
+  const [signInError, setSignInError] = useState<string | null>(null);
   const [passwordResetEmail, setPasswordResetEmail] = useState<string | null>(null);
   const [sendingPasswordReset, setSendingPasswordReset] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -201,7 +203,7 @@ const Auth = () => {
       if (!values.password.trim()) {
         form.setError("password", { message: "Password is required" });
         valid = false;
-      } else if (values.password.trim().length < 6) {
+      } else if (mode === "signup" && values.password.trim().length < 6) {
         form.setError("password", { message: "Must be at least 6 characters" });
         valid = false;
       }
@@ -342,6 +344,7 @@ const Auth = () => {
           toast({ title: "Couldn't send link", description: error.message, variant: "destructive" });
           return;
         }
+        setMagicLinkSentTo(email);
         toast({ title: "Check your inbox", description: `We sent a sign-in link to ${email}.` });
       } catch {
         toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
@@ -353,16 +356,15 @@ const Auth = () => {
 
     if (mode === "signin") {
       setIsSubmitting(true);
+      setSignInError(null);
       try {
         const { error } = await signIn(values.email.trim(), values.password.trim());
         if (error) {
-          toast({
-            title: "Sign In Failed",
-            description: error.message.includes("Invalid login credentials")
-              ? "Invalid email or password. Please try again."
-              : error.message,
-            variant: "destructive",
-          });
+          const message = error.message.includes("Invalid login credentials")
+            ? "Invalid email or password. Please try again."
+            : error.message;
+          setSignInError(message);
+          toast({ title: "Sign In Failed", description: message, variant: "destructive" });
           return;
         }
         toast({ title: "Welcome back", description: "You are signed in." });
@@ -769,9 +771,10 @@ const Auth = () => {
                               autoComplete="email"
                               spellCheck={false}
                               placeholder="you@example.com"
+                              autoFocus={mode === "signin"}
                               className={`pl-9 ${isReturningVisitor ? "h-11 rounded-xl bg-background/80" : ""}`}
                               onKeyDown={(event) => {
-                                if (mode !== "signin" || event.key !== "Enter") return;
+                                if (mode !== "signin" || magicLinkMode || event.key !== "Enter") return;
                                 event.preventDefault();
                                 passwordInputRef.current?.focus();
                               }}
@@ -789,7 +792,19 @@ const Auth = () => {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className={isReturningVisitor ? "text-sm font-medium" : undefined}>Password</FormLabel>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <FormLabel className={isReturningVisitor ? "text-sm font-medium" : undefined}>Password</FormLabel>
+                          {mode === "signin" ? (
+                            <button
+                              type="button"
+                              className="text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                              onClick={() => { void sendPasswordReset(); }}
+                              disabled={sendingPasswordReset}
+                            >
+                              {sendingPasswordReset ? "Sending reset link…" : "Forgot password?"}
+                            </button>
+                          ) : null}
+                        </div>
                         <div className="relative">
                           <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                           <FormControl>
@@ -821,18 +836,6 @@ const Auth = () => {
                             </button>
                           ) : null}
                         </div>
-                        {mode === "signin" ? (
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              className="text-xs font-medium text-primary underline-offset-4 hover:underline"
-                              onClick={() => { void sendPasswordReset(); }}
-                              disabled={sendingPasswordReset}
-                            >
-                              {sendingPasswordReset ? "Sending reset link…" : "Forgot password?"}
-                            </button>
-                          </div>
-                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -851,6 +854,20 @@ const Auth = () => {
                         <Button type="button" variant="outline" size="sm" onClick={() => { void sendPasswordReset(); }} disabled={sendingPasswordReset}>{sendingPasswordReset ? "Sending reset link…" : "Send another link"}</Button>
                       </div>
                     </div>
+                  </div>
+                ) : null}
+
+                {mode === "signin" && signInError && !magicLinkMode ? (
+                  <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <p>{signInError}</p>
+                  </div>
+                ) : null}
+
+                {mode === "signin" && magicLinkMode && magicLinkSentTo ? (
+                  <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm" role="status">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <p className="text-muted-foreground">Link sent to <strong className="font-medium text-foreground">{magicLinkSentTo}</strong>. Open it on this device to finish signing in.</p>
                   </div>
                 ) : null}
 
@@ -887,12 +904,13 @@ const Auth = () => {
                   disabled={isSubmitting || sendingMagicLink}
                   onClick={mode === "signup" && currentStep === "intent" ? handleCreateAccount : undefined}
                 >
+                  {(isSubmitting || sendingMagicLink) ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
                   {mode === "signin" && magicLinkMode
                     ? sendingMagicLink
                       ? "Sending…"
-                      : "Email me a sign-in link"
+                      : magicLinkSentTo ? "Resend sign-in link" : "Email me a sign-in link"
                     : isSubmitting
-                      ? "Please wait…"
+                      ? mode === "signin" ? "Signing in…" : "Please wait…"
                       : mode === "signin"
                         ? "Sign In"
                         : currentStep === "intent"
@@ -943,9 +961,14 @@ const Auth = () => {
                 {mode === "signin" ? (
                   <button
                     type="button"
-                    className="block text-center text-xs font-medium text-primary underline-offset-4 hover:underline"
-                    onClick={() => setMagicLinkMode((value) => !value)}
+                    className="mx-auto flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    onClick={() => {
+                      setMagicLinkMode((value) => !value);
+                      setSignInError(null);
+                      setMagicLinkSentTo(null);
+                    }}
                   >
+                    <Mail className="h-3.5 w-3.5" aria-hidden="true" />
                     {magicLinkMode ? "Use password instead" : "Sign in with a magic link instead"}
                   </button>
                 ) : null}
@@ -956,7 +979,7 @@ const Auth = () => {
 
           {currentStep !== "success" ? (
             <>
-              <div className={`mt-5 text-center text-xs text-muted-foreground ${isReturningVisitor ? "border-t border-border/70 pt-5" : ""}`}>
+              <div className={`mt-5 text-center text-sm text-muted-foreground ${isReturningVisitor ? "border-t border-border/70 pt-5" : ""}`}>
                 {mode === "signin" ? (
                   <span>
                     New here?{" "}

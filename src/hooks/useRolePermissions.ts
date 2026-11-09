@@ -68,6 +68,8 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/finance/costings/reports": "costings",
   "/admin/finance/people": "hr",
   "/admin/finance/payroll": "payroll",
+  "/admin/finance/leave": "hr",
+  "/admin/finance/tax": "payroll",
   "/admin/pricing/publisher": "catalog-publisher",
   // Copilot tools
   "/admin/copilot/leads-assistant": "leads",
@@ -81,7 +83,6 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/crm": "crm",
   "/admin/crm/dashboard": "crm",
   "/admin/crm/pipeline": "crm",
-  "/admin/crm/proposals": "catalog-publisher",
   "/admin/crm/outbox": "crm",
   "/admin/crm/activities": "crm",
   // Helpdesk
@@ -120,6 +121,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/finance/walk-in-payments": "integrations",
   "/admin/settings/runtime-errors": "runtime-errors",
   "/admin/settings/releases": "runtime-errors",
+  "/admin/settings/training": "wiki",
   "/admin/settings/email-previews": "runtime-errors",
   "/admin/settings/edge-functions": "runtime-errors",
   // Legacy paths

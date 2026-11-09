@@ -1,5 +1,32 @@
 # Frontend Bug Reports
 
+## 2026-11-06 — Fragmented CRM outreach and premature sent status (local fix)
+
+Contacts, leads, pipeline, tasks and Outbox lacked one guided handoff. The old Outbox marked a message sent after opening mailto/WhatsApp. Added a shared guided workspace and separated opening a composer from confirming sending. Company-send success and CRM recording failures are distinct; recording-only recovery prevents another send in the current wizard. Mocked workflow tests cover approval, delegation, outcomes, read-only behavior and partial send-recording failure. Real delivery and production writes are untested. See docs/crm-outreach-workspace.md.
+
+## 2026-11-02 — Markdown pasted as plain paragraphs (local fix)
+
+Reproduced with the actual editor clipboard path: Markdown headings, bold text, lists and a GFM table became plain paragraphs. The editor only handled image paste explicitly and had no Markdown conversion. Added a paste plugin using the existing GFM/canonical conversion, with regressions for formatted text, all 59 table rows, leading-zero SKUs, Undo, rich HTML, literal text, code blocks and the plain-paste shortcut. Six focused tests pass; TypeScript, lint and build pass. Two local browser attempts timed out. The full suite reported customer internal-data access, Rx keyboard and email recipient failures outside these changed files before it was stopped; no full-suite pass is claimed. Not deployed.
+
+## 2026-11-01 - HR privacy filter (no defect)
+
+New feature, no bug fixed. Known limits: the blur is visual only (figures are still in the page and downloads/PDFs are unaffected); leave decision notes are not blurred.
+
+## 2026-11-01 - CRM email verification button (no defect)
+
+New feature, no bug fixed. Not checked: the button against a live Reoon response or in a signed-in browser; the migration is not applied.
+
+## 2026-11-01 - CRM outreach quality and lead profiles (no defect)
+
+New features, no bug fixed. Not checked: the edge function under Deno, a live AI gateway call, or the pages in a signed-in browser.
+
+## 2026-10-30 - HR phase 3 (no defect) and contact deletes
+
+New features, no bug fixed. Behaviour change: deleting a contact that other records link to used to cascade or null those links silently; it is now refused (single delete shows why, bulk delete and purge skip linked contacts and list them). Known limits: leave days are counted Monday–Friday without public holidays (edit the days on the request); balances before `tracking_from` need an opening adjustment; the tax estimate projects remaining months from the latest payslip and needs pay from before the app entered per employee.
+
+## 2026-10-30 - Payroll Delete draft / Approve / Mark paid did nothing
+
+The payroll run page asked for confirmation with `window.confirm`, which embedded browsers (the Claude desktop browser pane) dismiss silently, so the click returned without acting. The page now uses an in-app `AlertDialog` for all three actions.
 ## 2026-10-30 - Confirm buttons did nothing in embedded browsers
 
 Symptom: delete/approve/release buttons that asked "Are you sure?" did nothing in the Claude desktop browser pane. Cause: those embedded browsers dismiss `window.confirm`/`prompt` silently (returning false/null). Fix: all admin and portal call sites now use in-app dialogs; `no-alert` lint prevents regressions. Not converted: three unreachable `prompt` calls after an early `return` in legacy Doc Studio (saveLetter/saveSig/savePost).
