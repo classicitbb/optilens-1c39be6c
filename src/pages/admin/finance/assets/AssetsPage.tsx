@@ -47,24 +47,22 @@ const AssetsPage = () => {
       </AdminPageHeader>
       <AssetsNav />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Book value, all assets in service</p>
-            <p className="text-lg font-semibold tabular-nums">{money(total(held, nbv))}</p>
-            <p className="text-xs text-muted-foreground">{held.length} assets · cost {money(total(held, (a) => a.cost))}</p>
-          </CardContent>
-        </Card>
-        {summary.map((s) => (
-          <Card key={s.id}>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{s.name}</p>
-              <p className="text-lg font-semibold tabular-nums">{money(s.nbv)}</p>
-              <p className="text-xs text-muted-foreground">{s.count} assets</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
+          <div>
+            <p className="text-xs text-muted-foreground">Book value, in service · {held.length} assets · cost {money(total(held, (a) => a.cost))}</p>
+            <p className="text-lg font-semibold tabular-nums leading-tight">{money(total(held, nbv))}</p>
+          </div>
+          <dl className="flex flex-wrap gap-x-5 gap-y-1 border-l pl-6 text-sm">
+            {summary.map((s) => (
+              <div key={s.id} className="flex items-baseline gap-1.5">
+                <dt className="text-xs text-muted-foreground">{s.name} ({s.count})</dt>
+                <dd className="font-medium tabular-nums">{money(s.nbv)}</dd>
+              </div>
+            ))}
+          </dl>
+        </CardContent>
+      </Card>
 
       <div className="flex flex-wrap items-center gap-2">
         <Input aria-label="Search assets" placeholder="Search tag, name, serial, location…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-64" />
