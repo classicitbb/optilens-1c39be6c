@@ -24,6 +24,8 @@ export interface CostModel {
   leviesPct?: number;
   clearancePct?: number;
   brokeragePerPair?: number;
+  /** Carrying allowance on landed cost (financing + waste), e.g. 0.0397. */
+  allowancePct?: number;
 }
 
 export interface Combo {
@@ -72,12 +74,14 @@ function withDefaults(opts?: EngineOptions) {
 //   landed = CIF × (1 + duty% + environmental levy% + clearance%) + brokerage/pair
 // VAT is NOT included — for a VAT-registered reseller it is a recoverable input
 // credit, so baking it into cost would overprice you. Edging is excluded (separate page).
+// allowancePct (financing + waste) is applied last, on the landed amount, so the
+// result is the full cost to price from — identical to the edit-modal calculator.
 export function landedCostFor(price: number, supplier: string, cm: CostModel | null | undefined): number {
   if (!cm) return price;
   const freight = (cm.freightPct && (cm.freightPct[supplier] != null ? cm.freightPct[supplier] : cm.freightPct.default)) || 0;
   const cif = price * (1 + freight);
   const uplift = (cm.dutyPct || 0) + (cm.leviesPct || 0) + (cm.clearancePct || 0);
-  return round2(cif * (1 + uplift) + (cm.brokeragePerPair || 0));
+  return round2(cif * (1 + uplift) * (1 + (cm.allowancePct || 0)) + (cm.brokeragePerPair || 0));
 }
 
 // Return a combo clone whose supplier costs are LANDED costs (raw kept on _raw).

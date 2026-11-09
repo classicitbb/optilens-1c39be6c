@@ -44,6 +44,7 @@ import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { buildCombos, bulkSetAnchorExclusion, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
 import { pricedMatrix } from "@/lib/pricing/engine";
+import { costModelFromSettings } from "@/lib/pricing/costModel";
 import { categoryKeyFor, groupingKeyFor, materialKeyFor } from "@/lib/pricing/groupingMap";
 import { APPROVED } from "@/lib/pricing/classifier";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -610,7 +611,16 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     try {
       const { combos } = await buildCombos();
       if (combos.length) await upsertPricingItems(combos);
-      const priced = pricedMatrix(combos, { floorMargin: 0.15, rounding: 0.5, excluded: scopedExcludedSuppliers });
+      // Price from LANDED cost (import charges, FX fee, financing, waste) — the same
+      // model the edit-modal calculator uses. Never fall back to bare supplier price.
+      const activeSettings = pricingVersions.find((v) => v.is_active) ?? pricingVersions[0];
+      if (!activeSettings) throw new Error("Pricing settings have not loaded yet, so landed cost can't be calculated. Try again in a moment.");
+      const priced = pricedMatrix(combos, {
+        floorMargin: 0.15,
+        rounding: 0.5,
+        excluded: scopedExcludedSuppliers,
+        costModel: costModelFromSettings(activeSettings),
+      });
       const comboByKey = new Map<string, ComboWithProvenance>(combos.map((combo) => [combo.key, combo]));
 
       const items: AutoPricePlanItem[] = [];

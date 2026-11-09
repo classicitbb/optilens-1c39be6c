@@ -76,6 +76,23 @@ vi.mock("@/hooks/useLenses", () => ({
   }),
 }));
 
+// Auto Price refuses to run without pricing settings (it prices from landed cost).
+vi.mock("@/hooks/usePricingSettings", () => ({
+  usePricingSettings: () => ({
+    versions: [
+      {
+        is_active: true,
+        cost_of_capital: 0.08,
+        avg_days_in_stock: 90,
+        shrinkage_percent: 0.02,
+        import_charges_percent: 0.23,
+        fx_fee_percent: 0.02,
+        category_margin_floors: { lenses: 0.3 },
+      },
+    ],
+  }),
+}));
+
 vi.mock("@/hooks/usePriceHierarchy", () => ({
   usePriceHierarchy: () => ({
     lineOverrides: [],
