@@ -19,6 +19,8 @@ type PaymentActivityRow = {
   status: Exclude<PaymentStatus, "all">;
   amount: number | null;
   currency: string | null;
+  account_name: string | null;
+  account_number: string | null;
 };
 
 const formatAmount = (amount: number | null, currency: string | null) => {
@@ -49,7 +51,7 @@ export default function PaymentActivityPage() {
     queryFn: async () => {
       let query = (supabase as any)
         .from("scotia_payment_activity")
-        .select("occurred_at,payment_reference,transaction_type,status,amount,currency")
+        .select("occurred_at,payment_reference,transaction_type,status,amount,currency,account_name,account_number")
         .order("occurred_at", { ascending: false })
         .limit(100);
       if (status !== "all") query = query.eq("status", status);
@@ -108,6 +110,7 @@ export default function PaymentActivityPage() {
                 <tr>
                   <th className="whitespace-nowrap px-4 py-3 font-medium">Time</th>
                   <th className="whitespace-nowrap px-4 py-3 font-medium">Reference</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Customer</th>
                   <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
                   <th className="whitespace-nowrap px-4 py-3 font-medium">Amount</th>
                   <th className="whitespace-nowrap px-4 py-3 font-medium">Status</th>
@@ -121,6 +124,14 @@ export default function PaymentActivityPage() {
                     <tr key={row.payment_reference} className="border-b last:border-0">
                       <td className="whitespace-nowrap px-4 py-3">{new Date(row.occurred_at).toLocaleString()}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-medium">{row.payment_reference}</td>
+                      <td className="px-4 py-3">
+                        {row.account_name || row.account_number ? (
+                          <>
+                            <span className="font-medium">{row.account_name ?? "—"}</span>
+                            {row.account_number && <span className="block text-xs text-muted-foreground">Acct {row.account_number}</span>}
+                          </>
+                        ) : "—"}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3 capitalize">{row.transaction_type}</td>
                       <td className="whitespace-nowrap px-4 py-3">{formatAmount(row.amount, row.currency)}</td>
                       <td className="whitespace-nowrap px-4 py-3"><Badge variant="outline" className={`gap-1 ${meta.className}`}><StatusIcon className="h-3.5 w-3.5" />{row.status}</Badge></td>
