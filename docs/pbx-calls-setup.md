@@ -27,7 +27,7 @@ Transcription and summaries go through the same AI gateway as `voice-transcribe`
 1. Apply `supabase/migrations/20261024120000_pbx_calls.sql`, then `20261030120000_pbx_call_controls.sql` (Lovable SQL editor).
 2. Add the edge-function secret `PBX_AGENT_TOKEN` (a long random string; `openssl rand -hex 32`). `LOVABLE_API_KEY` is already used by `voice-transcribe`.
 3. Deploy `pbx-calls` and `pbx-agent`, then run `npm run qa:edge-smoke`.
-4. Give each of the 6 staff an extension: `insert into staff_extensions (user_id, extension) values ('<auth user id>', '2001');`
+4. Give each of the 6 staff an extension: link their login to their People employee record, then set **Phone extension** on the employee profile (Login section). Needs migration `20261110150000_employee_phone_extension.sql`. (SQL fallback: `insert into staff_extensions (user_id, extension) values ('<auth user id>', '2001');`)
 5. In FreePBX, **Settings > Asterisk Manager Users**, add a user `pbx-agent` with a long random secret. Permit only the agent machine (`<its LAN address>/255.255.255.255`), deny `0.0.0.0/0.0.0.0`. Read: `call`, `reporting`. Write: `originate`, `call`, `reporting`. Nothing else. Apply Config. Never paste the secret in chat, git or a screenshot.
 6. On the agent machine (any always-on LAN machine with Python 3, or the PBX itself), copy `scripts/pbx-agent/pbx_agent.py` and create `pbx-agent.env` beside it, readable only by the account that runs the agent:
    ```

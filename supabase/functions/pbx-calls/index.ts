@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     if (!destination) return json(422, { error: "This contact has no number the office phone system can dial (Barbados and North American numbers only)." });
 
     const { data: mapping } = await admin.from("staff_extensions").select("extension").eq("user_id", user.id).maybeSingle();
-    if (!mapping) return json(422, { error: "You don't have a phone extension assigned yet. Ask an admin to add one." });
+    if (!mapping) return json(422, { error: "You don't have a phone extension assigned yet. Ask HR to add one to your People profile." });
 
     const { count } = await admin
       .from("call_requests")

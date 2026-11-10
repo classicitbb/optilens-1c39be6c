@@ -38,7 +38,7 @@ import EmployeePositionsTab from "@/features/admin/hr/EmployeePositionsTab";
 import EmployeeContractsTab from "@/features/admin/hr/EmployeeContractsTab";
 import EmployeeAssessmentTab from "@/features/admin/hr/EmployeeAssessmentTab";
 import HelpTip from "@/help/HelpTip";
-import { linkEmployeeLogin, useEmployeeLoginEmail } from "@/features/admin/hr/self/useMyHr";
+import { linkEmployeeLogin, saveEmployeeExtension, useEmployeeExtension, useEmployeeLoginEmail } from "@/features/admin/hr/self/useMyHr";
 import { Private, PrivacyScope } from "@/features/admin/hr/privacy";
 
 const ContactLink = ({ employee }: { employee: Employee }) => {
@@ -84,6 +84,40 @@ const ContactLink = ({ employee }: { employee: Employee }) => {
   );
 };
 
+const ExtensionField = ({ employee }: { employee: Employee }) => {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: extension, isSuccess } = useEmployeeExtension(employee.id, true);
+  const [busy, setBusy] = useState(false);
+
+  const save = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const saved = await saveEmployeeExtension(employee.id, formValues(event.currentTarget).extension ?? "");
+      await qc.invalidateQueries({ queryKey: ["hr", "extension"] });
+      toast({ title: saved ? "Extension saved" : "Extension cleared" });
+    } catch (error) {
+      toast({ title: "Could not save extension", description: (error as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!isSuccess) return null;
+  return (
+    <form key={extension ?? ""} onSubmit={save} className="flex flex-wrap items-end gap-2">
+      <Field label="Phone extension" htmlFor="phone-extension">
+        <Input id="phone-extension" name="extension" inputMode="numeric" pattern="[0-9]{2,8}" placeholder="e.g. 2221" defaultValue={extension ?? ""} className="w-36" />
+      </Field>
+      <Button type="submit" size="sm" disabled={busy}>Save extension</Button>
+      <p className="basis-full text-xs text-muted-foreground">
+        Used by Call in the CRM: their desk phone rings first, then the customer is dialled. Leave blank to remove.
+      </p>
+    </form>
+  );
+};
+
 const LoginLink = ({ employee }: { employee: Employee }) => {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -122,10 +156,13 @@ const LoginLink = ({ employee }: { employee: Employee }) => {
         A linked login lets the employee see their own approved payslips, leave and tax estimate at /me, and request leave.
       </p>
       {employee.user_id ? (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span>Linked to <span className="font-medium">{email ?? "…"}</span></span>
-          <Button variant="outline" size="sm" disabled={update.isPending} onClick={() => void unlink()}>Unlink</Button>
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span>Linked to <span className="font-medium">{email ?? "…"}</span></span>
+            <Button variant="outline" size="sm" disabled={update.isPending} onClick={() => void unlink()}>Unlink</Button>
+          </div>
+          <ExtensionField employee={employee} />
+        </>
       ) : (
         <form onSubmit={link} className="flex flex-wrap items-end gap-2">
           <Field label="Email they sign in with" htmlFor="login-email">

@@ -99,6 +99,21 @@ export function ContactCalls({ contactId, phone }: { contactId: string; phone: s
     onError: (error) => toast({ title: "Call control failed", description: error instanceof Error ? error.message : undefined, variant: "destructive" }),
   });
 
+  // The signed-in user's own extension (set on their People profile), so staff can see which phone will ring.
+  const ownExtension = useQuery({
+    queryKey: ["my-extension"],
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return null;
+      const { data, error } = await (supabase.from("staff_extensions" as never) as any)
+        .select("extension")
+        .eq("user_id", auth.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.extension ?? null) as string | null;
+    },
+  });
+
   const recordings = useQuery({
     queryKey: ["contact-call-recordings", contactId],
     queryFn: async () => {
@@ -155,7 +170,12 @@ export function ContactCalls({ contactId, phone }: { contactId: string; phone: s
           </div>
         ) : <p className="text-xs text-muted-foreground">Add a phone number to this contact to call them from here.</p>}
         <p className="text-[10px] text-muted-foreground">
-          Your desk phone rings first, then the customer is dialled. Tell the customer before you record, and stop recording while card details are given.
+          {ownExtension.isSuccess
+            ? ownExtension.data
+              ? `Your desk phone (extension ${ownExtension.data}) rings first, then the customer is dialled.`
+              : "You have no phone extension yet. Ask HR to add one to your People profile."
+            : "Your desk phone rings first, then the customer is dialled."}{" "}
+          Tell the customer before you record, and stop recording while card details are given.
         </p>
       </div>
 

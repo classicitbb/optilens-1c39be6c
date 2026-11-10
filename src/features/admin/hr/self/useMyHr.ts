@@ -51,7 +51,19 @@ export const useCancelMyLeave = () => {
 export const linkEmployeeLogin = async (employeeId: string, email: string) =>
   unwrap(await db.rpc("link_employee_login", { _employee_id: employeeId, _email: email })) as string;
 
-export const useEmployeeLoginEmail = (employeeId: string, linked: boolean) =>
+/** HR: the phone extension click-to-call uses for the employee's login (null when none). */
+export const useEmployeeExtension = (employeeId: string, linked: boolean) =>
+  useQuery({
+    queryKey: ["hr", "extension", employeeId, linked],
+    enabled: linked,
+    queryFn: async () => unwrap(await db.rpc("employee_extension", { _employee_id: employeeId })) as string | null,
+  });
+
+/** HR: set (or, when blank, clear) the employee's extension. */
+export const saveEmployeeExtension = async (employeeId: string, extension: string) =>
+  unwrap(await db.rpc("set_employee_extension", { _employee_id: employeeId, _extension: extension })) as string | null;
+
+export const useEmployeeLoginEmail =(employeeId: string, linked: boolean) =>
   useQuery({
     queryKey: ["hr", "login_email", employeeId, linked],
     enabled: linked,
