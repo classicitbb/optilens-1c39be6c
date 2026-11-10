@@ -45,7 +45,10 @@ serve(async (req) => {
     // must be admin/operator staff.
     const providedSecret = req.headers.get("x-scheduler-secret");
     const expectedSecret = Deno.env.get("CRM_CADENCE_SCHEDULER_SECRET");
-    let supabase;
+    // `any` on purpose: the two branches build the client from different module
+    // specifiers (esm.sh here, npm: in _shared/http/auth.ts), so the inferred
+    // union carries two incompatible `.from()` signatures and won't type-call.
+    let supabase: any;
     if (providedSecret) {
       if (!expectedSecret || providedSecret !== expectedSecret) return json({ error: "Unauthorized" }, 401);
       supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
@@ -112,7 +115,8 @@ ${psychologyPrompt(contact.stage)}
 Buyer persona: ${profile.persona}. ${profile.summary} Suggested angle: ${profile.angle.lead} Use only facts given here; do not mention the persona label itself.
 Return ONLY a JSON object: {"subject": string, "body": string}. For WhatsApp use an empty subject.`;
 
-    const generate = async (extraInstruction: string) => {
+    // Explicit union so `"error" in result` narrows to the numeric status case.
+    const generate = async (extraInstruction: string): Promise<{ error: number } | { parsed: { subject?: string; body?: string } }> => {
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
