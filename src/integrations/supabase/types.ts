@@ -1991,36 +1991,51 @@ export type Database = {
       call_requests: {
         Row: {
           claimed_at: string | null
+          connected_at: string | null
           contact_id: string | null
+          control: string | null
           created_at: string
           destination: string
+          ended_at: string | null
           error: string | null
           extension: string
           id: string
+          recording: boolean
           requested_by: string
           status: string
+          updated_at: string
         }
         Insert: {
           claimed_at?: string | null
+          connected_at?: string | null
           contact_id?: string | null
+          control?: string | null
           created_at?: string
           destination: string
+          ended_at?: string | null
           error?: string | null
           extension: string
           id?: string
+          recording?: boolean
           requested_by: string
           status?: string
+          updated_at?: string
         }
         Update: {
           claimed_at?: string | null
+          connected_at?: string | null
           contact_id?: string | null
+          control?: string | null
           created_at?: string
           destination?: string
+          ended_at?: string | null
           error?: string | null
           extension?: string
           id?: string
+          recording?: boolean
           requested_by?: string
           status?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -4988,6 +5003,7 @@ export type Database = {
           effective_to: string | null
           employee_id: string
           id: string
+          pay_day: number | null
           pay_frequency: string
           pay_type: string
           reason: string | null
@@ -5003,6 +5019,7 @@ export type Database = {
           effective_to?: string | null
           employee_id: string
           id?: string
+          pay_day?: number | null
           pay_frequency?: string
           pay_type?: string
           reason?: string | null
@@ -5018,6 +5035,7 @@ export type Database = {
           effective_to?: string | null
           employee_id?: string
           id?: string
+          pay_day?: number | null
           pay_frequency?: string
           pay_type?: string
           reason?: string | null
@@ -9924,6 +9942,7 @@ export type Database = {
           approved_by: string | null
           created_at: string
           created_by: string | null
+          excluded_employee_ids: string[]
           id: string
           notes: string | null
           paid_at: string | null
@@ -9937,6 +9956,7 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           created_by?: string | null
+          excluded_employee_ids?: string[]
           id?: string
           notes?: string | null
           paid_at?: string | null
@@ -9950,6 +9970,7 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           created_by?: string | null
+          excluded_employee_ids?: string[]
           id?: string
           notes?: string | null
           paid_at?: string | null
@@ -15681,6 +15702,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_finance: { Args: { _user_id: string }; Returns: boolean }
       can_hr: { Args: { _user_id: string }; Returns: boolean }
       can_manage_assets: { Args: { _user_id: string }; Returns: boolean }
       can_write_customer_quote: {
@@ -17230,7 +17252,13 @@ export type Database = {
     }
     Enums: {
       activity_task_channel: "todo" | "agent_todo"
-      app_role: "admin" | "operator" | "viewer" | "customer" | "office_admin" | "accountant"
+      app_role:
+        | "admin"
+        | "operator"
+        | "viewer"
+        | "customer"
+        | "office_admin"
+        | "accountant"
       shipment_status: "draft" | "reviewed" | "locked"
       store_variant_mode:
         | "none"
@@ -17366,7 +17394,14 @@ export const Constants = {
   public: {
     Enums: {
       activity_task_channel: ["todo", "agent_todo"],
-      app_role: ["admin", "operator", "viewer", "customer", "office_admin", "accountant"],
+      app_role: [
+        "admin",
+        "operator",
+        "viewer",
+        "customer",
+        "office_admin",
+        "accountant",
+      ],
       shipment_status: ["draft", "reviewed", "locked"],
       store_variant_mode: [
         "none",
