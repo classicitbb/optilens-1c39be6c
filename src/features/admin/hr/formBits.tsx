@@ -27,7 +27,7 @@ export const useSubmit = () => {
 
 export const Section = ({ title, children }: { title: string; children: ReactNode }) => (
   <Card>
-    <CardHeader className="pb-3"><CardTitle className="text-base">{title}</CardTitle></CardHeader>
-    <CardContent className="space-y-4">{children}</CardContent>
+    <CardHeader className="px-4 pb-2 pt-3"><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+    <CardContent className="space-y-3 px-4 pb-4">{children}</CardContent>
   </Card>
 );

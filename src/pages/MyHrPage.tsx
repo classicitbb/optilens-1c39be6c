@@ -28,7 +28,7 @@ import { LeaveBalanceCards, LeaveRequestForm } from "@/features/admin/hr/leave/L
 import { LEAVE_STATUS_LABELS, useLeaveAdjustments, useLeavePolicy, useLeaveRequests, useLeaveTypes } from "@/features/admin/hr/leave/useLeave";
 import { EmployeeTaxPanel } from "@/features/admin/hr/tax/TaxComponents";
 import { useCancelMyLeave, useMyEmployee, useMyPayslips, type MyPayslip } from "@/features/admin/hr/self/useMyHr";
-import { PrivacyFilterProvider, Private, PrivacyToggle } from "@/features/admin/hr/privacy";
+import { PrivacyFilterProvider, Private, PrivacyScope, PrivacyToggle } from "@/features/admin/hr/privacy";
 
 const savePdf = (slip: MyPayslip, employee: Employee) => {
   const bytes = buildPayslipPdf(slip.run, slip, employee);
@@ -222,7 +222,6 @@ const MyHrPage = () => {
             <div className="flex items-center gap-3">
               <UserRound className="h-6 w-6 text-muted-foreground" />
               <h1 className="text-2xl font-bold">{employee ? employeeDisplayName(employee) : "My HR"}</h1>
-              {employee && <div className="ml-auto"><PrivacyToggle /></div>}
             </div>
             {error ? (
               <p className="text-destructive">Could not load your record: {(error as Error).message}</p>
@@ -243,10 +242,10 @@ const MyHrPage = () => {
                   <TabsTrigger value="assessment">Assessment</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                 </TabsList>
-                <TabsContent value="payslips"><PayslipsTab employee={employee} /></TabsContent>
+                <TabsContent value="payslips"><PrivacyScope><PayslipsTab employee={employee} /></PrivacyScope></TabsContent>
                 <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
-                <TabsContent value="tax"><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} readOnly /></Private></TabsContent>
-                <TabsContent value="assessment"><Private block><EmployeeAssessmentTab employeeId={employee.id} readOnly /></Private></TabsContent>
+                <TabsContent value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} readOnly /></Private></PrivacyScope></TabsContent>
+                <TabsContent value="assessment"><PrivacyScope><Private block><EmployeeAssessmentTab employeeId={employee.id} readOnly /></Private></PrivacyScope></TabsContent>
                 <TabsContent value="profile"><ProfileTab employee={employee} /></TabsContent>
               </Tabs>
             )}

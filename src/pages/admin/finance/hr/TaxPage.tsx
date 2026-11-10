@@ -18,7 +18,7 @@ const TaxPage = () => {
   const active = employees.filter((e) => e.status !== "terminated");
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
       <AdminPageHeader icon={Receipt} title="Income tax" tooltip="Each employee's estimated income tax for the year against PAYE withheld, and reliefs they haven't claimed.">
         <label htmlFor="tax-year" className="sr-only">Tax year</label>
         <select id="tax-year" data-tour="hr-tax-year" value={year} onChange={(e) => setYear(Number(e.target.value))} className="h-9 rounded-md border border-input bg-background px-3 text-sm">

@@ -13,6 +13,8 @@ export interface PayrollRun {
   pay_date: string | null;
   status: PayrollRunStatus;
   notes: string | null;
+  /** Employees deliberately left out of this run; recalculating keeps them out. */
+  excluded_employee_ids?: string[] | null;
   approved_at: string | null;
   paid_at: string | null;
   created_at: string;
@@ -193,11 +195,12 @@ export interface Skipped {
 }
 
 /** Recalculates every payslip in a draft run from current employee pay data, keeping one-off adjustments and overrides. */
-const calculateRun = async (runId: string, periodStart: string, editsByEmployee: Map<string, PayslipEdits>) => {
+const calculateRun = async (runId: string, periodStart: string, editsByEmployee: Map<string, PayslipEdits>, excludedIds: string[] = []) => {
   const data = await loadPayrollData(periodStart);
   const rows = [];
   const skipped: Skipped[] = [];
-  for (const employee of data.employees) {
+  const excluded = new Set(excludedIds);
+  for (const employee of data.employees.filter((e) => !excluded.has(e.id))) {
     const result = buildPayslip(data, employee, periodStart, editsByEmployee.get(employee.id) ?? { adjustments: [], overrides: {} });
     if (result.row) rows.push({ ...result.row, run_id: runId });
     else skipped.push({ employeeId: employee.id, reason: result.skip });
@@ -210,9 +213,11 @@ const calculateRun = async (runId: string, periodStart: string, editsByEmployee:
 export const useCreatePayrollRun = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ periodStart, payDate }: { periodStart: string; payDate: string | null }) => {
-      const run = unwrap(await db.from("payroll_runs").insert({ period_start: periodStart, pay_date: payDate }).select().single()) as PayrollRun;
-      const skipped = await calculateRun(run.id, periodStart, new Map());
+    mutationFn: async ({ periodStart, payDate, excludedIds = [] }: { periodStart: string; payDate: string | null; excludedIds?: string[] }) => {
+      // The column is only sent when used, so a run with everyone selected never depends on it.
+      const values = { period_start: periodStart, pay_date: payDate, ...(excludedIds.length ? { excluded_employee_ids: excludedIds } : {}) };
+      const run = unwrap(await db.from("payroll_runs").insert(values).select().single()) as PayrollRun;
+      const skipped = await calculateRun(run.id, periodStart, new Map(), excludedIds);
       return { run, skipped };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["hr"] }),
@@ -230,7 +235,7 @@ export const useRecalculatePayrollRun = () => {
         const current = byEmployee.get(edit.employeeId) ?? { adjustments: [], overrides: {} };
         byEmployee.set(edit.employeeId, { adjustments: edit.adjustments ?? current.adjustments, overrides: edit.overrides ?? current.overrides });
       }
-      return calculateRun(run.id, run.period_start, byEmployee);
+      return calculateRun(run.id, run.period_start, byEmployee, run.excluded_employee_ids ?? []);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["hr"] }),
   });
@@ -252,6 +257,32 @@ export const RUN_STATUS_LABELS: Record<PayrollRunStatus, string> = { draft: "Dra
 
 export const periodLabel = (periodStart: string) =>
   new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${periodStart}T00:00:00Z`));
+
+/** The pay day in the given month; a 31st pay day lands on the last day of a shorter month. */
+export const payDateFor = (periodStart: string, payDay: number) => {
+  const end = Number(periodEnd(periodStart).slice(8));
+  return `${periodStart.slice(0, 8)}${String(Math.min(payDay, end)).padStart(2, "0")}`;
+};
+
+/** The pay day an employee is paid by in the period, from their pay record in force. */
+export const currentPayDay = (compensation: Compensation[], employeeId: string, periodStart: string) =>
+  compensation
+    .filter((c) => c.employee_id === employeeId && inPeriod(c.effective_from, c.effective_to, periodStart, periodEnd(periodStart)))
+    .sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0]?.pay_day ?? null;
+
+/** Everyone who could be paid in a new run, with their pay day, for the selection list. */
+export const usePayableEmployees = (periodStart: string) =>
+  useQuery({
+    queryKey: ["hr", "payable_employees", periodStart],
+    queryFn: async () => {
+      const [employees, compensation] = await Promise.all([
+        db.from("employees").select("*").neq("status", "terminated").order("last_name").order("first_name"),
+        db.from("employee_compensation").select("*"),
+      ]);
+      const comp = unwrap(compensation) as Compensation[];
+      return (unwrap(employees) as Employee[]).map((employee) => ({ employee, payDay: currentPayDay(comp, employee.id, periodStart) }));
+    },
+  });
 
 /** NIS, PAYE and the levy are due to the authorities by the 15th of the following month. */
 export const remittanceDue = (periodStart: string) => {
