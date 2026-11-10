@@ -42,6 +42,8 @@ export interface Compensation {
   annual_personal_allowance: number;
   annual_child_allowance: number;
   annual_other_allowance: number;
+  /** Day of the month they are paid by (1–31; short months pay on the last day). */
+  pay_day: number | null;
   effective_from: string;
   effective_to: string | null;
   reason: string | null;

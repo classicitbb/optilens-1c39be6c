@@ -20,6 +20,7 @@ export const hrTooltips = {
   // Compensation
   "hr.compensation.baseAmount": "Gross pay per pay period before any deductions.",
   "hr.compensation.effectiveFrom": "The first day the new pay applies. The current record is closed the day before.",
+  "hr.compensation.payDay": "The day of the month this person is paid by. A new payroll run suggests the most common pay day as its pay date; a 31st lands on the last day of shorter months.",
   "hr.compensation.personalAllowance": "Yearly PAYE allowance. Payroll spreads it over 12 months before working out tax.",
   "hr.compensation.childAllowance": "Yearly child allowance claimed for PAYE, spread over 12 months.",
   "hr.compensation.otherAllowance": "Any other yearly PAYE allowance you claim for this employee, spread over 12 months.",
@@ -40,7 +41,7 @@ export const hrTooltips = {
   // Payroll runs
   "hr.payroll.newRun": "Works out every active employee's payslip for the month. Nothing is final until you approve the run.",
   "hr.payroll.month": "The month being paid. Defaults to the month after the latest run.",
-  "hr.payroll.payDate": "The day staff are paid. Shown on the run; it does not change the figures.",
+  "hr.payroll.payDate": "The day staff are paid. Suggested from the pay days on the employees being paid; it does not change the figures.",
 
   // One payroll run
   "hr.payrollRun.recalculate": "Rebuilds every payslip from the current pay setup and approved leave. Use it after changing pay, pay items, allowances or leave. One-off items and amounts you edited are kept.",

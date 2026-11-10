@@ -39,7 +39,7 @@ import EmployeeContractsTab from "@/features/admin/hr/EmployeeContractsTab";
 import EmployeeAssessmentTab from "@/features/admin/hr/EmployeeAssessmentTab";
 import HelpTip from "@/help/HelpTip";
 import { linkEmployeeLogin, useEmployeeLoginEmail } from "@/features/admin/hr/self/useMyHr";
-import { Private, PrivacyToggle } from "@/features/admin/hr/privacy";
+import { Private, PrivacyScope } from "@/features/admin/hr/privacy";
 
 const ContactLink = ({ employee }: { employee: Employee }) => {
   const { toast } = useToast();
@@ -212,6 +212,8 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
     </form>
   );
 };
+const ordinal = (n: number) => (n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th");
+
 const CompensationTab = ({ employeeId }: { employeeId: string }) => {
   const { data: rows = [] } = useEmployeeRows<Compensation>("employee_compensation", employeeId, "effective_from");
   const mutate = useHrMutation("employee_compensation");
@@ -222,9 +224,10 @@ const CompensationTab = ({ employeeId }: { employeeId: string }) => {
     <div className="space-y-4">
       <Section title="Current pay">
         {current ? (
-          <dl className="grid gap-3 text-sm sm:grid-cols-3">
+          <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div><dt className="text-muted-foreground">Base ({current.pay_frequency.replace("_", "-")})</dt><dd className="text-lg font-semibold">{money(current.base_amount, current.currency)}</dd></div>
             <div><dt className="text-muted-foreground">Annual allowances</dt><dd>{money(current.annual_personal_allowance + current.annual_child_allowance + current.annual_other_allowance, current.currency)}</dd></div>
+            <div><dt className="text-muted-foreground">Pay day</dt><dd>{current.pay_day ? `${current.pay_day}${ordinal(current.pay_day)} of the month` : "Not set"}</dd></div>
             <div><dt className="text-muted-foreground">Effective from</dt><dd>{day(current.effective_from)}</dd></div>
           </dl>
         ) : <p className="text-sm text-muted-foreground">No pay set up yet.</p>}
@@ -241,6 +244,8 @@ const CompensationTab = ({ employeeId }: { employeeId: string }) => {
                 end.setDate(end.getDate() - 1);
                 await mutate.mutateAsync({ update: { id: current.id, values: { effective_to: end.toISOString().slice(0, 10) } } });
               }
+              // A blank pay day is left out so the record still saves before the pay_day column exists.
+              if (v.pay_day == null) delete v.pay_day;
               await mutate.mutateAsync({ insert: { ...v, employee_id: employeeId } });
             }, "Pay updated")(event);
           }}
@@ -248,6 +253,7 @@ const CompensationTab = ({ employeeId }: { employeeId: string }) => {
         >
           <Field label="Pay type" htmlFor="pay_type"><NativeSelect id="pay_type" name="pay_type" defaultValue={current?.pay_type} options={{ salary: "Salary", hourly: "Hourly" }} /></Field>
           <Field label="Frequency" htmlFor="pay_frequency"><NativeSelect id="pay_frequency" name="pay_frequency" defaultValue={current?.pay_frequency} options={{ monthly: "Monthly", semi_monthly: "Semi-monthly", fortnightly: "Fortnightly", weekly: "Weekly" }} /></Field>
+          <Field label="Pay day (of month)" htmlFor="pay_day" tip="hr.compensation.payDay"><Input id="pay_day" name="pay_day" type="number" step="1" min="1" max="31" placeholder="e.g. 25" defaultValue={current?.pay_day ?? ""} /></Field>
           <Field label="Base amount" htmlFor="base_amount" tip="hr.compensation.baseAmount"><Input id="base_amount" name="base_amount" type="number" step="0.01" min="0" required className={fieldInputClass} /></Field>
           <Field label="Effective from" htmlFor="effective_from" tip="hr.compensation.effectiveFrom"><Input id="effective_from" name="effective_from" type="date" required className={fieldInputClass} /></Field>
           <Field label="Personal allowance (yr)" htmlFor="annual_personal_allowance" tip="hr.compensation.personalAllowance"><Input id="annual_personal_allowance" name="annual_personal_allowance" type="number" step="0.01" min="0" defaultValue={current?.annual_personal_allowance ?? 0} /></Field>
@@ -518,7 +524,7 @@ const EmployeeDetailPage = () => {
   if (!employee) return <div className="p-4">Employee not found. <Link to="/admin/finance/people" className="underline">Back to People</Link></div>;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-3 p-3 sm:p-4">
       <Link to="/admin/finance/people" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:underline">
         <ArrowLeft className="h-4 w-4" /> People
       </Link>
@@ -526,12 +532,11 @@ const EmployeeDetailPage = () => {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {employee.job_title && <span>{employee.job_title}</span>}
           <Badge variant={employee.status === "active" ? "default" : "outline"}>{STATUS_LABELS[employee.status]}</Badge>
-          <PrivacyToggle />
         </div>
       </AdminPageHeader>
 
-      <Tabs defaultValue={searchParams.get("tab") ?? "profile"}>
-        <TabsList className="flex h-auto flex-wrap justify-start" data-tour="hr-employee-tabs">
+      <Tabs defaultValue={searchParams.get("tab") ?? "profile"} className="space-y-3">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-0.5" data-tour="hr-employee-tabs">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="pay" data-tour="hr-employee-tab-pay">Compensation</TabsTrigger>
           <TabsTrigger value="items" data-tour="hr-employee-tab-items">Pay items</TabsTrigger>
@@ -543,20 +548,20 @@ const EmployeeDetailPage = () => {
           <TabsTrigger value="assessment">Assessment</TabsTrigger>
           <TabsTrigger value="notes" data-tour="hr-employee-tab-notes">Notes</TabsTrigger>
         </TabsList>
-        <TabsContent value="profile" className="space-y-4">
+        <TabsContent value="profile" className="mt-0 space-y-3">
           <ProfileTab employeeId={employeeId} />
           <ContactLink employee={employee} />
           <LoginLink employee={employee} />
         </TabsContent>
-        <TabsContent value="pay"><Private block><CompensationTab employeeId={employeeId} /></Private></TabsContent>
-        <TabsContent value="items"><Private block><PayItemsTab employeeId={employeeId} /></Private></TabsContent>
+        <TabsContent value="pay"><PrivacyScope><Private block><CompensationTab employeeId={employeeId} /></Private></PrivacyScope></TabsContent>
+        <TabsContent value="items"><PrivacyScope><Private block><PayItemsTab employeeId={employeeId} /></Private></PrivacyScope></TabsContent>
         <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
-        <TabsContent value="tax"><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></TabsContent>
+        <TabsContent value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></PrivacyScope></TabsContent>
         <TabsContent value="ids"><IdentityTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="positions"><EmployeePositionsTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="contracts"><EmployeeContractsTab employeeId={employeeId} /></TabsContent>
         <TabsContent value="assessment"><EmployeeAssessmentTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="notes"><NotesTab employeeId={employeeId} /></TabsContent>
+        <TabsContent value="notes"><PrivacyScope><NotesTab employeeId={employeeId} /></PrivacyScope></TabsContent>
       </Tabs>
     </div>
   );

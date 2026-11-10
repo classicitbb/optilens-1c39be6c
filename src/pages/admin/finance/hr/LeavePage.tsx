@@ -27,7 +27,7 @@ const LeavePage = () => {
   const activeTypes = types.filter((t) => t.active);
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
       <AdminPageHeader icon={CalendarDays} title="Leave" tooltip="Vacation, sick, maternity, paternity and unpaid leave. Unpaid and NIS-paid days come off pay in the payroll run for that month.">
         <Button size="sm" onClick={() => setAdding(true)} data-tour="hr-leave-record"><Plus className="mr-1 h-4 w-4" /> Record leave</Button>
         <HelpTip id="hr.leave.record" side="bottom" />

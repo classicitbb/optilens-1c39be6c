@@ -100,7 +100,7 @@ const EmployeesPage = () => {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
       <AdminPageHeader icon={Users} title="People" tooltip="Employee records, pay setup and HR notes. Visible to admins and the office administrator.">
         <div className="flex items-center gap-1.5">
           <HelpTip id="hr.people.add" side="left" />
@@ -111,21 +111,21 @@ const EmployeesPage = () => {
       </AdminPageHeader>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full max-w-xs" data-tour="hr-people-search">
+        <div className="relative w-full sm:w-64" data-tour="hr-people-search">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input aria-label="Search employees" placeholder="Search name, title, number…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
         </div>
         <HelpTip id="hr.people.search" />
         <div className="flex flex-wrap items-center gap-2" data-tour="hr-people-filters">
           <Select value={status} onValueChange={(v) => setStatus(v as EmployeeStatus | "all")}>
-            <SelectTrigger className="w-36" aria-label="Status"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-32" aria-label="Status"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               {Object.entries(STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={department} onValueChange={setDepartment}>
-            <SelectTrigger className="w-44" aria-label="Department"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-40" aria-label="Department"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All departments</SelectItem>
               {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
@@ -133,13 +133,13 @@ const EmployeesPage = () => {
           </Select>
           <HelpTip id="hr.people.status" />
         </div>
-        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "list" | "chart" | "positions" | "departments")} variant="outline" size="sm" className="ml-auto" aria-label="View">
-          <ToggleGroupItem value="list" aria-label="List view"><List className="mr-1 h-4 w-4" /> List</ToggleGroupItem>
-          <ToggleGroupItem value="chart" aria-label="Org chart view"><Network className="mr-1 h-4 w-4" /> Org chart</ToggleGroupItem>
-          <ToggleGroupItem value="positions" aria-label="Positions view"><Briefcase className="mr-1 h-4 w-4" /> Positions</ToggleGroupItem>
-          <ToggleGroupItem value="departments" aria-label="Departments view"><Building2 className="mr-1 h-4 w-4" /> Departments</ToggleGroupItem>
+        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "list" | "chart" | "positions" | "departments")} variant="outline" size="sm" className="flex-wrap sm:ml-auto" aria-label="View">
+          <ToggleGroupItem value="list" aria-label="List view"><List className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">List</span></ToggleGroupItem>
+          <ToggleGroupItem value="chart" aria-label="Org chart view"><Network className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Org chart</span></ToggleGroupItem>
+          <ToggleGroupItem value="positions" aria-label="Positions view"><Briefcase className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Positions</span></ToggleGroupItem>
+          <ToggleGroupItem value="departments" aria-label="Departments view"><Building2 className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Departments</span></ToggleGroupItem>
         </ToggleGroup>
-        <span className="text-sm text-muted-foreground">{visible.length} of {employees.length}</span>
+        <span className="whitespace-nowrap text-sm text-muted-foreground">{visible.length} of {employees.length}</span>
       </div>
 
       {view === "departments" ? (
@@ -167,9 +167,9 @@ const EmployeesPage = () => {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Job title</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Managers</TableHead>
-              <TableHead>Hired</TableHead>
+              <TableHead className="hidden md:table-cell">Department</TableHead>
+              <TableHead className="hidden lg:table-cell">Managers</TableHead>
+              <TableHead className="hidden xl:table-cell">Hired</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -190,13 +190,13 @@ const EmployeesPage = () => {
                     {e.employee_no && <span className="ml-2 text-xs text-muted-foreground">#{e.employee_no}</span>}
                   </TableCell>
                   <TableCell>{e.job_title ?? "—"}</TableCell>
-                  <TableCell>{e.department ?? "—"}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">{e.department ?? "—"}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     {managersOf.get(e.id)?.map((m, i) => (
                       <span key={m.id}>{i > 0 && ", "}{m.name}{m.note && <span className="text-xs text-muted-foreground"> ({m.note})</span>}</span>
                     )) ?? "—"}
                   </TableCell>
-                  <TableCell>{day(e.hire_date)}</TableCell>
+                  <TableCell className="hidden xl:table-cell">{day(e.hire_date)}</TableCell>
                   <TableCell><Badge variant={statusVariant(e.status)}>{STATUS_LABELS[e.status]}</Badge></TableCell>
                 </TableRow>
               ))
@@ -207,7 +207,7 @@ const EmployeesPage = () => {
       )}
 
       <Dialog open={adding} onOpenChange={setAdding}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Add employee</DialogTitle></DialogHeader>
           <form id="add-employee" onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2">
             <Field label="First name" htmlFor="first_name"><Input id="first_name" name="first_name" required className={fieldInputClass} /></Field>

@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 
 /** How long figures stay visible after "Show" before the filter comes back on its own. */
 export const REVEAL_SECONDS = 30;
+/** Pages with tabs give each tab its own, longer timer. */
+export const TAB_REVEAL_SECONDS = 60;
 
 type PrivacyState = { hidden: boolean; secondsLeft: number; reveal: () => void; hide: () => void };
 
@@ -12,9 +14,9 @@ type PrivacyState = { hidden: boolean; secondsLeft: number; reveal: () => void; 
 const PrivacyContext = createContext<PrivacyState>({ hidden: true, secondsLeft: 0, reveal: () => {}, hide: () => {} });
 
 /** Salary figures and HR notes start blurred; a user can lift the filter briefly. */
-export const PrivacyFilterProvider = ({ children }: { children: ReactNode }) => {
+export const PrivacyFilterProvider = ({ children, seconds = REVEAL_SECONDS }: { children: ReactNode; seconds?: number }) => {
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const reveal = useCallback(() => setSecondsLeft(REVEAL_SECONDS), []);
+  const reveal = useCallback(() => setSecondsLeft(seconds), [seconds]);
   const hide = useCallback(() => setSecondsLeft(0), []);
 
   useEffect(() => {
@@ -65,3 +67,14 @@ export const PrivacyToggle = () => {
     </Button>
   );
 };
+
+/**
+ * One tab's own filter. Tab content unmounts when you leave the tab, so coming back finds the
+ * figures hidden, and "Show" starts a fresh 60s countdown for this tab alone.
+ */
+export const PrivacyScope = ({ children, toggle = true }: { children: ReactNode; toggle?: boolean }) => (
+  <PrivacyFilterProvider seconds={TAB_REVEAL_SECONDS}>
+    {toggle && <div className="mb-3 flex justify-end"><PrivacyToggle /></div>}
+    {children}
+  </PrivacyFilterProvider>
+);

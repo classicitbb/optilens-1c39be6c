@@ -36,6 +36,9 @@ import {
 import { downloadPayrollArchive, useCreatePayrollArchive, usePayrollArchives } from "@/features/admin/hr/payroll/useArchives";
 import { Private, PrivacyToggle } from "@/features/admin/hr/privacy";
 
+// Lower-priority columns drop out on narrow screens; the Net column and the totals strip always stay.
+const HIDE_COLUMN: Record<string, string> = { nis: "hidden md:table-cell", paye: "hidden md:table-cell", rr_levy: "hidden lg:table-cell", other_deductions: "hidden lg:table-cell" };
+
 const sum =(rows: PayslipRow[], key: keyof PayslipRow) => rows.reduce((total, r) => total + Number(r[key]), 0);
 
 const PayslipDialog = ({
@@ -287,7 +290,9 @@ const PayrollRunPage = () => {
   const byId = new Map(employees.map((e) => [e.id, e]));
   const sorted = [...payslips].sort((a, b) => (byId.get(a.employee_id)?.last_name ?? "").localeCompare(byId.get(b.employee_id)?.last_name ?? ""));
   const included = new Set(payslips.map((p) => p.employee_id));
-  const missing = employees.filter((e) => e.status !== "terminated" && !included.has(e.id));
+  const excludedIds = new Set(run.excluded_employee_ids ?? []);
+  const missing = employees.filter((e) => e.status !== "terminated" && !included.has(e.id) && !excludedIds.has(e.id));
+  const leftOut = employees.filter((e) => e.status !== "terminated" && excludedIds.has(e.id));
   const open = payslips.find((p) => p.employee_id === openId);
 
   const perform = async (kind: "approve" | "paid" | "delete" | "recalc") => {
@@ -323,32 +328,38 @@ const PayrollRunPage = () => {
   ];
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
       <Link to="/admin/finance/payroll" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Payroll
       </Link>
       <AdminPageHeader icon={Calculator} title={`Payroll · ${periodLabel(run.period_start)}`} tooltip="Figures are worked out when the run is created or recalculated. Approving locks the run and takes loan repayments off loan balances.">
-        <PrivacyToggle />
-        <Badge variant="outline">{RUN_STATUS_LABELS[run.status]}</Badge>
-        {run.status === "draft" && (
-          <>
-            <HelpTip id="hr.payrollRun.deleteDraft" side="bottom" />
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming({ kind: "delete", text: "Delete this draft payroll run?" })}>Delete draft</Button>
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => void perform("recalc")} data-tour="hr-run-recalculate">Recalculate</Button>
-            <HelpTip id="hr.payrollRun.recalculate" side="bottom" />
-            <Button size="sm" disabled={busy || payslips.length === 0} data-tour="hr-run-approve"
-              onClick={() => setConfirming({ kind: "approve", text: `Approve ${periodLabel(run.period_start)} payroll? It will be locked and loan balances reduced.` })}>
-              Approve
-            </Button>
-            <HelpTip id="hr.payrollRun.approve" side="bottom" />
-          </>
-        )}
-        {run.status === "approved" && (
-          <>
-            <Button size="sm" disabled={busy} onClick={() => setConfirming({ kind: "paid", text: "Mark this payroll run as paid?" })} data-tour="hr-run-mark-paid">Mark paid</Button>
-            <HelpTip id="hr.payrollRun.markPaid" side="bottom" />
-          </>
-        )}
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Badge variant="outline">{RUN_STATUS_LABELS[run.status]}</Badge>
+          <PrivacyToggle />
+          {run.status === "draft" && (
+            <>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirming({ kind: "delete", text: "Delete this draft payroll run?" })}>
+                <Trash2 className="mr-1 h-4 w-4" /> Delete
+              </Button>
+              <HelpTip id="hr.payrollRun.deleteDraft" side="bottom" />
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => void perform("recalc")} data-tour="hr-run-recalculate">
+                <RotateCcw className="mr-1 h-4 w-4" /> Recalculate
+              </Button>
+              <HelpTip id="hr.payrollRun.recalculate" side="bottom" />
+              <Button size="sm" disabled={busy || payslips.length === 0} data-tour="hr-run-approve"
+                onClick={() => setConfirming({ kind: "approve", text: `Approve ${periodLabel(run.period_start)} payroll? It will be locked and loan balances reduced.` })}>
+                <Check className="mr-1 h-4 w-4" /> Approve
+              </Button>
+              <HelpTip id="hr.payrollRun.approve" side="bottom" />
+            </>
+          )}
+          {run.status === "approved" && (
+            <>
+              <Button size="sm" disabled={busy} onClick={() => setConfirming({ kind: "paid", text: "Mark this payroll run as paid?" })} data-tour="hr-run-mark-paid">Mark paid</Button>
+              <HelpTip id="hr.payrollRun.markPaid" side="bottom" />
+            </>
+          )}
+        </div>
       </AdminPageHeader>
 
       <AlertDialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
@@ -363,21 +374,26 @@ const PayrollRunPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <p className="flex items-center gap-1 text-sm text-muted-foreground">
-        Pay date {day(run.pay_date)} · NIS, PAYE and R&amp;R due by {day(remittanceDue(run.period_start))}
-        <HelpTip id="hr.payrollRun.totals" />
-      </p>
-
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5" data-tour="hr-run-totals">
-        {totals.map((t) => (
-          <Card key={t.label}>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{t.label}</p>
-              <p className="text-lg font-semibold tabular-nums"><Private>{money(t.value)}</Private></p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card data-tour="hr-run-totals">
+        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
+          <div>
+            <p className="text-xs text-muted-foreground">Net pay · {payslips.length} {payslips.length === 1 ? "employee" : "employees"}</p>
+            <p className="text-lg font-semibold tabular-nums leading-tight"><Private>{money(totals[totals.length - 1].value)}</Private></p>
+          </div>
+          <dl className="flex flex-wrap gap-x-5 gap-y-1 border-l pl-6 text-sm">
+            {totals.slice(0, -1).map((t) => (
+              <div key={t.label} className="flex items-baseline gap-1.5">
+                <dt className="text-xs text-muted-foreground">{t.label}</dt>
+                <dd className="font-medium tabular-nums"><Private>{money(t.value)}</Private></dd>
+              </div>
+            ))}
+          </dl>
+          <p className="flex items-center gap-1 text-xs text-muted-foreground sm:ml-auto">
+            Pay date {day(run.pay_date)} · NIS, PAYE and R&amp;R due {day(remittanceDue(run.period_start))}
+            <HelpTip id="hr.payrollRun.totals" />
+          </p>
+        </CardContent>
+      </Card>
 
       {run.status !== "draft" && <ArchiveCard run={run} payslips={payslips} employees={employees} />}
 
@@ -388,16 +404,20 @@ const PayrollRunPage = () => {
         </p>
       )}
 
+      {leftOut.length > 0 && (
+        <p className="text-sm text-muted-foreground">Not paid in this run (left out on purpose): {leftOut.map(employeeDisplayName).join(", ")}</p>
+      )}
+
       <div className="overflow-x-auto rounded-md border" data-tour="hr-run-payslips">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Employee</TableHead>
               <TableHead className="text-right">Gross</TableHead>
-              <TableHead className="text-right">NIS</TableHead>
-              <TableHead className="text-right">PAYE</TableHead>
-              <TableHead className="text-right">R&amp;R</TableHead>
-              <TableHead className="text-right">Other deductions</TableHead>
+              <TableHead className="hidden text-right md:table-cell">NIS</TableHead>
+              <TableHead className="hidden text-right md:table-cell">PAYE</TableHead>
+              <TableHead className="hidden text-right lg:table-cell">R&amp;R</TableHead>
+              <TableHead className="hidden text-right lg:table-cell">Other ded.</TableHead>
               <TableHead className="text-right">Net</TableHead>
             </TableRow>
           </TableHeader>
@@ -416,10 +436,10 @@ const PayrollRunPage = () => {
                       {p.warnings.length > 0 && <AlertTriangle className="ml-2 inline h-4 w-4 text-amber-600" aria-label="Has warnings" />}
                     </TableCell>
                     <TableCell className="text-right tabular-nums"><Private>{money(p.gross)}</Private></TableCell>
-                    <TableCell className="text-right tabular-nums"><Private>{money(p.nis)}</Private></TableCell>
-                    <TableCell className="text-right tabular-nums"><Private>{money(p.paye)}</Private></TableCell>
-                    <TableCell className="text-right tabular-nums"><Private>{money(p.rr_levy)}</Private></TableCell>
-                    <TableCell className="text-right tabular-nums"><Private>{money(p.other_deductions)}</Private></TableCell>
+                    <TableCell className="hidden text-right tabular-nums md:table-cell"><Private>{money(p.nis)}</Private></TableCell>
+                    <TableCell className="hidden text-right tabular-nums md:table-cell"><Private>{money(p.paye)}</Private></TableCell>
+                    <TableCell className="hidden text-right tabular-nums lg:table-cell"><Private>{money(p.rr_levy)}</Private></TableCell>
+                    <TableCell className="hidden text-right tabular-nums lg:table-cell"><Private>{money(p.other_deductions)}</Private></TableCell>
                     <TableCell className="text-right font-medium tabular-nums"><Private>{money(p.net)}</Private></TableCell>
                   </TableRow>
                 );
@@ -431,7 +451,7 @@ const PayrollRunPage = () => {
               <TableRow>
                 <TableCell>Total</TableCell>
                 {(["gross", "nis", "paye", "rr_levy", "other_deductions", "net"] as const).map((k) => (
-                  <TableCell key={k} className="text-right tabular-nums"><Private>{money(sum(payslips, k))}</Private></TableCell>
+                  <TableCell key={k} className={`text-right tabular-nums ${HIDE_COLUMN[k] ?? ""}`}><Private>{money(sum(payslips, k))}</Private></TableCell>
                 ))}
               </TableRow>
             </TableFooter>
