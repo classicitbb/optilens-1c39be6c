@@ -633,7 +633,9 @@ Deno.serve(async (req) => {
     }
 
     if (operation === "prepare-erp-rollout" || operation === "submit-command") {
-      const command = stringValue(body.command, 2000);
+      // Outreach requests paste in contact research and a draft brief, which
+      // routinely runs past 2,000 characters. command_text is unbounded text.
+      const command = stringValue(body.command, 12000);
       const inputMode = body.inputMode === "voice" ? "voice" : "text";
       const transcriptConfirmed = body.transcriptConfirmed === true;
       // The page the admin is looking at. Client-supplied, so it is resolved
