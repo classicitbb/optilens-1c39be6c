@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 import { contactHasPhone, parseRecordingName, phonesMatch, toDialDigits } from "../../../supabase/functions/_shared/pbx/calls";
 
 describe("toDialDigits", () => {
-  it("treats 7-digit numbers as local Barbados (+1 246)", () => {
-    expect(toDialDigits("434-5678")).toBe("12464345678");
+  it("dials Barbados numbers as 7 digits, the form the PBX's local routes match", () => {
+    expect(toDialDigits("434-5678")).toBe("4345678");
+    expect(toDialDigits("(246) 434 5678")).toBe("4345678");
+    expect(toDialDigits("+1 246 434 5678")).toBe("4345678");
   });
-  it("adds the NANP country code to 10-digit numbers", () => {
-    expect(toDialDigits("(246) 434 5678")).toBe("12464345678");
+  it("dials other North American numbers as 1 + 10 digits", () => {
+    expect(toDialDigits("(305) 555 0100")).toBe("13055550100");
+    expect(toDialDigits("+1 305 555 0100")).toBe("13055550100");
   });
-  it("keeps international numbers as digits", () => {
-    expect(toDialDigits("+44 20 7946 0958")).toBe("442079460958");
+  it("does not dial numbers the PBX has no outbound route for", () => {
+    expect(toDialDigits("+44 20 7946 0958")).toBeNull();
   });
   it("rejects numbers that cannot be dialled", () => {
     expect(toDialDigits("12345")).toBeNull();

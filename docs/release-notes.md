@@ -2,7 +2,7 @@
 
 Summarized release outcomes for each major date-stamped update.
 
-## 2026-11-06 — Guided CRM outreach (local, not deployed)
+## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
 
 ### Release Notes
 
@@ -47,11 +47,12 @@ Summarized release outcomes for each major date-stamped update.
 - Payroll: NIS, PAYE and R&R now round to the nearest dollar (halves up). On a draft payslip every deduction can be edited; edits are marked with the calculated figure, survive Recalculate, and can be reset.
 - Employees can be linked to a CRM contact (or have one created from their details). A contact that an employee, customer account, portal account, opportunity, helpdesk ticket, order, walk-in payment or call points to can no longer be deleted; bulk delete and purge skip those and say which were kept.
 - Employee notes can be edited.
+- The FreePBX agent now controls calls through Asterisk's manager interface (AMI) instead of the PBX's command line, so it can run on any office machine without a login on the PBX. Website calls now carry the staff member's extension as caller ID, so FreePBX applies that extension's outbound route. Needs an AMI user made in FreePBX (Settings > Asterisk Manager Users), limited to the agent machine. Recording uploads still need the PBX's recording folder; calls work without it. Not installed or tested on the real PBX.
 
 ## 2026-10-30 — FreePBX call panel with hang up and record (local source)
 
 ### Release Notes
-- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
+- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Barbados numbers are now dialled as 7 digits, which the PBX's local routes expect (`1246…` went to the password-protected overseas route); other international numbers are not dialled because the PBX has no route for them. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
 
 ## 2026-10-30 — In-app confirm dialogs across the admin
 

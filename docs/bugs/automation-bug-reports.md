@@ -86,3 +86,6 @@ PBX call panel (2026-10-30, local source): the agent's channel matching assumes 
 ## CRM smoke route drift and shared preview cache — 2026-11-06
 
 The harness still expected the retired CRM proposal page and its former legacy destination. It now asserts the current admin-only pricing publisher and redirect, preserving the checks rather than skipping them. A second local Vite server can also invalidate the active preview's optimized-module cache; opt-in existing-server smoke avoids launching that second process and clearly reports that it did not capture startup diagnostics.
+
+
+PBX agent over AMI (2026-11-09, local source): unconfirmed on the real PBX: AMI login and permissions, the caller ID the customer sees, and `ChannelId` on Originate (Asterisk 13+; the PBX runs 16.30). Recording uploads need the PBX folder reachable from the agent machine.

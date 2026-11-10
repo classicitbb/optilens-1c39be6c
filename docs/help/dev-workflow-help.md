@@ -124,3 +124,6 @@ PBX call panel (2026-10-30, local source): apply `20261030120000_pbx_call_contro
 ## Reuse an active preview for smoke checks — 2026-11-06
 
 Set SMOKE_EXISTING_SERVER=1 and SMOKE_PORT to the existing local preview port, then run `npm run qa:smoke`. The listener is left running. This mode runs route/wiring/access checks but cannot inspect startup output from a server it did not launch. Omit SMOKE_EXISTING_SERVER for the normal standalone smoke run.
+
+
+PBX agent over AMI (2026-11-09, local source): create the AMI user in FreePBX Settings > Asterisk Manager Users (permit the agent machine only; read call,reporting; write originate,call,reporting), then follow `docs/pbx-calls-setup.md` steps 5-7. Keep secrets in `pbx-agent.env`, never in git or chat.

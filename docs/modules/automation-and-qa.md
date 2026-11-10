@@ -82,3 +82,6 @@ PBX call panel (2026-10-30, local source): the agent reports website calls with 
 ## CRM release smoke verification — 2026-11-06
 
 The admin smoke harness now verifies the current admin-only pricing publisher and its existing legacy redirect after the CRM proposal editor retirement. Optional SMOKE_EXISTING_SERVER=1 reuses the running listener chosen by SMOKE_PORT; it never starts or stops that listener. All route, wiring, redirect and role checks still run. Startup/transform output is captured only when the harness starts its own server. This prevents a parallel smoke server from replacing the active preview's optimized dependency cache.
+
+
+PBX agent over AMI (2026-11-09, local source): the agent talks to Asterisk's manager interface on port 5038 instead of `asterisk -rx`, so it can run on a LAN machine. Settings may come from `pbx-agent.env` beside the script (gitignored). Exercised against a fake AMI server speaking the wire protocol; not run against the real PBX.

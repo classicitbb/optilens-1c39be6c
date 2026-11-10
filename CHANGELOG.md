@@ -1,6 +1,8 @@
 # Changelog
 
-## 2026-11-06 — Guided CRM outreach (local, not deployed)
+## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
+
+### 2026-11-06 — Guided CRM outreach (local, not deployed)
 
 - Repeatable practice mode uses separate saved activities/drafts and simulates sending, replies and outcomes without delivery or customer-stage changes; Reset practice preserves reusable content. Outbox blocks sending practice messages.
 
@@ -69,13 +71,19 @@
 - Migrations (all applied live 2026-10-30): `20261030140000_employee_contact_link.sql` (`employees.contact_id`, `contact_link_kinds`, `contacts_delete_guard` trigger, `delete_unlinked_contacts` RPC, `employee_notes.updated_at`), `20261030150000_payslip_overrides.sql` (`payslips.overrides`), `20261030160000_hr_leave.sql` (leave_policy, leave_types seeded with statutory defaults, leave_requests, leave_adjustments, `cancel_own_leave_request`), `20261030170000_employee_tax_years.sql`.
 - `src/features/admin/hr/leave/leaveBalance.ts` and `src/features/admin/hr/tax/annualTax.ts`: pure balance and annual-tax calculations with unit tests; payroll engine gains `overrides` and `statutoryRounding`.
 
+## Release Notes
+- The FreePBX agent now controls calls through Asterisk's manager interface (AMI) instead of the PBX's command line, so it can run on any office machine without a login on the PBX. Website calls now carry the staff member's extension as caller ID, so FreePBX applies that extension's outbound route. Needs an AMI user made in FreePBX (Settings > Asterisk Manager Users), limited to the agent machine. Recording uploads still need the PBX's recording folder; calls work without it. Not installed or tested on the real PBX.
+
+### Technical Changelog
+- `scripts/pbx-agent/pbx_agent.py`: AMI client (stdlib sockets, `Events: off`, one short connection per poll); `Originate` with `ChannelId` = request id and the extension as caller ID; channel tracking by `Uniqueid` from `CoreShowChannels`; `Hangup` / `MixMonitor` / `StopMixMonitor`; optional `pbx-agent.env` beside the script; recording scan skipped when `PBX_MONITOR_DIR` is not reachable. `.gitignore` covers the env and state files. Verified against a fake AMI server only.
+
 ## 2026-10-30 — FreePBX call panel with hang up and record (local source)
 
 ### Release Notes
-- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
+- After Call, the contact's Calls tab shows the call's progress (your phone ringing, dialling the customer, connected with a timer, ended) with Hang up, Record and Stop recording buttons. Record asks you to confirm you told the customer, and stays off on the PBX agent until the consent and retention plan is agreed. The agent now rings the staff phone directly so an unanswered call can't reach voicemail and then dial the customer. Barbados numbers are now dialled as 7 digits, which the PBX's local routes expect (`1246…` went to the password-protected overseas route); other international numbers are not dialled because the PBX has no route for them. Needs migration `20261030120000_pbx_call_controls.sql`, function redeploys and the agent update; not applied, deployed or tested on the real PBX.
 
 ### Technical Changelog
-- Add `call_requests` progress columns (`recording`, `control`, `connected_at`, `ended_at`, `updated_at`) and new statuses; `pbx-agent` `sync` action; `pbx-calls` `control` action and a live-call guard; agent tracks channels from `core show channels concise` and uses `channel request hangup` / `mixmonitor start|stop`, gated by `PBX_ALLOW_RECORDING`. Agent logic exercised against fakes only; app TypeScript passes.
+- Add `call_requests` progress columns (`recording`, `control`, `connected_at`, `ended_at`, `updated_at`) and new statuses; `pbx-agent` `sync` action; `pbx-calls` `control` action and a live-call guard; agent tracks channels from `core show channels concise` and uses `channel request hangup` / `mixmonitor start|stop`, gated by `PBX_ALLOW_RECORDING`. `toDialDigits` matches the real outbound routes found by read-only discovery (findings in `docs/pbx-calls-setup.md`). Agent logic exercised against fakes only; app TypeScript passes.
 
 ## 2026-10-30 — In-app confirm dialogs across the admin
 

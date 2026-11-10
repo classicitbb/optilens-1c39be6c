@@ -456,3 +456,5 @@ The edit page loads the saved order before the stock entry panel opens.
 On the homepage, pull the rounded handle down or tap it to open shortcuts. Pull it up, tap outside, or press Escape to close. Scroll the list normally; swiping up again at the end closes it. Approved customers get Start an Rx order, Check my orders and Buy supplies.
 
 Call panel (2026-10-30, local source): after you press Call, the Calls tab shows whether your phone is ringing, the customer is being dialled or you are connected, with Hang up, Record and Stop recording buttons. Tell the customer before recording and stop while they give card details.
+
+Calling from the website (2026-10-30, local source): Barbados and North American numbers can be called. Calls to North American numbers outside Barbados ask for the office's overseas-calls password on your phone after you pick up. Other international numbers can't be dialled from the website yet.
