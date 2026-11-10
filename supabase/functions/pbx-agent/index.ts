@@ -213,9 +213,11 @@ Deno.serve(async (req) => {
     }
 
     const contactId = await findContactId(admin, parsed.remoteNumber, parsed.extension, recordedAt);
-    const { data: staff } = parsed.extension
-      ? await admin.from("staff_extensions").select("user_id").eq("extension", parsed.extension).maybeSingle()
+    // An extension can be shared by several people; only attribute the call when exactly one login has it.
+    const { data: holders } = parsed.extension
+      ? await admin.from("staff_extensions").select("user_id").eq("extension", parsed.extension).limit(2)
       : { data: null };
+    const staff = holders?.length === 1 ? holders[0] : null;
 
     const { data: recording, error } = await admin
       .from("call_recordings")

@@ -112,7 +112,7 @@ const ExtensionField = ({ employee }: { employee: Employee }) => {
       </Field>
       <Button type="submit" size="sm" disabled={busy}>Save extension</Button>
       <p className="basis-full text-xs text-muted-foreground">
-        Used by Call in the CRM: their desk phone rings first, then the customer is dialled. Leave blank to remove.
+        Used by Call in the CRM: their desk phone rings first, then the customer is dialled. Several people can share one extension. Leave blank to remove.
       </p>
     </form>
   );
