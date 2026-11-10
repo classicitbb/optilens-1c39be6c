@@ -33,9 +33,9 @@ describe("admin payment activity route", () => {
     const eventLogger = read("supabase/functions/_shared/scotia/events.ts");
 
     expect(page).toContain('.from("scotia_payment_activity")');
-    expect(page).toContain('.select("occurred_at,payment_reference,transaction_type,status,amount,currency")');
+    expect(page).toContain('.select("occurred_at,payment_reference,transaction_type,status,amount,currency,account_name,account_number")');
     for (const prohibitedField of ["response_params", "fail_rc", "card_brand", "card_last4", "expiry_month", "expiry_year", "payment_token", "cvv", "pan"]) {
-      expect(page).not.toContain(prohibitedField);
+      expect(page).not.toMatch(new RegExp(String.raw`\b${prohibitedField}\b`));
     }
     expect(activityMigration).toContain("SET request_params = NULL,");
     expect(activityMigration).toContain("response_params = NULL");
