@@ -15869,6 +15869,7 @@ export type Database = {
           treatment: string
         }[]
       }
+      employee_extension: { Args: { _employee_id: string }; Returns: string }
       employee_login_email: { Args: { _employee_id: string }; Returns: string }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
       enqueue_stock_submission_for_order: {
@@ -16947,6 +16948,10 @@ export type Database = {
           p_source?: string
         }
         Returns: undefined
+      }
+      set_employee_extension: {
+        Args: { _employee_id: string; _extension: string }
+        Returns: string
       }
       set_gatekeeper_delivery_route: {
         Args: {
