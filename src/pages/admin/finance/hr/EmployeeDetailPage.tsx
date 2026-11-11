@@ -188,7 +188,11 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
   const { data: managerLinks = [] } = useEmployeeManagers();
   const update = useHrMutation("employees");
   const submit = useSubmit();
+  // Termination details only matter once the status is Terminated, so they appear when it is chosen.
+  const [pickedStatus, setPickedStatus] = useState<string | null>(null);
+  useEffect(() => setPickedStatus(null), [employee?.updated_at]);
   if (!employee) return null;
+  const terminated = (pickedStatus ?? employee.status) === "terminated";
   // Until the database update adding the exemption columns is applied the record has no such keys.
   const exemptionsReady = "nis_exempt_reason" in employee;
 
@@ -208,6 +212,8 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
         const values: Record<string, unknown> = formValues(event.currentTarget);
         // An unticked checkbox is left out of the form data entirely.
         values.rr_levy_exempt = values.rr_levy_exempt === "on";
+        // Someone who is no longer terminated has no termination details left to keep.
+        if (values.status !== "terminated") { values.termination_date = null; values.termination_reason = null; }
         return submit(() => update.mutateAsync({ update: { id: employee.id, values } }), "Profile saved")(event);
       }}
       className="space-y-4"
@@ -240,9 +246,9 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
             <Input id="managers" value={managerNames.join(", ")} placeholder="None" readOnly />
           </Field>
           <Field label="Employment type" htmlFor="employment_type" tip="hr.employee.employmentType"><NativeSelect id="employment_type" name="employment_type" defaultValue={employee.employment_type} options={EMPLOYMENT_TYPE_LABELS} /></Field>
-          <Field label="Status" htmlFor="status" tip="hr.employee.status"><NativeSelect id="status" name="status" defaultValue={employee.status} options={STATUS_LABELS} /></Field>
+          <Field label="Status" htmlFor="status" tip="hr.employee.status"><NativeSelect id="status" name="status" defaultValue={employee.status} options={STATUS_LABELS} onChange={setPickedStatus} /></Field>
           <Field label="Hire date" htmlFor="hire_date"><Input id="hire_date" name="hire_date" type="date" defaultValue={employee.hire_date ?? ""} /></Field>
-          <Field label="Termination date" htmlFor="termination_date" tip="hr.employee.terminationDate"><Input id="termination_date" name="termination_date" type="date" defaultValue={employee.termination_date ?? ""} /></Field>
+          {terminated && <Field label="Termination date" htmlFor="termination_date" tip="hr.employee.terminationDate"><Input id="termination_date" name="termination_date" type="date" defaultValue={employee.termination_date ?? ""} /></Field>}
           <Field label="Tax code" htmlFor="tax_code" tip="hr.employee.taxCode"><Input id="tax_code" name="tax_code" defaultValue={employee.tax_code ?? ""} /></Field>
           <label htmlFor="rr_levy_exempt" className="flex items-center gap-2 self-end pb-2 text-sm">
             <input id="rr_levy_exempt" name="rr_levy_exempt" type="checkbox" defaultChecked={employee.rr_levy_exempt} className="h-4 w-4" />
@@ -260,7 +266,7 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
               NIS and PAYE exemptions can be chosen once the latest database update has been applied.
             </p>
           )}
-          <Field label="Termination reason" htmlFor="termination_reason" className="sm:col-span-2 lg:col-span-3"><Input id="termination_reason" name="termination_reason" defaultValue={employee.termination_reason ?? ""} /></Field>
+          {terminated && <Field label="Termination reason" htmlFor="termination_reason" className="sm:col-span-2 lg:col-span-3"><Input id="termination_reason" name="termination_reason" defaultValue={employee.termination_reason ?? ""} /></Field>}
         </div>
       </Section>
       <div className="flex justify-end"><Button type="submit" disabled={update.isPending} data-tour="hr-employee-profile-save">Save profile</Button></div>

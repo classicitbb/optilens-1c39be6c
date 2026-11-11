@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 // Native selects keep these forms plain FormData posts.
-export const NativeSelect = ({ id, name, defaultValue, options, disabled }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string>; disabled?: boolean }) => (
-  <select id={id} name={name} defaultValue={defaultValue ?? undefined} disabled={disabled} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+export const NativeSelect = ({ id, name, defaultValue, options, disabled, onChange }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string>; disabled?: boolean; onChange?: (value: string) => void }) => (
+  <select id={id} name={name} defaultValue={defaultValue ?? undefined} disabled={disabled} onChange={onChange ? (e) => onChange(e.target.value) : undefined} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60">
     {Object.entries(options).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
   </select>
 );
