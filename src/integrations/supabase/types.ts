@@ -7027,6 +7027,1472 @@ export type Database = {
         }
         Relationships: []
       }
+      inn_currencies: {
+        Row: {
+          currency_id: number
+          currency_name: string | null
+          current_exchange_rate: number | null
+          decimal_places: number | null
+          last_synced_at: string
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          symbol: string | null
+        }
+        Insert: {
+          currency_id: number
+          currency_name?: string | null
+          current_exchange_rate?: number | null
+          decimal_places?: number | null
+          last_synced_at?: string
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          symbol?: string | null
+        }
+        Update: {
+          currency_id?: number
+          currency_name?: string | null
+          current_exchange_rate?: number | null
+          decimal_places?: number | null
+          last_synced_at?: string
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          symbol?: string | null
+        }
+        Relationships: []
+      }
+      inn_customer_price_list: {
+        Row: {
+          account_number: string | null
+          add_price_list_id: number | null
+          customer_id: number
+          customer_name: string | null
+          fin_edged_price_list_id: number | null
+          fin_uncut_price_list_id: number | null
+          frame_price_list_id: number | null
+          freight_price_list_id: number | null
+          is_active: boolean | null
+          last_synced_at: string
+          misc_item_price_list_id: number | null
+          os_price_list_id: number | null
+          package_price_list_id: number | null
+          price_list_id: number | null
+          prism_price_list_id: number | null
+          rx_edged_price_list_id: number | null
+          rx_uncut_price_list_id: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          special_price_list_id: number | null
+          stock_lens_price_list_id: number | null
+        }
+        Insert: {
+          account_number?: string | null
+          add_price_list_id?: number | null
+          customer_id: number
+          customer_name?: string | null
+          fin_edged_price_list_id?: number | null
+          fin_uncut_price_list_id?: number | null
+          frame_price_list_id?: number | null
+          freight_price_list_id?: number | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          misc_item_price_list_id?: number | null
+          os_price_list_id?: number | null
+          package_price_list_id?: number | null
+          price_list_id?: number | null
+          prism_price_list_id?: number | null
+          rx_edged_price_list_id?: number | null
+          rx_uncut_price_list_id?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          special_price_list_id?: number | null
+          stock_lens_price_list_id?: number | null
+        }
+        Update: {
+          account_number?: string | null
+          add_price_list_id?: number | null
+          customer_id?: number
+          customer_name?: string | null
+          fin_edged_price_list_id?: number | null
+          fin_uncut_price_list_id?: number | null
+          frame_price_list_id?: number | null
+          freight_price_list_id?: number | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          misc_item_price_list_id?: number | null
+          os_price_list_id?: number | null
+          package_price_list_id?: number | null
+          price_list_id?: number | null
+          prism_price_list_id?: number | null
+          rx_edged_price_list_id?: number | null
+          rx_uncut_price_list_id?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          special_price_list_id?: number | null
+          stock_lens_price_list_id?: number | null
+        }
+        Relationships: []
+      }
+      inn_invoice_lines: {
+        Row: {
+          category_type: number | null
+          cost_price: number | null
+          customer_id: number | null
+          description: string | null
+          invoice_id: number | null
+          invoice_line_id: number
+          invoice_price: number | null
+          invoice_time: string | null
+          last_synced_at: string
+          line_number: number | null
+          package_id: number | null
+          price_group_id: number | null
+          price_list_id: number | null
+          price_list_name: string | null
+          price_list_price: number | null
+          quantity: number | null
+          reference_order_id: number | null
+          sku: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          suppressed: boolean | null
+        }
+        Insert: {
+          category_type?: number | null
+          cost_price?: number | null
+          customer_id?: number | null
+          description?: string | null
+          invoice_id?: number | null
+          invoice_line_id: number
+          invoice_price?: number | null
+          invoice_time?: string | null
+          last_synced_at?: string
+          line_number?: number | null
+          package_id?: number | null
+          price_group_id?: number | null
+          price_list_id?: number | null
+          price_list_name?: string | null
+          price_list_price?: number | null
+          quantity?: number | null
+          reference_order_id?: number | null
+          sku?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          suppressed?: boolean | null
+        }
+        Update: {
+          category_type?: number | null
+          cost_price?: number | null
+          customer_id?: number | null
+          description?: string | null
+          invoice_id?: number | null
+          invoice_line_id?: number
+          invoice_price?: number | null
+          invoice_time?: string | null
+          last_synced_at?: string
+          line_number?: number | null
+          package_id?: number | null
+          price_group_id?: number | null
+          price_list_id?: number | null
+          price_list_name?: string | null
+          price_list_price?: number | null
+          quantity?: number | null
+          reference_order_id?: number | null
+          sku?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          suppressed?: boolean | null
+        }
+        Relationships: []
+      }
+      inn_lab_extras: {
+        Row: {
+          destination_format: number | null
+          lab_extra_id: number
+          lab_num: number | null
+          last_synced_at: string
+          local_lab: number | null
+          price_list_id: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          taxable: boolean | null
+        }
+        Insert: {
+          destination_format?: number | null
+          lab_extra_id: number
+          lab_num?: number | null
+          last_synced_at?: string
+          local_lab?: number | null
+          price_list_id?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          taxable?: boolean | null
+        }
+        Update: {
+          destination_format?: number | null
+          lab_extra_id?: number
+          lab_num?: number | null
+          last_synced_at?: string
+          local_lab?: number | null
+          price_list_id?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          taxable?: boolean | null
+        }
+        Relationships: []
+      }
+      inn_labs: {
+        Row: {
+          abbr: string | null
+          flags: number | null
+          flags2: number | null
+          lab_id: number | null
+          lab_num: number
+          last_synced_at: string
+          name: string | null
+          po_supplier_id: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          abbr?: string | null
+          flags?: number | null
+          flags2?: number | null
+          lab_id?: number | null
+          lab_num: number
+          last_synced_at?: string
+          name?: string | null
+          po_supplier_id?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          abbr?: string | null
+          flags?: number | null
+          flags2?: number | null
+          lab_id?: number | null
+          lab_num?: number
+          last_synced_at?: string
+          name?: string | null
+          po_supplier_id?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_lens_alias: {
+        Row: {
+          alias: string | null
+          group_num: number | null
+          last_synced_at: string
+          lens_alias_id: number
+          lens_option_id: number | null
+          lens_type_num: number | null
+          material_num: number | null
+          mf_num: number | null
+          option_num: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          alias?: string | null
+          group_num?: number | null
+          last_synced_at?: string
+          lens_alias_id: number
+          lens_option_id?: number | null
+          lens_type_num?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          option_num?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          alias?: string | null
+          group_num?: number | null
+          last_synced_at?: string
+          lens_alias_id?: number
+          lens_option_id?: number | null
+          lens_type_num?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          option_num?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_lens_items: {
+        Row: {
+          add_cyl: number | null
+          base_sphere: number | null
+          cost: number | null
+          diameter: number | null
+          fin_semi: number | null
+          flags: number | null
+          flags2: number | null
+          group_num: number | null
+          is_off: boolean | null
+          item_num: number | null
+          last_synced_at: string
+          lens_item_id: number
+          lens_option_id: number | null
+          lens_type_num: number | null
+          manufacturer: number | null
+          material_num: number | null
+          mf_num: number | null
+          name: string | null
+          on_active_path: boolean | null
+          option_num: number | null
+          price1: number | null
+          reorder_cost: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          add_cyl?: number | null
+          base_sphere?: number | null
+          cost?: number | null
+          diameter?: number | null
+          fin_semi?: number | null
+          flags?: number | null
+          flags2?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          item_num?: number | null
+          last_synced_at?: string
+          lens_item_id: number
+          lens_option_id?: number | null
+          lens_type_num?: number | null
+          manufacturer?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          name?: string | null
+          on_active_path?: boolean | null
+          option_num?: number | null
+          price1?: number | null
+          reorder_cost?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          add_cyl?: number | null
+          base_sphere?: number | null
+          cost?: number | null
+          diameter?: number | null
+          fin_semi?: number | null
+          flags?: number | null
+          flags2?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          item_num?: number | null
+          last_synced_at?: string
+          lens_item_id?: number
+          lens_option_id?: number | null
+          lens_type_num?: number | null
+          manufacturer?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          name?: string | null
+          on_active_path?: boolean | null
+          option_num?: number | null
+          price1?: number | null
+          reorder_cost?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_lens_options: {
+        Row: {
+          abbrev: string | null
+          add_group: number | null
+          bill_code: string | null
+          cost: number | null
+          flags: number | null
+          flags2: number | null
+          group_num: number | null
+          is_off: boolean | null
+          lab: number | null
+          last_synced_at: string
+          lens_option_id: number
+          lens_type_id: number | null
+          lens_type_num: number | null
+          material_num: number | null
+          mf_num: number | null
+          name: string | null
+          option_num: number | null
+          price_chart: number | null
+          price1: number | null
+          settings: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          abbrev?: string | null
+          add_group?: number | null
+          bill_code?: string | null
+          cost?: number | null
+          flags?: number | null
+          flags2?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          lab?: number | null
+          last_synced_at?: string
+          lens_option_id: number
+          lens_type_id?: number | null
+          lens_type_num?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          name?: string | null
+          option_num?: number | null
+          price_chart?: number | null
+          price1?: number | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          abbrev?: string | null
+          add_group?: number | null
+          bill_code?: string | null
+          cost?: number | null
+          flags?: number | null
+          flags2?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          lab?: number | null
+          last_synced_at?: string
+          lens_option_id?: number
+          lens_type_id?: number | null
+          lens_type_num?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          name?: string | null
+          option_num?: number | null
+          price_chart?: number | null
+          price1?: number | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_lens_types: {
+        Row: {
+          abbrev: string | null
+          code: number | null
+          flags: number | null
+          group_num: number | null
+          is_off: boolean | null
+          last_synced_at: string
+          lens_type_id: number
+          lens_type_num: number | null
+          material_num: number | null
+          mf_num: number | null
+          mf_type_id: number | null
+          name: string | null
+          settings: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          abbrev?: string | null
+          code?: number | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          last_synced_at?: string
+          lens_type_id: number
+          lens_type_num?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          mf_type_id?: number | null
+          name?: string | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          abbrev?: string | null
+          code?: number | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          last_synced_at?: string
+          lens_type_id?: number
+          lens_type_num?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          mf_type_id?: number | null
+          name?: string | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_material_groups: {
+        Row: {
+          abbrev: string | null
+          flags: number | null
+          group_num: number | null
+          is_off: boolean | null
+          je_default: boolean | null
+          last_synced_at: string
+          material_group_id: number
+          name: string | null
+          settings: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          abbrev?: string | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          je_default?: boolean | null
+          last_synced_at?: string
+          material_group_id: number
+          name?: string | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          abbrev?: string | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          je_default?: boolean | null
+          last_synced_at?: string
+          material_group_id?: number
+          name?: string | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_materials: {
+        Row: {
+          abbrev: string | null
+          flags: number | null
+          group_num: number | null
+          is_off: boolean | null
+          last_synced_at: string
+          material_group_id: number | null
+          material_id: number
+          material_num: number | null
+          name: string | null
+          refractive_index: number | null
+          settings: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          abbrev?: string | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          last_synced_at?: string
+          material_group_id?: number | null
+          material_id: number
+          material_num?: number | null
+          name?: string | null
+          refractive_index?: number | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          abbrev?: string | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          last_synced_at?: string
+          material_group_id?: number | null
+          material_id?: number
+          material_num?: number | null
+          name?: string | null
+          refractive_index?: number | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_mf_types: {
+        Row: {
+          abbrev: string | null
+          flags: number | null
+          group_num: number | null
+          is_off: boolean | null
+          last_synced_at: string
+          material_id: number | null
+          material_num: number | null
+          mf_num: number | null
+          mf_type_id: number
+          name: string | null
+          settings: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          abbrev?: string | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          last_synced_at?: string
+          material_id?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          mf_type_id: number
+          name?: string | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          abbrev?: string | null
+          flags?: number | null
+          group_num?: number | null
+          is_off?: boolean | null
+          last_synced_at?: string
+          material_id?: number | null
+          material_num?: number | null
+          mf_num?: number | null
+          mf_type_id?: number
+          name?: string | null
+          settings?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_package_items: {
+        Row: {
+          exclusion: boolean | null
+          id01: number | null
+          id02: number | null
+          id03: number | null
+          id04: number | null
+          id05: number | null
+          id06: number | null
+          item_type: number | null
+          last_synced_at: string
+          package_id: number | null
+          package_item_id: number
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          exclusion?: boolean | null
+          id01?: number | null
+          id02?: number | null
+          id03?: number | null
+          id04?: number | null
+          id05?: number | null
+          id06?: number | null
+          item_type?: number | null
+          last_synced_at?: string
+          package_id?: number | null
+          package_item_id: number
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          exclusion?: boolean | null
+          id01?: number | null
+          id02?: number | null
+          id03?: number | null
+          id04?: number | null
+          id05?: number | null
+          id06?: number | null
+          item_type?: number | null
+          last_synced_at?: string
+          package_id?: number | null
+          package_item_id?: number
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_packages: {
+        Row: {
+          active_end_date: string | null
+          active_start_date: string | null
+          and_misc_inclusion: boolean | null
+          and_rule_exclusion: boolean | null
+          and_rule_inclusion: boolean | null
+          is_active: boolean | null
+          last_synced_at: string
+          package_id: number
+          package_name: string | null
+          power_over_std: boolean | null
+          priority: number | null
+          sku: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          suppress_lines: number | null
+        }
+        Insert: {
+          active_end_date?: string | null
+          active_start_date?: string | null
+          and_misc_inclusion?: boolean | null
+          and_rule_exclusion?: boolean | null
+          and_rule_inclusion?: boolean | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          package_id: number
+          package_name?: string | null
+          power_over_std?: boolean | null
+          priority?: number | null
+          sku?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          suppress_lines?: number | null
+        }
+        Update: {
+          active_end_date?: string | null
+          active_start_date?: string | null
+          and_misc_inclusion?: boolean | null
+          and_rule_exclusion?: boolean | null
+          and_rule_inclusion?: boolean | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          package_id?: number
+          package_name?: string | null
+          power_over_std?: boolean | null
+          priority?: number | null
+          sku?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          suppress_lines?: number | null
+        }
+        Relationships: []
+      }
+      inn_price_lens_groups: {
+        Row: {
+          code: string | null
+          flags: number | null
+          is_active: boolean | null
+          last_synced_at: string
+          price_lens_group_id: number
+          price_lens_group_name: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          flags?: number | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          price_lens_group_id: number
+          price_lens_group_name?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          flags?: number | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          price_lens_group_id?: number
+          price_lens_group_name?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_price_lists: {
+        Row: {
+          active_end_date: string | null
+          active_start_date: string | null
+          and_rule: boolean | null
+          apply_freight_charges: boolean | null
+          code: string | null
+          cost_plus_amount: number | null
+          cost_plus_percent: number | null
+          cost_plus_pricing: boolean | null
+          cost_plus_type: number | null
+          currency_id: number | null
+          discount_percent: number | null
+          discount_pricelist: boolean | null
+          edging_charge: number | null
+          enabled_decimals: boolean | null
+          flat_edging_charge: boolean | null
+          gen_pricing_error: number | null
+          include_power_rx: boolean | null
+          include_power_stock: boolean | null
+          invoice_type_id: number | null
+          is_active: boolean | null
+          last_synced_at: string
+          num_decimals: number | null
+          parent_price_list_id: number | null
+          power_over_std: boolean | null
+          price_edging_on_farmout: boolean | null
+          price_list_group: number | null
+          price_list_id: number
+          price_list_name: string | null
+          prompt_use_stock_flags: number | null
+          prompt_use_stock_price: boolean | null
+          rule_based_selection: boolean | null
+          rule_priority: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          suppress_zero_freight: boolean | null
+          suppress_zero_lines: number | null
+          use_rx_if_no_stock_price: boolean | null
+          use_stock_price: boolean | null
+        }
+        Insert: {
+          active_end_date?: string | null
+          active_start_date?: string | null
+          and_rule?: boolean | null
+          apply_freight_charges?: boolean | null
+          code?: string | null
+          cost_plus_amount?: number | null
+          cost_plus_percent?: number | null
+          cost_plus_pricing?: boolean | null
+          cost_plus_type?: number | null
+          currency_id?: number | null
+          discount_percent?: number | null
+          discount_pricelist?: boolean | null
+          edging_charge?: number | null
+          enabled_decimals?: boolean | null
+          flat_edging_charge?: boolean | null
+          gen_pricing_error?: number | null
+          include_power_rx?: boolean | null
+          include_power_stock?: boolean | null
+          invoice_type_id?: number | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          num_decimals?: number | null
+          parent_price_list_id?: number | null
+          power_over_std?: boolean | null
+          price_edging_on_farmout?: boolean | null
+          price_list_group?: number | null
+          price_list_id: number
+          price_list_name?: string | null
+          prompt_use_stock_flags?: number | null
+          prompt_use_stock_price?: boolean | null
+          rule_based_selection?: boolean | null
+          rule_priority?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          suppress_zero_freight?: boolean | null
+          suppress_zero_lines?: number | null
+          use_rx_if_no_stock_price?: boolean | null
+          use_stock_price?: boolean | null
+        }
+        Update: {
+          active_end_date?: string | null
+          active_start_date?: string | null
+          and_rule?: boolean | null
+          apply_freight_charges?: boolean | null
+          code?: string | null
+          cost_plus_amount?: number | null
+          cost_plus_percent?: number | null
+          cost_plus_pricing?: boolean | null
+          cost_plus_type?: number | null
+          currency_id?: number | null
+          discount_percent?: number | null
+          discount_pricelist?: boolean | null
+          edging_charge?: number | null
+          enabled_decimals?: boolean | null
+          flat_edging_charge?: boolean | null
+          gen_pricing_error?: number | null
+          include_power_rx?: boolean | null
+          include_power_stock?: boolean | null
+          invoice_type_id?: number | null
+          is_active?: boolean | null
+          last_synced_at?: string
+          num_decimals?: number | null
+          parent_price_list_id?: number | null
+          power_over_std?: boolean | null
+          price_edging_on_farmout?: boolean | null
+          price_list_group?: number | null
+          price_list_id?: number
+          price_list_name?: string | null
+          prompt_use_stock_flags?: number | null
+          prompt_use_stock_price?: boolean | null
+          rule_based_selection?: boolean | null
+          rule_priority?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          suppress_zero_freight?: boolean | null
+          suppress_zero_lines?: number | null
+          use_rx_if_no_stock_price?: boolean | null
+          use_stock_price?: boolean | null
+        }
+        Relationships: []
+      }
+      inn_price_package_items: {
+        Row: {
+          ih_price: boolean | null
+          ih_retail_name: boolean | null
+          last_synced_at: string
+          package_id: number | null
+          price: number | null
+          price_package_id: number | null
+          price_package_item_id: number
+          retail_name: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          ih_price?: boolean | null
+          ih_retail_name?: boolean | null
+          last_synced_at?: string
+          package_id?: number | null
+          price?: number | null
+          price_package_id?: number | null
+          price_package_item_id: number
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          ih_price?: boolean | null
+          ih_retail_name?: boolean | null
+          last_synced_at?: string
+          package_id?: number | null
+          price?: number | null
+          price_package_id?: number | null
+          price_package_item_id?: number
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_price_package_members: {
+        Row: {
+          last_synced_at: string
+          package_id: number | null
+          price_list_id: number | null
+          price_package_id: number | null
+          price_package_member_id: number
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          last_synced_at?: string
+          package_id?: number | null
+          price_list_id?: number | null
+          price_package_id?: number | null
+          price_package_member_id: number
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          last_synced_at?: string
+          package_id?: number | null
+          price_list_id?: number | null
+          price_package_id?: number | null
+          price_package_member_id?: number
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_price_packages: {
+        Row: {
+          flags: number | null
+          ih_price: boolean | null
+          invoice_flags: number | null
+          is_active: boolean | null
+          is_discount: boolean | null
+          last_synced_at: string
+          modifier_value: number | null
+          price: number | null
+          price_list_id: number | null
+          price_package_id: number
+          price_package_name: string | null
+          pricesheet_type: number | null
+          retail_name: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          flags?: number | null
+          ih_price?: boolean | null
+          invoice_flags?: number | null
+          is_active?: boolean | null
+          is_discount?: boolean | null
+          last_synced_at?: string
+          modifier_value?: number | null
+          price?: number | null
+          price_list_id?: number | null
+          price_package_id: number
+          price_package_name?: string | null
+          pricesheet_type?: number | null
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          flags?: number | null
+          ih_price?: boolean | null
+          invoice_flags?: number | null
+          is_active?: boolean | null
+          is_discount?: boolean | null
+          last_synced_at?: string
+          modifier_value?: number | null
+          price?: number | null
+          price_list_id?: number | null
+          price_package_id?: number
+          price_package_name?: string | null
+          pricesheet_type?: number | null
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_pricelist_map: {
+        Row: {
+          created_at: string
+          inn_price_list_id: number
+          note: string | null
+          pricelist_version_id: number
+        }
+        Insert: {
+          created_at?: string
+          inn_price_list_id: number
+          note?: string | null
+          pricelist_version_id: number
+        }
+        Update: {
+          created_at?: string
+          inn_price_list_id?: number
+          note?: string | null
+          pricelist_version_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inn_pricelist_map_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: true
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inn_rx_pos_items: {
+        Row: {
+          ih_price: boolean | null
+          invoice_type_id: number | null
+          last_synced_at: string
+          lens_option_num: number | null
+          lens_type_num: number | null
+          material_group_num: number | null
+          material_num: number | null
+          max_cylinder: number | null
+          max_sphere: number | null
+          mf_type_num: number | null
+          min_cylinder: number | null
+          min_sphere: number | null
+          modifier_is_discount: boolean | null
+          modifier_type: number | null
+          modifier_value: number | null
+          pos_charge_id: number | null
+          pos_diopter_price: number | null
+          pos_diopter_value: number | null
+          price: number | null
+          price_lens_group_id: number | null
+          price_rx_pos_item_id: number
+          price_rx_pos_sheet_id: number | null
+          retail_name: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+        }
+        Insert: {
+          ih_price?: boolean | null
+          invoice_type_id?: number | null
+          last_synced_at?: string
+          lens_option_num?: number | null
+          lens_type_num?: number | null
+          material_group_num?: number | null
+          material_num?: number | null
+          max_cylinder?: number | null
+          max_sphere?: number | null
+          mf_type_num?: number | null
+          min_cylinder?: number | null
+          min_sphere?: number | null
+          modifier_is_discount?: boolean | null
+          modifier_type?: number | null
+          modifier_value?: number | null
+          pos_charge_id?: number | null
+          pos_diopter_price?: number | null
+          pos_diopter_value?: number | null
+          price?: number | null
+          price_lens_group_id?: number | null
+          price_rx_pos_item_id: number
+          price_rx_pos_sheet_id?: number | null
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+        }
+        Update: {
+          ih_price?: boolean | null
+          invoice_type_id?: number | null
+          last_synced_at?: string
+          lens_option_num?: number | null
+          lens_type_num?: number | null
+          material_group_num?: number | null
+          material_num?: number | null
+          max_cylinder?: number | null
+          max_sphere?: number | null
+          mf_type_num?: number | null
+          min_cylinder?: number | null
+          min_sphere?: number | null
+          modifier_is_discount?: boolean | null
+          modifier_type?: number | null
+          modifier_value?: number | null
+          pos_charge_id?: number | null
+          pos_diopter_price?: number | null
+          pos_diopter_value?: number | null
+          price?: number | null
+          price_lens_group_id?: number | null
+          price_rx_pos_item_id?: number
+          price_rx_pos_sheet_id?: number | null
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inn_rx_pos_members: {
+        Row: {
+          edged: number | null
+          last_synced_at: string
+          price_lens_group_id: number | null
+          price_list_id: number | null
+          price_rx_pos_member_id: number
+          price_rx_pos_sheet_id: number | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          uncut: number | null
+        }
+        Insert: {
+          edged?: number | null
+          last_synced_at?: string
+          price_lens_group_id?: number | null
+          price_list_id?: number | null
+          price_rx_pos_member_id: number
+          price_rx_pos_sheet_id?: number | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          uncut?: number | null
+        }
+        Update: {
+          edged?: number | null
+          last_synced_at?: string
+          price_lens_group_id?: number | null
+          price_list_id?: number | null
+          price_rx_pos_member_id?: number
+          price_rx_pos_sheet_id?: number | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          uncut?: number | null
+        }
+        Relationships: []
+      }
+      inn_rx_pos_sheets: {
+        Row: {
+          edged: boolean | null
+          edging_charge: number | null
+          flat_edging_charge: boolean | null
+          gl_account_id: number | null
+          grid_layout: number | null
+          ih_price: boolean | null
+          is_active: boolean | null
+          is_discount: boolean | null
+          last_synced_at: string
+          modifier_value: number | null
+          price: number | null
+          price_list_id: number | null
+          price_pos_charge_id: number | null
+          price_rx_pos_sheet_id: number
+          pricesheet_type: number | null
+          retail_name: string | null
+          sheet_name: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          uncut: boolean | null
+          use_edging_price_list: boolean | null
+        }
+        Insert: {
+          edged?: boolean | null
+          edging_charge?: number | null
+          flat_edging_charge?: boolean | null
+          gl_account_id?: number | null
+          grid_layout?: number | null
+          ih_price?: boolean | null
+          is_active?: boolean | null
+          is_discount?: boolean | null
+          last_synced_at?: string
+          modifier_value?: number | null
+          price?: number | null
+          price_list_id?: number | null
+          price_pos_charge_id?: number | null
+          price_rx_pos_sheet_id: number
+          pricesheet_type?: number | null
+          retail_name?: string | null
+          sheet_name?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          uncut?: boolean | null
+          use_edging_price_list?: boolean | null
+        }
+        Update: {
+          edged?: boolean | null
+          edging_charge?: number | null
+          flat_edging_charge?: boolean | null
+          gl_account_id?: number | null
+          grid_layout?: number | null
+          ih_price?: boolean | null
+          is_active?: boolean | null
+          is_discount?: boolean | null
+          last_synced_at?: string
+          modifier_value?: number | null
+          price?: number | null
+          price_list_id?: number | null
+          price_pos_charge_id?: number | null
+          price_rx_pos_sheet_id?: number
+          pricesheet_type?: number | null
+          retail_name?: string | null
+          sheet_name?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          uncut?: boolean | null
+          use_edging_price_list?: boolean | null
+        }
+        Relationships: []
+      }
+      inn_stock_lens_items: {
+        Row: {
+          cylinder: number | null
+          diameter: number | null
+          ih_price: boolean | null
+          invoice_type_id: number | null
+          last_synced_at: string
+          lens_option_num: number | null
+          lens_type_num: number | null
+          material_group_num: number | null
+          material_num: number | null
+          mf_type_num: number | null
+          modifier_is_discount: boolean | null
+          modifier_type: number | null
+          modifier_value: number | null
+          price: number | null
+          price_stock_lens_id: number | null
+          price_stock_lens_item_id: number
+          retail_name: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          sphere: number | null
+          vendor_id: number | null
+        }
+        Insert: {
+          cylinder?: number | null
+          diameter?: number | null
+          ih_price?: boolean | null
+          invoice_type_id?: number | null
+          last_synced_at?: string
+          lens_option_num?: number | null
+          lens_type_num?: number | null
+          material_group_num?: number | null
+          material_num?: number | null
+          mf_type_num?: number | null
+          modifier_is_discount?: boolean | null
+          modifier_type?: number | null
+          modifier_value?: number | null
+          price?: number | null
+          price_stock_lens_id?: number | null
+          price_stock_lens_item_id: number
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          sphere?: number | null
+          vendor_id?: number | null
+        }
+        Update: {
+          cylinder?: number | null
+          diameter?: number | null
+          ih_price?: boolean | null
+          invoice_type_id?: number | null
+          last_synced_at?: string
+          lens_option_num?: number | null
+          lens_type_num?: number | null
+          material_group_num?: number | null
+          material_num?: number | null
+          mf_type_num?: number | null
+          modifier_is_discount?: boolean | null
+          modifier_type?: number | null
+          modifier_value?: number | null
+          price?: number | null
+          price_stock_lens_id?: number | null
+          price_stock_lens_item_id?: number
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          sphere?: number | null
+          vendor_id?: number | null
+        }
+        Relationships: []
+      }
+      inn_stock_lenses: {
+        Row: {
+          grid_layout: number | null
+          is_active: boolean | null
+          is_discount: boolean | null
+          last_synced_at: string
+          modifier_value: number | null
+          price_lens_group_id: number | null
+          price_list_id: number | null
+          price_stock_lens_id: number
+          pricesheet_type: number | null
+          retail_name: string | null
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          stock_lens_name: string | null
+        }
+        Insert: {
+          grid_layout?: number | null
+          is_active?: boolean | null
+          is_discount?: boolean | null
+          last_synced_at?: string
+          modifier_value?: number | null
+          price_lens_group_id?: number | null
+          price_list_id?: number | null
+          price_stock_lens_id: number
+          pricesheet_type?: number | null
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          stock_lens_name?: string | null
+        }
+        Update: {
+          grid_layout?: number | null
+          is_active?: boolean | null
+          is_discount?: boolean | null
+          last_synced_at?: string
+          modifier_value?: number | null
+          price_lens_group_id?: number | null
+          price_list_id?: number | null
+          price_stock_lens_id?: number
+          pricesheet_type?: number | null
+          retail_name?: string | null
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          stock_lens_name?: string | null
+        }
+        Relationships: []
+      }
+      inn_stock_vendors: {
+        Row: {
+          last_synced_at: string
+          price_stock_lens_id: number | null
+          price_stock_vendor_id: number
+          source_changed_at: string
+          source_hash: string
+          source_updated_at: string | null
+          vendor_id: number | null
+        }
+        Insert: {
+          last_synced_at?: string
+          price_stock_lens_id?: number | null
+          price_stock_vendor_id: number
+          source_changed_at?: string
+          source_hash: string
+          source_updated_at?: string | null
+          vendor_id?: number | null
+        }
+        Update: {
+          last_synced_at?: string
+          price_stock_lens_id?: number | null
+          price_stock_vendor_id?: number
+          source_changed_at?: string
+          source_hash?: string
+          source_updated_at?: string | null
+          vendor_id?: number | null
+        }
+        Relationships: []
+      }
       innovations_family_lens_map: {
         Row: {
           confidence: number
@@ -7056,6 +8522,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "innovations_family_lens_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
           {
             foreignKeyName: "innovations_family_lens_map_lens_id_fkey"
             columns: ["lens_id"]
@@ -8401,6 +9874,13 @@ export type Database = {
             foreignKeyName: "lens_alias_map_lens_id_fkey"
             columns: ["lens_id"]
             isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
+          {
+            foreignKeyName: "lens_alias_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
             referencedRelation: "lenses"
             referencedColumns: ["id"]
           },
@@ -8440,6 +9920,13 @@ export type Database = {
           lens_option_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lens_lens_options_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
           {
             foreignKeyName: "lens_lens_options_lens_id_fkey"
             columns: ["lens_id"]
@@ -8579,6 +10066,13 @@ export type Database = {
           warnings?: string[]
         }
         Relationships: [
+          {
+            foreignKeyName: "lens_recommendation_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
           {
             foreignKeyName: "lens_recommendation_rules_product_id_fkey"
             columns: ["product_id"]
@@ -9029,6 +10523,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "matrix_allocations_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
           {
             foreignKeyName: "matrix_allocations_lens_id_fkey"
             columns: ["lens_id"]
@@ -10785,6 +12286,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "import_batches"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_input_rows_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
           },
           {
             foreignKeyName: "pricing_input_rows_lens_id_fkey"
@@ -13161,6 +14669,13 @@ export type Database = {
             foreignKeyName: "shipment_lines_lens_id_fkey"
             columns: ["lens_id"]
             isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
             referencedRelation: "lenses"
             referencedColumns: ["id"]
           },
@@ -15040,6 +16555,273 @@ export type Database = {
           name?: string | null
           pay_by_card?: boolean | null
           pay_by_eft?: boolean | null
+        }
+        Relationships: []
+      }
+      inn_lens_active_full_path: {
+        Row: {
+          alias_count: number | null
+          group_num: number | null
+          lens_option_id: number | null
+          lens_type_name: string | null
+          lens_type_num: number | null
+          material_group_name: string | null
+          material_name: string | null
+          material_num: number | null
+          mf_num: number | null
+          mf_type_name: string | null
+          option_name: string | null
+          option_num: number | null
+          path_code: string | null
+        }
+        Relationships: []
+      }
+      inn_lens_path_status: {
+        Row: {
+          first_failing_level: string | null
+          first_failing_reason: string | null
+          group_num: number | null
+          group_state: string | null
+          has_missing_ancestor: boolean | null
+          lens_option_id: number | null
+          lens_type_name: string | null
+          lens_type_num: number | null
+          lens_type_state: string | null
+          material_group_name: string | null
+          material_name: string | null
+          material_num: number | null
+          material_state: string | null
+          mf_num: number | null
+          mf_type_name: string | null
+          mf_type_state: string | null
+          on_full_path: boolean | null
+          option_name: string | null
+          option_num: number | null
+          option_only_on: boolean | null
+          option_state: string | null
+          path_code: string | null
+        }
+        Relationships: []
+      }
+      inn_lens_path_summary: {
+        Row: {
+          metric: string | null
+          n: number | null
+        }
+        Relationships: []
+      }
+      inn_recon_price_vs_website: {
+        Row: {
+          alias: string | null
+          allocation_id: number | null
+          category: string | null
+          diff_vs_max_bbd: number | null
+          diff_vs_min_bbd: number | null
+          inn_max_per_eye_bbd: number | null
+          inn_min_per_eye_bbd: number | null
+          inn_price_list_id: number | null
+          inn_price_list_name: string | null
+          inn_price_rows: number | null
+          lens_id: string | null
+          lens_name: string | null
+          lens_option_id: number | null
+          material_index: string | null
+          option_on_full_path: boolean | null
+          path_code: string | null
+          pricelist_version_id: number | null
+          status: string | null
+          treatment_type: string | null
+          version_name: string | null
+          website_pair_bbd: number | null
+          website_per_eye_bbd: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_alias_map_innovations_alias_fkey"
+            columns: ["alias"]
+            isOneToOne: false
+            referencedRelation: "innovations_lens_aliases"
+            referencedColumns: ["alias"]
+          },
+          {
+            foreignKeyName: "matrix_allocations_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
+          {
+            foreignKeyName: "matrix_allocations_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matrix_allocations_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matrix_allocations_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inn_recon_primary_alias: {
+        Row: {
+          alias: string | null
+          lens_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_alias_map_innovations_alias_fkey"
+            columns: ["alias"]
+            isOneToOne: false
+            referencedRelation: "innovations_lens_aliases"
+            referencedColumns: ["alias"]
+          },
+          {
+            foreignKeyName: "lens_alias_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "inn_recon_website_lens_off"
+            referencedColumns: ["lens_id"]
+          },
+          {
+            foreignKeyName: "lens_alias_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_alias_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inn_recon_stale_cost_lists: {
+        Row: {
+          currency_id: number | null
+          flag: string | null
+          lab_count: number | null
+          labs: string | null
+          list_updated: string | null
+          n_items: number | null
+          n_items_before_2022: number | null
+          newest_item_updated: string | null
+          oldest_item_updated: string | null
+          price_list_id: number | null
+          price_list_name: string | null
+        }
+        Relationships: []
+      }
+      inn_recon_website_lens_off: {
+        Row: {
+          alias: string | null
+          first_failing_level: string | null
+          first_failing_reason: string | null
+          group_state: string | null
+          innovations_option_name: string | null
+          lens_id: string | null
+          lens_name: string | null
+          lens_option_id: number | null
+          lens_type_state: string | null
+          material_state: string | null
+          mf_type_state: string | null
+          option_state: string | null
+          path_code: string | null
+          reason: string | null
+          show_in_pricelist: boolean | null
+          show_in_ws_pricelist: boolean | null
+          show_on_website: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_alias_map_innovations_alias_fkey"
+            columns: ["alias"]
+            isOneToOne: false
+            referencedRelation: "innovations_lens_aliases"
+            referencedColumns: ["alias"]
+          },
+        ]
+      }
+      inn_recon_zero_cost_lens_lines: {
+        Row: {
+          charged_unsuppressed: boolean | null
+          cost_price: number | null
+          customer_id: number | null
+          description: string | null
+          invoice_id: number | null
+          invoice_line_id: number | null
+          invoice_price: number | null
+          invoice_time: string | null
+          package_id: number | null
+          price_group_id: number | null
+          price_list_id: number | null
+          price_list_name: string | null
+          price_list_price: number | null
+          quantity: number | null
+          reference_order_id: number | null
+          sku: string | null
+          suppressed: boolean | null
+        }
+        Insert: {
+          charged_unsuppressed?: never
+          cost_price?: number | null
+          customer_id?: number | null
+          description?: string | null
+          invoice_id?: number | null
+          invoice_line_id?: number | null
+          invoice_price?: number | null
+          invoice_time?: string | null
+          package_id?: number | null
+          price_group_id?: number | null
+          price_list_id?: number | null
+          price_list_name?: string | null
+          price_list_price?: number | null
+          quantity?: number | null
+          reference_order_id?: number | null
+          sku?: string | null
+          suppressed?: boolean | null
+        }
+        Update: {
+          charged_unsuppressed?: never
+          cost_price?: number | null
+          customer_id?: number | null
+          description?: string | null
+          invoice_id?: number | null
+          invoice_line_id?: number | null
+          invoice_price?: number | null
+          invoice_time?: string | null
+          package_id?: number | null
+          price_group_id?: number | null
+          price_list_id?: number | null
+          price_list_name?: string | null
+          price_list_price?: number | null
+          quantity?: number | null
+          reference_order_id?: number | null
+          sku?: string | null
+          suppressed?: boolean | null
+        }
+        Relationships: []
+      }
+      inn_recon_zero_cost_lens_summary: {
+        Row: {
+          invoice_month: string | null
+          price_list_id: number | null
+          price_list_name: string | null
+          revenue_on_zero_cost_lines: number | null
+          zero_cost_lines: number | null
         }
         Relationships: []
       }
