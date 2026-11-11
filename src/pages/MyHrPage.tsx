@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FolderPanel, FolderTab, FolderTabs, FolderTabsList } from "@/features/admin/hr/FolderTabs";
 import { useToast } from "@/hooks/use-toast";
 import { employeeDisplayName, type Employee } from "@/features/admin/hr/useEmployees";
 import EmployeeAssessmentTab from "@/features/admin/hr/EmployeeAssessmentTab";
@@ -234,20 +234,20 @@ const MyHrPage = () => {
                 </CardContent>
               </Card>
             ) : (
-              <Tabs value={tab} onValueChange={(next) => navigate(next === "payslips" ? "/me" : `/me/${next}`)}>
-                <TabsList className="flex h-auto flex-wrap justify-start">
-                  <TabsTrigger value="payslips">Payslips</TabsTrigger>
-                  <TabsTrigger value="leave">Leave</TabsTrigger>
-                  <TabsTrigger value="tax">Tax</TabsTrigger>
-                  <TabsTrigger value="assessment">Assessment</TabsTrigger>
-                  <TabsTrigger value="profile">Profile</TabsTrigger>
-                </TabsList>
-                <TabsContent value="payslips"><PrivacyScope><PayslipsTab employee={employee} /></PrivacyScope></TabsContent>
-                <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
-                <TabsContent value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} readOnly /></Private></PrivacyScope></TabsContent>
-                <TabsContent value="assessment"><PrivacyScope><Private block><EmployeeAssessmentTab employeeId={employee.id} readOnly /></Private></PrivacyScope></TabsContent>
-                <TabsContent value="profile"><ProfileTab employee={employee} /></TabsContent>
-              </Tabs>
+              <FolderTabs value={tab} onValueChange={(next) => navigate(next === "payslips" ? "/me" : `/me/${next}`)}>
+                <FolderTabsList>
+                  <FolderTab value="payslips">Payslips</FolderTab>
+                  <FolderTab value="leave">Leave</FolderTab>
+                  <FolderTab value="tax">Tax</FolderTab>
+                  <FolderTab value="assessment">Assessment</FolderTab>
+                  <FolderTab value="profile">Profile</FolderTab>
+                </FolderTabsList>
+                <FolderPanel value="payslips"><PrivacyScope><PayslipsTab employee={employee} /></PrivacyScope></FolderPanel>
+                <FolderPanel value="leave"><LeaveTab employee={employee} /></FolderPanel>
+                <FolderPanel value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} readOnly /></Private></PrivacyScope></FolderPanel>
+                <FolderPanel value="assessment"><PrivacyScope><Private block><EmployeeAssessmentTab employeeId={employee.id} readOnly /></Private></PrivacyScope></FolderPanel>
+                <FolderPanel value="profile"><ProfileTab employee={employee} /></FolderPanel>
+              </FolderTabs>
             )}
           </div>
         </main>

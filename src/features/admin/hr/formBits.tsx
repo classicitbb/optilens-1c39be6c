@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,6 +73,7 @@ export const FormDialog = ({
   variant = "outline",
   icon = true,
   narrow = false,
+  edit = false,
   children,
 }: {
   id?: string;
@@ -83,6 +84,8 @@ export const FormDialog = ({
   variant?: "outline" | "default" | "secondary";
   icon?: boolean;
   narrow?: boolean;
+  /** A small pencil button (for a row in a list) instead of the labelled button. */
+  edit?: boolean;
   children: (close: () => void) => ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
@@ -109,7 +112,11 @@ export const FormDialog = ({
     <FormDialogContext.Provider value={{ cancel }}>
       <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : cancel())}>
         <DialogTrigger asChild>
-          <Button size="sm" variant={variant} disabled={disabled}>{icon && <Plus className="mr-1 h-4 w-4" />}{trigger}</Button>
+          {edit ? (
+            <Button size="icon" variant="ghost" aria-label={title} title={title} disabled={disabled}><Pencil className="h-4 w-4" /></Button>
+          ) : (
+            <Button size="sm" variant={variant} disabled={disabled}>{icon && <Plus className="mr-1 h-4 w-4" />}{trigger}</Button>
+          )}
         </DialogTrigger>
         <DialogContent
           className={cn("max-h-[90dvh] overflow-y-auto overscroll-contain motion-reduce:animate-none", narrow ? "sm:max-w-lg" : "sm:max-w-2xl")}

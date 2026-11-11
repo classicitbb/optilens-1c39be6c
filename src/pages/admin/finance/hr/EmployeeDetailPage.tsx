@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FolderPanel, FolderTab, FolderTabs, FolderTabsList } from "@/features/admin/hr/FolderTabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -668,34 +668,34 @@ const EmployeeDetailPage = () => {
 
       <EmployeeChecklist employee={employee} onGo={(item) => { setTab(item.tab); setJump(item); }} />
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-3">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-0.5" data-tour="hr-employee-tabs">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="pay" data-tour="hr-employee-tab-pay">Compensation</TabsTrigger>
-          <TabsTrigger value="items" data-tour="hr-employee-tab-items">Pay items</TabsTrigger>
-          <TabsTrigger value="leave" data-tour="hr-employee-tab-leave">Leave</TabsTrigger>
-          <TabsTrigger value="tax" data-tour="hr-employee-tab-tax">Tax</TabsTrigger>
-          <TabsTrigger value="ids" data-tour="hr-employee-tab-ids">IDs & bank</TabsTrigger>
-          <TabsTrigger value="positions" data-tour="hr-employee-tab-positions">Positions</TabsTrigger>
-          <TabsTrigger value="contracts" data-tour="hr-employee-tab-contracts">Contracts</TabsTrigger>
-          <TabsTrigger value="assessment">Assessment</TabsTrigger>
-          <TabsTrigger value="notes" data-tour="hr-employee-tab-notes">Notes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="profile" className="mt-0 space-y-3">
+      <FolderTabs value={tab} onValueChange={setTab}>
+        <FolderTabsList data-tour="hr-employee-tabs">
+          <FolderTab value="profile">Profile</FolderTab>
+          <FolderTab value="pay" data-tour="hr-employee-tab-pay">Compensation</FolderTab>
+          <FolderTab value="items" data-tour="hr-employee-tab-items">Pay items</FolderTab>
+          <FolderTab value="leave" data-tour="hr-employee-tab-leave">Leave</FolderTab>
+          <FolderTab value="tax" data-tour="hr-employee-tab-tax">Tax</FolderTab>
+          <FolderTab value="ids" data-tour="hr-employee-tab-ids">IDs & bank</FolderTab>
+          <FolderTab value="positions" data-tour="hr-employee-tab-positions">Positions</FolderTab>
+          <FolderTab value="contracts" data-tour="hr-employee-tab-contracts">Contracts</FolderTab>
+          <FolderTab value="assessment">Assessment</FolderTab>
+          <FolderTab value="notes" data-tour="hr-employee-tab-notes">Notes</FolderTab>
+        </FolderTabsList>
+        <FolderPanel value="profile">
           <ProfileTab employeeId={employeeId} />
           <ContactLink employee={employee} />
           <LoginLink employee={employee} />
-        </TabsContent>
-        <TabsContent value="pay"><PrivacyScope><Private block><CompensationTab employeeId={employeeId} /></Private></PrivacyScope></TabsContent>
-        <TabsContent value="items"><PrivacyScope><Private block><PayItemsTab employeeId={employeeId} /></Private></PrivacyScope></TabsContent>
-        <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
-        <TabsContent value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></PrivacyScope></TabsContent>
-        <TabsContent value="ids"><IdentityTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="positions"><EmployeePositionsTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="contracts"><EmployeeContractsTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="assessment"><EmployeeAssessmentTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="notes"><PrivacyScope><NotesTab employeeId={employeeId} /></PrivacyScope></TabsContent>
-      </Tabs>
+        </FolderPanel>
+        <FolderPanel value="pay"><PrivacyScope><Private block><CompensationTab employeeId={employeeId} /></Private></PrivacyScope></FolderPanel>
+        <FolderPanel value="items"><PrivacyScope><Private block><PayItemsTab employeeId={employeeId} /></Private></PrivacyScope></FolderPanel>
+        <FolderPanel value="leave"><LeaveTab employee={employee} /></FolderPanel>
+        <FolderPanel value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></PrivacyScope></FolderPanel>
+        <FolderPanel value="ids"><IdentityTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="positions"><EmployeePositionsTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="contracts"><EmployeeContractsTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="assessment"><EmployeeAssessmentTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="notes"><PrivacyScope><NotesTab employeeId={employeeId} /></PrivacyScope></FolderPanel>
+      </FolderTabs>
     </div>
   );
 };

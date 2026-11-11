@@ -21,6 +21,11 @@ const EmployeePositionsTab = ({ employeeId }: { employeeId: string }) => {
   const held = new Set(assignments.map((a) => a.position_id));
   const available = Object.fromEntries(positions.filter((p) => p.active && !held.has(p.id)).map((p) => [p.id, `${p.title} · ${p.department}`]));
   const positionOf = (id: string) => positions.find((p) => p.id === id);
+  /** A position already held can be swapped for any free one, or kept. */
+  const optionsFor = (current: string) => ({
+    ...Object.fromEntries(positions.filter((p) => p.id === current).map((p) => [p.id, `${p.title} · ${p.department}`])),
+    ...available,
+  });
   const reportsTo = (id: string | null) => {
     const parent = id ? positionOf(id) : null;
     if (!parent) return "—";
@@ -92,6 +97,28 @@ const EmployeePositionsTab = ({ employeeId }: { employeeId: string }) => {
                         Make primary
                       </Button>
                     )}
+                    <FormDialog edit title="Edit position">
+                      {(close) => (
+                        <form
+                          onSubmit={(event) => {
+                            const v = formValues(event.currentTarget);
+                            return submit(
+                              () => mutate.mutateAsync({ update: { id: a.id, values: { position_id: v.position_id, allocation_percent: v.allocation_percent, start_date: v.start_date, end_date: v.end_date } } }),
+                              "Position updated",
+                              close,
+                            )(event);
+                          }}
+                          className="grid gap-3 sm:grid-cols-4"
+                        >
+                          <Field label="Position" htmlFor="edit_position_id" className="sm:col-span-2"><NativeSelect id="edit_position_id" name="position_id" defaultValue={a.position_id} options={optionsFor(a.position_id)} /></Field>
+                          <Field label="Share of time (%)" htmlFor="edit_allocation_percent"><Input id="edit_allocation_percent" name="allocation_percent" type="number" min="1" max="100" step="0.01" defaultValue={a.allocation_percent ?? ""} className={fieldInputClass} /></Field>
+                          <div />
+                          <Field label="Start date" htmlFor="edit_start_date"><Input id="edit_start_date" name="start_date" type="date" defaultValue={a.start_date ?? ""} /></Field>
+                          <Field label="End date" htmlFor="edit_end_date"><Input id="edit_end_date" name="end_date" type="date" defaultValue={a.end_date ?? ""} /></Field>
+                          <FormActions submit="Save changes" pending={mutate.isPending} />
+                        </form>
+                      )}
+                    </FormDialog>
                     <Button variant="ghost" size="icon" aria-label={`Remove ${p?.title ?? "position"}`} onClick={() => mutate.mutate({ deleteId: a.id })}>
                       <Trash2 className="h-4 w-4" />
                     </Button>

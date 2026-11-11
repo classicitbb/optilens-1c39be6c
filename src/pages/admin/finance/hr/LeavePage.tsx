@@ -6,7 +6,7 @@ import HelpTip from "@/help/HelpTip";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FolderPanel, FolderTab, FolderTabs, FolderTabsList } from "@/features/admin/hr/FolderTabs";
 import { employeeDisplayName, useEmployees } from "@/features/admin/hr/useEmployees";
 import { leaveBalance } from "@/features/admin/hr/leave/leaveBalance";
 import { LeaveRequestForm, LeaveRequestTable, LeaveSettings } from "@/features/admin/hr/leave/LeaveComponents";
@@ -33,15 +33,15 @@ const LeavePage = () => {
         <HelpTip id="hr.leave.record" side="bottom" />
       </AdminPageHeader>
 
-      <Tabs defaultValue="requests">
-        <TabsList className="flex h-auto flex-wrap justify-start" data-tour="hr-leave-tabs">
-          <TabsTrigger value="requests">Requests{pending.length > 0 && ` (${pending.length})`}</TabsTrigger>
-          <TabsTrigger value="balances" data-tour="hr-leave-tab-balances">Balances</TabsTrigger>
-          <TabsTrigger value="all">All leave</TabsTrigger>
-          <TabsTrigger value="settings" data-tour="hr-leave-tab-settings">Settings</TabsTrigger>
-        </TabsList>
+      <FolderTabs defaultValue="requests">
+        <FolderTabsList data-tour="hr-leave-tabs">
+          <FolderTab value="requests">Requests{pending.length > 0 && ` (${pending.length})`}</FolderTab>
+          <FolderTab value="balances" data-tour="hr-leave-tab-balances">Balances</FolderTab>
+          <FolderTab value="all">All leave</FolderTab>
+          <FolderTab value="settings" data-tour="hr-leave-tab-settings">Settings</FolderTab>
+        </FolderTabsList>
 
-        <TabsContent value="requests" className="space-y-4">
+        <FolderPanel value="requests">
           <section className="space-y-2" data-tour="hr-leave-pending">
             <h2 className="text-sm font-medium">Awaiting approval</h2>
             {isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : <LeaveRequestTable requests={pending} employees={employees} types={types} />}
@@ -50,9 +50,9 @@ const LeavePage = () => {
             <h2 className="text-sm font-medium">Current and upcoming</h2>
             <LeaveRequestTable requests={upcoming} employees={employees} types={types} />
           </section>
-        </TabsContent>
+        </FolderPanel>
 
-        <TabsContent value="balances">
+        <FolderPanel value="balances">
           <div className="overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
@@ -74,12 +74,12 @@ const LeavePage = () => {
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
+        </FolderPanel>
 
-        <TabsContent value="all"><LeaveRequestTable requests={requests} employees={employees} types={types} /></TabsContent>
+        <FolderPanel value="all"><LeaveRequestTable requests={requests} employees={employees} types={types} /></FolderPanel>
 
-        <TabsContent value="settings"><LeaveSettings types={types} policy={policy} /></TabsContent>
-      </Tabs>
+        <FolderPanel value="settings"><LeaveSettings types={types} policy={policy} /></FolderPanel>
+      </FolderTabs>
 
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="max-w-2xl">
