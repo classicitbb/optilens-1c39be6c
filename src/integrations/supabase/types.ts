@@ -4991,6 +4991,41 @@ export type Database = {
           },
         ]
       }
+      employee_checklist_dismissals: {
+        Row: {
+          created_at: string
+          dismissed_by: string | null
+          dismissed_until: string | null
+          employee_id: string
+          id: string
+          item_key: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_by?: string | null
+          dismissed_until?: string | null
+          employee_id: string
+          id?: string
+          item_key: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_by?: string | null
+          dismissed_until?: string | null
+          employee_id?: string
+          id?: string
+          item_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_checklist_dismissals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_compensation: {
         Row: {
           annual_child_allowance: number
@@ -5481,6 +5516,8 @@ export type Database = {
           job_title: string | null
           last_name: string
           manager_id: string | null
+          nis_exempt_reason: string | null
+          paye_exempt_reason: string | null
           phone: string | null
           preferred_name: string | null
           rr_levy_exempt: boolean
@@ -5508,6 +5545,8 @@ export type Database = {
           job_title?: string | null
           last_name: string
           manager_id?: string | null
+          nis_exempt_reason?: string | null
+          paye_exempt_reason?: string | null
           phone?: string | null
           preferred_name?: string | null
           rr_levy_exempt?: boolean
@@ -5535,6 +5574,8 @@ export type Database = {
           job_title?: string | null
           last_name?: string
           manager_id?: string | null
+          nis_exempt_reason?: string | null
+          paye_exempt_reason?: string | null
           phone?: string | null
           preferred_name?: string | null
           rr_levy_exempt?: boolean
