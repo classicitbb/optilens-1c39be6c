@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { day, Field, fieldInputClass, formValues } from "./formFields";
-import { NativeSelect, Section, useSubmit } from "./formBits";
+import { FormActions, FormDialog, NativeSelect, Section, useSubmit } from "./formBits";
 import EmployeeManagersSection from "./EmployeeManagersSection";
 import { employeeDisplayName, useEmployees, useHrMutation } from "./useEmployees";
 import { isCurrentAssignment, openHrDocument, useEmployeePositions, usePositions } from "./usePositions";
@@ -41,10 +41,40 @@ const EmployeePositionsTab = ({ employeeId }: { employeeId: string }) => {
 
   return (
     <div className="space-y-4">
-      <Section title="Positions held">
-        <p className="text-sm text-muted-foreground">
-          A person can hold several positions, for example in two departments, each reporting to a different manager.
-        </p>
+      <Section
+        title="Positions held"
+        action={Object.keys(available).length > 0 ? (
+          <FormDialog title="Add a position" description="A person can hold several positions, for example in two departments, each reporting to a different manager.">
+            {(close) => (
+              <form
+                onSubmit={(event) => {
+                  const form = event.currentTarget;
+                  const v = formValues(form);
+                  const makePrimary = new FormData(form).has("is_primary");
+                  return submit(
+                    async () => {
+                      const created = (await mutate.mutateAsync({
+                        insert: { employee_id: employeeId, position_id: v.position_id, allocation_percent: v.allocation_percent, start_date: v.start_date, end_date: v.end_date, is_primary: false },
+                      })) as { id: string };
+                      if (makePrimary || assignments.length === 0) await setPrimary(created.id);
+                    },
+                    "Position added",
+                    close,
+                  )(event);
+                }}
+                className="grid gap-3 sm:grid-cols-4"
+              >
+                <Field label="Position" htmlFor="position_id" className="sm:col-span-2"><NativeSelect id="position_id" name="position_id" options={available} /></Field>
+                <Field label="Share of time (%)" htmlFor="allocation_percent"><Input id="allocation_percent" name="allocation_percent" type="number" min="1" max="100" step="0.01" className={fieldInputClass} /></Field>
+                <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="is_primary" /> Primary position</label>
+                <Field label="Start date" htmlFor="start_date"><Input id="start_date" name="start_date" type="date" /></Field>
+                <Field label="End date" htmlFor="end_date"><Input id="end_date" name="end_date" type="date" /></Field>
+                <FormActions submit="Add position" pending={mutate.isPending} />
+              </form>
+            )}
+          </FormDialog>
+        ) : undefined}
+      >
         <ul className="divide-y text-sm">
           {assignments.map((a) => {
             const p = positionOf(a.position_id);
@@ -81,37 +111,6 @@ const EmployeePositionsTab = ({ employeeId }: { employeeId: string }) => {
           })}
           {assignments.length === 0 && <li className="py-2 text-muted-foreground">No positions yet. Define positions on the People page, then assign them here.</li>}
         </ul>
-      </Section>
-
-      <Section title="Add a position">
-        {Object.keys(available).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No unassigned positions. Create one under People → Positions.</p>
-        ) : (
-          <form
-            onSubmit={(event) => {
-              const form = event.currentTarget;
-              const v = formValues(form);
-              const makePrimary = new FormData(form).has("is_primary");
-              return submit(
-                async () => {
-                  const created = (await mutate.mutateAsync({
-                    insert: { employee_id: employeeId, position_id: v.position_id, allocation_percent: v.allocation_percent, start_date: v.start_date, end_date: v.end_date, is_primary: false },
-                  })) as { id: string };
-                  if (makePrimary || assignments.length === 0) await setPrimary(created.id);
-                },
-                "Position added",
-              )(event);
-            }}
-            className="grid gap-3 sm:grid-cols-4"
-          >
-            <Field label="Position" htmlFor="position_id" className="sm:col-span-2"><NativeSelect id="position_id" name="position_id" options={available} /></Field>
-            <Field label="Share of time (%)" htmlFor="allocation_percent"><Input id="allocation_percent" name="allocation_percent" type="number" min="1" max="100" step="0.01" className={fieldInputClass} /></Field>
-            <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="is_primary" /> Primary position</label>
-            <Field label="Start date" htmlFor="start_date"><Input id="start_date" name="start_date" type="date" /></Field>
-            <Field label="End date" htmlFor="end_date"><Input id="end_date" name="end_date" type="date" /></Field>
-            <div className="flex items-end sm:col-span-2 sm:justify-end"><Button type="submit" disabled={mutate.isPending}>Add position</Button></div>
-          </form>
-        )}
       </Section>
 
       <EmployeeManagersSection employeeId={employeeId} />

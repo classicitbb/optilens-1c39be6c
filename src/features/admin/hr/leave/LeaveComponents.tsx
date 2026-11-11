@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { employeeDisplayName, useHrMutation, type Employee } from "@/features/admin/hr/useEmployees";
 import { day, Field, fieldInputClass, formValues } from "@/features/admin/hr/formFields";
+import { FormActions, FormDialog } from "@/features/admin/hr/formBits";
 import HelpTip from "@/help/HelpTip";
 import {
   leaveBalance,
@@ -122,7 +123,7 @@ export const LeaveRequestForm = ({
           <HelpTip id="hr.leave.recordApproved" />
         </label>
       )}
-      <div className="sm:text-right"><Button type="submit" disabled={mutate.isPending}>{selfService ? "Request leave" : "Save leave"}</Button></div>
+      <FormActions submit={selfService ? "Request leave" : "Save leave"} pending={mutate.isPending} />
     </form>
   );
 };
@@ -257,29 +258,22 @@ export const LeaveBalanceCards = ({
   if (!policy) return null;
   const asOf = today();
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {types.filter((t) => t.active).map((t) => {
         const b = leaveBalance(t, employee, policy, requests, adjustments, asOf);
+        const perYear = t.basis === "per_year";
+        const detail = perYear
+          ? [`${fmtDays(b.taken)} taken since ${day(policy.tracking_from)}`, b.next && `+${b.next.days} on ${day(b.next.date)}`, !employee.hire_date && "add a hire date to earn leave"]
+          : [`taken this year${t.basis === "per_event" && t.entitlement_tiers[0] ? ` · ${t.entitlement_tiers[0].days} per occurrence` : ""}`];
+        if (b.pending > 0) detail.push(`${fmtDays(b.pending)} awaiting approval`);
         return (
           <Card key={t.id}>
-            <CardContent className="space-y-1 p-4 text-sm">
-              <p className="font-medium">{t.name}</p>
-              {t.basis === "per_year" ? (
-                <>
-                  <p className="text-2xl font-semibold tabular-nums">{fmtDays(b.available)}</p>
-                  <p className="text-muted-foreground">available · {fmtDays(b.taken)} taken since {day(policy.tracking_from)}</p>
-                  {b.next && <p className="text-muted-foreground">+{b.next.days} on {day(b.next.date)}</p>}
-                  {!employee.hire_date && <p className="text-amber-700 dark:text-amber-400">Add a hire date to earn leave.</p>}
-                </>
-              ) : (
-                <>
-                  <p className="text-2xl font-semibold tabular-nums">{fmtDays(b.taken)}</p>
-                  <p className="text-muted-foreground">
-                    taken this year{t.basis === "per_event" && t.entitlement_tiers[0] ? ` · ${t.entitlement_tiers[0].days} per occurrence` : ""}
-                  </p>
-                </>
-              )}
-              {b.pending > 0 && <p className="text-muted-foreground">{fmtDays(b.pending)} awaiting approval</p>}
+            <CardContent className="px-3 py-2 text-xs">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="truncate font-medium">{t.name}</span>
+                <span className="text-base font-semibold tabular-nums">{fmtDays(perYear ? b.available : b.taken)}</span>
+              </div>
+              <p className="text-muted-foreground">{perYear && "available · "}{detail.filter(Boolean).join(" · ")}</p>
             </CardContent>
           </Card>
         );
@@ -289,7 +283,7 @@ export const LeaveBalanceCards = ({
 };
 
 /** Opening balances and corrections, in days (negative to take days off). */
-export const LeaveAdjustmentForm = ({ employeeId, types }: { employeeId: string; types: LeaveType[] }) => {
+export const LeaveAdjustmentForm = ({ employeeId, types, onDone }: { employeeId: string; types: LeaveType[]; onDone?: () => void }) => {
   const { toast } = useToast();
   const mutate = useHrMutation("leave_adjustments");
 
@@ -301,6 +295,7 @@ export const LeaveAdjustmentForm = ({ employeeId, types }: { employeeId: string;
       await mutate.mutateAsync({ insert: { ...v, days: Number(v.days), employee_id: employeeId } });
       toast({ title: "Balance adjusted" });
       form.reset();
+      onDone?.();
     } catch (error) {
       toast({ title: "Could not adjust balance", description: (error as Error).message, variant: "destructive" });
     }
@@ -316,7 +311,7 @@ export const LeaveAdjustmentForm = ({ employeeId, types }: { employeeId: string;
       <Field label="Days (+ or −)" htmlFor="adj-days" tip="hr.leave.adjustDays"><Input id="adj-days" name="days" type="number" step="0.5" required className={fieldInputClass} /></Field>
       <Field label="Effective" htmlFor="adj-date"><Input id="adj-date" name="effective_date" type="date" required defaultValue={today()} className={fieldInputClass} /></Field>
       <Field label="Reason" htmlFor="adj-reason"><Input id="adj-reason" name="reason" required placeholder="Opening balance" className={fieldInputClass} /></Field>
-      <div className="lg:col-span-4 lg:text-right"><Button type="submit" variant="outline" disabled={mutate.isPending}>Adjust balance</Button></div>
+      <FormActions submit="Adjust balance" pending={mutate.isPending} />
     </form>
   );
 };
@@ -355,7 +350,7 @@ export const LeaveSettings = ({ types, policy }: { types: LeaveType[]; policy: L
     }
   };
 
-  const saveType = (id: string | null) => async (event: FormEvent<HTMLFormElement>) => {
+  const saveType = (id: string | null, onDone?: () => void) => async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const v = formValues(form);
@@ -375,13 +370,14 @@ export const LeaveSettings = ({ types, policy }: { types: LeaveType[]; policy: L
       await typeMutation.mutateAsync(id ? { update: { id, values } } : { insert: { ...values, sort_order: (types.length + 1) * 10 } });
       toast({ title: "Leave type saved" });
       if (!id) form.reset();
+      onDone?.();
     } catch (error) {
       toast({ title: "Could not save leave type", description: (error as Error).message, variant: "destructive" });
     }
   };
 
-  const typeForm = (t: LeaveType | null) => (
-    <form key={t?.id ?? "new"} onSubmit={saveType(t?.id ?? null)} className="grid gap-3 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
+  const typeForm = (t: LeaveType | null, onDone?: () => void) => (
+    <form key={t?.id ?? "new"} onSubmit={saveType(t?.id ?? null, onDone)} className="grid gap-3 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
       <Field label="Name" htmlFor={`name-${t?.id ?? "new"}`}><Input id={`name-${t?.id ?? "new"}`} name="name" required defaultValue={t?.name} className={fieldInputClass} /></Field>
       <Field label="Code" htmlFor={`code-${t?.id ?? "new"}`}><Input id={`code-${t?.id ?? "new"}`} name="code" required defaultValue={t?.code} className={fieldInputClass} /></Field>
       <Field label="Entitlement" htmlFor={`basis-${t?.id ?? "new"}`} tip="hr.leave.basis">
@@ -408,7 +404,7 @@ export const LeaveSettings = ({ types, policy }: { types: LeaveType[]; policy: L
         <Textarea id={`notes-${t?.id ?? "new"}`} name="notes" rows={2} defaultValue={t?.notes ?? ""} />
       </Field>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={t?.active ?? true} className="h-4 w-4" /> Active</label>
-      <div className="sm:col-span-1 lg:col-span-3 lg:text-right"><Button type="submit" size="sm" disabled={typeMutation.isPending}>{t ? "Save" : "Add leave type"}</Button></div>
+      <FormActions submit={t ? "Save" : "Add leave type"} pending={typeMutation.isPending} />
     </form>
   );
 
@@ -433,9 +429,8 @@ export const LeaveSettings = ({ types, policy }: { types: LeaveType[]; policy: L
           <div className="sm:text-right"><Button type="submit" size="sm" disabled={savingPolicy}>Save policy</Button></div>
         </form>
       )}
-      {types.map(typeForm)}
-      <p className="pt-2 text-sm font-medium">New leave type</p>
-      {typeForm(null)}
+      <div className="flex justify-end"><FormDialog title="New leave type" narrow>{(close) => typeForm(null, close)}</FormDialog></div>
+      {types.map((t) => typeForm(t))}
     </div>
   );
 };

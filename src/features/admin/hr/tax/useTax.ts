@@ -92,7 +92,7 @@ export const estimateYear = (employee: Employee, year: number, data: TaxYearData
       .sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0];
     if (comp) {
       const allowances = comp.annual_personal_allowance + comp.annual_child_allowance + comp.annual_other_allowance;
-      const slip = calculatePayslip({ periodStart: `${year}-12-01`, basePay: comp.base_amount, annualAllowances: allowances, rrLevyExempt: employee.rr_levy_exempt });
+      const slip = calculatePayslip({ periodStart: `${year}-12-01`, basePay: comp.base_amount, annualAllowances: allowances, rrLevyExempt: employee.rr_levy_exempt, nisExempt: !!employee.nis_exempt_reason, payeExempt: !!employee.paye_exempt_reason });
       monthly = { taxable: slip.taxable, paye: slip.paye };
     }
   }

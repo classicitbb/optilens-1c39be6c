@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useHrMutation, type Employee } from "@/features/admin/hr/useEmployees";
 import { Field, formValues, money } from "@/features/admin/hr/formFields";
+import { FormActions, FormDialog } from "@/features/admin/hr/formBits";
 import { claimsOf, estimateYear, useTaxYearData } from "./useTax";
 import type { TaxClaims } from "./annualTax";
 
@@ -33,7 +34,7 @@ export const EmployeeTaxPanel = ({ employee, year, readOnly = false }: { employe
   const { row, result, months, missingMonths } = estimateYear(employee, year, data);
   const claims = claimsOf(row);
 
-  const save = async (event: FormEvent<HTMLFormElement>) => {
+  const save = (onDone?: () => void) => async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const v = formValues(event.currentTarget);
     const values = {
@@ -50,23 +51,26 @@ export const EmployeeTaxPanel = ({ employee, year, readOnly = false }: { employe
     try {
       await mutate.mutateAsync(row ? { update: { id: row.id, values } } : { insert: { ...values, employee_id: employee.id, year } });
       toast({ title: "Tax details saved" });
+      onDone?.();
     } catch (error) {
       toast({ title: "Could not save tax details", description: (error as Error).message, variant: "destructive" });
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          ["Taxable income", money(result.taxableIncome)],
-          ["Income tax for the year", money(result.tax)],
-          ["PAYE withheld", money(result.payeWithheld)],
-          [result.refund >= 0 ? "Estimated refund" : "Estimated tax owed", money(Math.abs(result.refund))],
-        ].map(([label, value]) => (
-          <Card key={label}><CardContent className="p-4"><p className="text-sm text-muted-foreground">{label}</p><p className="text-xl font-semibold tabular-nums">{value}</p></CardContent></Card>
-        ))}
-      </div>
+    <div className="space-y-3">
+      <Card>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 px-3 py-2 lg:grid-cols-4">
+          {[
+            ["Taxable income", money(result.taxableIncome)],
+            ["Income tax for the year", money(result.tax)],
+            ["PAYE withheld", money(result.payeWithheld)],
+            [result.refund >= 0 ? "Estimated refund" : "Estimated tax owed", money(Math.abs(result.refund))],
+          ].map(([label, value]) => (
+            <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="text-base font-semibold tabular-nums">{value}</dd></div>
+          ))}
+        </dl>
+      </Card>
       <p className="text-xs text-muted-foreground">
         {months.opening} month{months.opening === 1 ? "" : "s"} entered from before the app · {months.payslips} payslip{months.payslips === 1 ? "" : "s"}
         {months.drafts > 0 && ` (${months.drafts} draft)`} · {months.projected} projected from the latest pay
@@ -109,9 +113,11 @@ export const EmployeeTaxPanel = ({ employee, year, readOnly = false }: { employe
         <p className="text-sm text-muted-foreground">To claim an allowance or correct your pay from before the app, tell HR and they'll update it here.</p>
       ) : (
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Income, PAYE and claims for {year}</CardTitle></CardHeader>
-        <CardContent>
-          <form key={row?.id ?? "new"} onSubmit={save} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+          <span className="text-sm font-medium">Income, PAYE and claims for {year}</span>
+          <FormDialog title={`Income, PAYE and claims for ${year}`} trigger="Edit income & claims" icon={false}>
+            {(close) => (
+          <form key={row?.id ?? "new"} onSubmit={save(close)} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Months paid before the app" htmlFor="opening_months" tip="hr.tax.openingMonths"><Input id="opening_months" name="opening_months" type="number" min="0" max="12" defaultValue={row?.opening_months ?? 0} /></Field>
             <Field label="Taxable pay in those months" htmlFor="opening_income"><Input id="opening_income" name="opening_income" type="number" step="0.01" min="0" defaultValue={row?.opening_income ?? 0} /></Field>
             <Field label="PAYE withheld in those months" htmlFor="opening_paye"><Input id="opening_paye" name="opening_paye" type="number" step="0.01" min="0" defaultValue={row?.opening_paye ?? 0} /></Field>
@@ -121,9 +127,11 @@ export const EmployeeTaxPanel = ({ employee, year, readOnly = false }: { employe
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="spouseNoIncome" defaultChecked={claims.spouseNoIncome} className="h-4 w-4" /> Supports a spouse with no income</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="pensionerOver60" defaultChecked={claims.pensionerOver60} className="h-4 w-4" /> Over 60 and receiving a pension</label>
             <Field label="Notes" htmlFor="tax_notes" className="sm:col-span-2 lg:col-span-3"><Textarea id="tax_notes" name="notes" rows={2} defaultValue={row?.notes ?? ""} /></Field>
-            <div className="sm:col-span-2 lg:col-span-3 sm:text-right"><Button type="submit" disabled={mutate.isPending}>Save tax details</Button></div>
+            <FormActions submit="Save tax details" pending={mutate.isPending} />
           </form>
-        </CardContent>
+            )}
+          </FormDialog>
+        </div>
       </Card>
       )}
       <p className="text-xs text-muted-foreground">An estimate to plan with, not a tax return. Employees file their own return in TAMIS by 30 April; check the figures against BRA guidance.</p>

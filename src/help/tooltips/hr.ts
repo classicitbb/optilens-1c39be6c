@@ -15,11 +15,14 @@ export const hrTooltips = {
   "hr.employee.status": "Terminated employees are left out of new payroll runs. On leave alone does not change pay: record the leave on the Leave page.",
   "hr.employee.taxCode": "Your reference for the employee's tax treatment. It does not change the PAYE calculation.",
   "hr.employee.rrLevyExempt": "Tick only if the employee is exempt from the Resilience & Regeneration levy. Payroll then skips the 0.25% levy.",
+  "hr.employee.nisExempt": "Choose a reason only if no NIS should be deducted, for example a partner or someone past retirement age. Payroll then deducts $0 NIS.",
+  "hr.employee.payeExempt": "Choose a reason only if no PAYE should be deducted, for example a partner or someone past retirement age. Payroll then deducts $0 PAYE.",
   "hr.employee.terminationDate": "Set together with the status Terminated. The record and its history are kept.",
 
   // Compensation
   "hr.compensation.baseAmount": "Gross pay per pay period before any deductions.",
-  "hr.compensation.effectiveFrom": "The first day the new pay applies. The current record is closed the day before.",
+  "hr.compensation.effectiveFrom": "The first day the new pay applies. The current record is closed the day before. Pick an earlier date to correct pay that was entered wrongly; the pay records it overlaps are adjusted to fit.",
+  "hr.compensation.effectiveTo": "Only for corrections. Leave blank to run until the next pay record starts (or open-ended if there is none).",
   "hr.compensation.payDay": "The day of the month this person is paid by. A new payroll run suggests the most common pay day as its pay date; a 31st lands on the last day of shorter months.",
   "hr.compensation.personalAllowance": "Yearly PAYE allowance. Payroll spreads it over 12 months before working out tax.",
   "hr.compensation.childAllowance": "Yearly child allowance claimed for PAYE, spread over 12 months.",

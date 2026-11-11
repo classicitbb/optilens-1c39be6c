@@ -113,3 +113,24 @@ describe("payroll engine", () => {
     expect(slip.lines.find((l) => l.code === "nis")?.calculated).toBeUndefined();
   });
 });
+
+describe("NIS and PAYE exemptions", () => {
+  const base = { periodStart: "2026-04-01", basePay: 5000, annualAllowances: 25000 };
+
+  it("deducts no NIS for someone exempt from NIS, and leaves PAYE alone", () => {
+    const slip = exact({ ...base, nisExempt: true });
+    expect(slip.nis).toBe(0);
+    expect(slip.paye).toBe(335.42);
+  });
+
+  it("deducts no PAYE for someone exempt from PAYE, and leaves NIS alone", () => {
+    const slip = exact({ ...base, payeExempt: true });
+    expect(slip.paye).toBe(0);
+    expect(slip.nis).toBe(exact(base).nis);
+  });
+
+  it("raises net pay by the deductions not taken", () => {
+    const normal = exact(base);
+    expect(exact({ ...base, nisExempt: true, payeExempt: true }).net).toBeCloseTo(normal.net + normal.nis + normal.paye, 2);
+  });
+});

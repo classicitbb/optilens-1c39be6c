@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { day, Field, formValues } from "./formFields";
-import { NativeSelect, Section, useSubmit } from "./formBits";
+import { FormActions, FormDialog, NativeSelect, Section, useSubmit } from "./formBits";
 import { suggestManagers } from "./reporting";
 import { isCurrentManager, RELATIONSHIP_LABELS, useEmployeeManagers } from "./useDepartments";
 import { employeeDisplayName, useEmployees, useHrMutation } from "./useEmployees";
@@ -57,10 +57,35 @@ const EmployeeManagersSection = ({ employeeId }: { employeeId: string }) => {
   };
 
   return (
-    <Section title="Managers">
-      <p className="text-sm text-muted-foreground">
-        The primary line manager approves leave and appears above this person on the org chart. Add more for a second position, a dotted-line or a functional reporting line.
-      </p>
+    <Section
+      title="Managers"
+      action={
+        <FormDialog id="add-manager" title="Add a manager" description="The primary line manager approves leave and appears above this person on the org chart. Add more for a second position, a dotted-line or a functional reporting line.">
+          {(close) => (
+      <form
+        onSubmit={(event) => {
+          const form = event.currentTarget;
+          const v = formValues(form);
+          const primary = new FormData(form).has("is_primary");
+          delete v.is_primary;
+          return submit(() => add(v, primary || (!hasPrimary && v.relationship === "line")), "Manager added", close)(event);
+        }}
+        className="grid gap-3 sm:grid-cols-4"
+      >
+        <Field label="Manager" htmlFor="manager_id" className="sm:col-span-2"><NativeSelect id="manager_id" name="manager_id" options={managerChoices} /></Field>
+        <Field label="Relationship" htmlFor="relationship">
+          <NativeSelect id="relationship" name="relationship" options={RELATIONSHIP_LABELS} />
+        </Field>
+        <Field label="For position" htmlFor="employee_position_id"><NativeSelect id="employee_position_id" name="employee_position_id" options={positionChoices} /></Field>
+        <Field label="Start date" htmlFor="manager_start"><Input id="manager_start" name="start_date" type="date" /></Field>
+        <Field label="End date" htmlFor="manager_end"><Input id="manager_end" name="end_date" type="date" /></Field>
+        <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="is_primary" /> Primary line manager</label>
+        <FormActions submit="Add manager" pending={mutate.isPending} disabled={Object.keys(managerChoices).length === 0} />
+      </form>
+          )}
+        </FormDialog>
+      }
+    >
       <ul className="divide-y text-sm">
         {links.map((l) => {
           const manager = employeeById.get(l.manager_id);
@@ -116,26 +141,6 @@ const EmployeeManagersSection = ({ employeeId }: { employeeId: string }) => {
         </div>
       )}
 
-      <form
-        onSubmit={(event) => {
-          const form = event.currentTarget;
-          const v = formValues(form);
-          const primary = new FormData(form).has("is_primary");
-          delete v.is_primary;
-          return submit(() => add(v, primary || (!hasPrimary && v.relationship === "line")), "Manager added")(event);
-        }}
-        className="grid gap-3 border-t pt-4 sm:grid-cols-4"
-      >
-        <Field label="Manager" htmlFor="manager_id" className="sm:col-span-2"><NativeSelect id="manager_id" name="manager_id" options={managerChoices} /></Field>
-        <Field label="Relationship" htmlFor="relationship">
-          <NativeSelect id="relationship" name="relationship" options={RELATIONSHIP_LABELS} />
-        </Field>
-        <Field label="For position" htmlFor="employee_position_id"><NativeSelect id="employee_position_id" name="employee_position_id" options={positionChoices} /></Field>
-        <Field label="Start date" htmlFor="manager_start"><Input id="manager_start" name="start_date" type="date" /></Field>
-        <Field label="End date" htmlFor="manager_end"><Input id="manager_end" name="end_date" type="date" /></Field>
-        <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="is_primary" /> Primary line manager</label>
-        <div className="flex items-end sm:justify-end"><Button type="submit" disabled={mutate.isPending || Object.keys(managerChoices).length === 0}>Add manager</Button></div>
-      </form>
     </Section>
   );
 };
