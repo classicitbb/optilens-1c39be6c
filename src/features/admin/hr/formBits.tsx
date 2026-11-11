@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 // Native selects keep these forms plain FormData posts.
-export const NativeSelect = ({ id, name, defaultValue, options, disabled }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string>; disabled?: boolean }) => (
-  <select id={id} name={name} defaultValue={defaultValue ?? undefined} disabled={disabled} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+export const NativeSelect = ({ id, name, defaultValue, options, disabled, onChange }: { id: string; name: string; defaultValue?: string | null; options: Record<string, string>; disabled?: boolean; onChange?: (value: string) => void }) => (
+  <select id={id} name={name} defaultValue={defaultValue ?? undefined} disabled={disabled} onChange={onChange ? (e) => onChange(e.target.value) : undefined} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60">
     {Object.entries(options).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
   </select>
 );
@@ -73,6 +73,7 @@ export const FormDialog = ({
   variant = "outline",
   icon = true,
   narrow = false,
+  edit = false,
   children,
 }: {
   id?: string;
@@ -83,6 +84,8 @@ export const FormDialog = ({
   variant?: "outline" | "default" | "secondary";
   icon?: boolean;
   narrow?: boolean;
+  /** A small pencil button (for a row in a list) instead of the labelled button. */
+  edit?: boolean;
   children: (close: () => void) => ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
@@ -109,7 +112,11 @@ export const FormDialog = ({
     <FormDialogContext.Provider value={{ cancel }}>
       <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : cancel())}>
         <DialogTrigger asChild>
-          <Button size="sm" variant={variant} disabled={disabled}>{icon && <Plus className="mr-1 h-4 w-4" />}{trigger}</Button>
+          {edit ? (
+            <Button size="icon" variant="ghost" aria-label={title} title={title} disabled={disabled}><Pencil className="h-4 w-4" /></Button>
+          ) : (
+            <Button size="sm" variant={variant} disabled={disabled}>{icon && <Plus className="mr-1 h-4 w-4" />}{trigger}</Button>
+          )}
         </DialogTrigger>
         <DialogContent
           className={cn("max-h-[90dvh] overflow-y-auto overscroll-contain motion-reduce:animate-none", narrow ? "sm:max-w-lg" : "sm:max-w-2xl")}

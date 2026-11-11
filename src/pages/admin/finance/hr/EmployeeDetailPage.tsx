@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FolderPanel, FolderTab, FolderTabs, FolderTabsList } from "@/features/admin/hr/FolderTabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -188,7 +188,11 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
   const { data: managerLinks = [] } = useEmployeeManagers();
   const update = useHrMutation("employees");
   const submit = useSubmit();
+  // Termination details only matter once the status is Terminated, so they appear when it is chosen.
+  const [pickedStatus, setPickedStatus] = useState<string | null>(null);
+  useEffect(() => setPickedStatus(null), [employee?.updated_at]);
   if (!employee) return null;
+  const terminated = (pickedStatus ?? employee.status) === "terminated";
   // Until the database update adding the exemption columns is applied the record has no such keys.
   const exemptionsReady = "nis_exempt_reason" in employee;
 
@@ -208,6 +212,8 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
         const values: Record<string, unknown> = formValues(event.currentTarget);
         // An unticked checkbox is left out of the form data entirely.
         values.rr_levy_exempt = values.rr_levy_exempt === "on";
+        // Someone who is no longer terminated has no termination details left to keep.
+        if (values.status !== "terminated") { values.termination_date = null; values.termination_reason = null; }
         return submit(() => update.mutateAsync({ update: { id: employee.id, values } }), "Profile saved")(event);
       }}
       className="space-y-4"
@@ -240,9 +246,9 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
             <Input id="managers" value={managerNames.join(", ")} placeholder="None" readOnly />
           </Field>
           <Field label="Employment type" htmlFor="employment_type" tip="hr.employee.employmentType"><NativeSelect id="employment_type" name="employment_type" defaultValue={employee.employment_type} options={EMPLOYMENT_TYPE_LABELS} /></Field>
-          <Field label="Status" htmlFor="status" tip="hr.employee.status"><NativeSelect id="status" name="status" defaultValue={employee.status} options={STATUS_LABELS} /></Field>
+          <Field label="Status" htmlFor="status" tip="hr.employee.status"><NativeSelect id="status" name="status" defaultValue={employee.status} options={STATUS_LABELS} onChange={setPickedStatus} /></Field>
           <Field label="Hire date" htmlFor="hire_date"><Input id="hire_date" name="hire_date" type="date" defaultValue={employee.hire_date ?? ""} /></Field>
-          <Field label="Termination date" htmlFor="termination_date" tip="hr.employee.terminationDate"><Input id="termination_date" name="termination_date" type="date" defaultValue={employee.termination_date ?? ""} /></Field>
+          {terminated && <Field label="Termination date" htmlFor="termination_date" tip="hr.employee.terminationDate"><Input id="termination_date" name="termination_date" type="date" defaultValue={employee.termination_date ?? ""} /></Field>}
           <Field label="Tax code" htmlFor="tax_code" tip="hr.employee.taxCode"><Input id="tax_code" name="tax_code" defaultValue={employee.tax_code ?? ""} /></Field>
           <label htmlFor="rr_levy_exempt" className="flex items-center gap-2 self-end pb-2 text-sm">
             <input id="rr_levy_exempt" name="rr_levy_exempt" type="checkbox" defaultChecked={employee.rr_levy_exempt} className="h-4 w-4" />
@@ -260,7 +266,7 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
               NIS and PAYE exemptions can be chosen once the latest database update has been applied.
             </p>
           )}
-          <Field label="Termination reason" htmlFor="termination_reason" className="sm:col-span-2 lg:col-span-3"><Input id="termination_reason" name="termination_reason" defaultValue={employee.termination_reason ?? ""} /></Field>
+          {terminated && <Field label="Termination reason" htmlFor="termination_reason" className="sm:col-span-2 lg:col-span-3"><Input id="termination_reason" name="termination_reason" defaultValue={employee.termination_reason ?? ""} /></Field>}
         </div>
       </Section>
       <div className="flex justify-end"><Button type="submit" disabled={update.isPending} data-tour="hr-employee-profile-save">Save profile</Button></div>
@@ -668,34 +674,34 @@ const EmployeeDetailPage = () => {
 
       <EmployeeChecklist employee={employee} onGo={(item) => { setTab(item.tab); setJump(item); }} />
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-3">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-0.5" data-tour="hr-employee-tabs">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="pay" data-tour="hr-employee-tab-pay">Compensation</TabsTrigger>
-          <TabsTrigger value="items" data-tour="hr-employee-tab-items">Pay items</TabsTrigger>
-          <TabsTrigger value="leave" data-tour="hr-employee-tab-leave">Leave</TabsTrigger>
-          <TabsTrigger value="tax" data-tour="hr-employee-tab-tax">Tax</TabsTrigger>
-          <TabsTrigger value="ids" data-tour="hr-employee-tab-ids">IDs & bank</TabsTrigger>
-          <TabsTrigger value="positions" data-tour="hr-employee-tab-positions">Positions</TabsTrigger>
-          <TabsTrigger value="contracts" data-tour="hr-employee-tab-contracts">Contracts</TabsTrigger>
-          <TabsTrigger value="assessment">Assessment</TabsTrigger>
-          <TabsTrigger value="notes" data-tour="hr-employee-tab-notes">Notes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="profile" className="mt-0 space-y-3">
+      <FolderTabs value={tab} onValueChange={setTab}>
+        <FolderTabsList data-tour="hr-employee-tabs">
+          <FolderTab value="profile">Profile</FolderTab>
+          <FolderTab value="pay" data-tour="hr-employee-tab-pay">Compensation</FolderTab>
+          <FolderTab value="items" data-tour="hr-employee-tab-items">Pay items</FolderTab>
+          <FolderTab value="leave" data-tour="hr-employee-tab-leave">Leave</FolderTab>
+          <FolderTab value="tax" data-tour="hr-employee-tab-tax">Tax</FolderTab>
+          <FolderTab value="ids" data-tour="hr-employee-tab-ids">IDs & bank</FolderTab>
+          <FolderTab value="positions" data-tour="hr-employee-tab-positions">Positions</FolderTab>
+          <FolderTab value="contracts" data-tour="hr-employee-tab-contracts">Contracts</FolderTab>
+          <FolderTab value="assessment">Assessment</FolderTab>
+          <FolderTab value="notes" data-tour="hr-employee-tab-notes">Notes</FolderTab>
+        </FolderTabsList>
+        <FolderPanel value="profile">
           <ProfileTab employeeId={employeeId} />
           <ContactLink employee={employee} />
           <LoginLink employee={employee} />
-        </TabsContent>
-        <TabsContent value="pay"><PrivacyScope><Private block><CompensationTab employeeId={employeeId} /></Private></PrivacyScope></TabsContent>
-        <TabsContent value="items"><PrivacyScope><Private block><PayItemsTab employeeId={employeeId} /></Private></PrivacyScope></TabsContent>
-        <TabsContent value="leave"><LeaveTab employee={employee} /></TabsContent>
-        <TabsContent value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></PrivacyScope></TabsContent>
-        <TabsContent value="ids"><IdentityTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="positions"><EmployeePositionsTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="contracts"><EmployeeContractsTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="assessment"><EmployeeAssessmentTab employeeId={employeeId} /></TabsContent>
-        <TabsContent value="notes"><PrivacyScope><NotesTab employeeId={employeeId} /></PrivacyScope></TabsContent>
-      </Tabs>
+        </FolderPanel>
+        <FolderPanel value="pay"><PrivacyScope><Private block><CompensationTab employeeId={employeeId} /></Private></PrivacyScope></FolderPanel>
+        <FolderPanel value="items"><PrivacyScope><Private block><PayItemsTab employeeId={employeeId} /></Private></PrivacyScope></FolderPanel>
+        <FolderPanel value="leave"><LeaveTab employee={employee} /></FolderPanel>
+        <FolderPanel value="tax"><PrivacyScope><Private block><EmployeeTaxPanel employee={employee} year={new Date().getFullYear()} /></Private></PrivacyScope></FolderPanel>
+        <FolderPanel value="ids"><IdentityTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="positions"><EmployeePositionsTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="contracts"><EmployeeContractsTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="assessment"><EmployeeAssessmentTab employeeId={employeeId} /></FolderPanel>
+        <FolderPanel value="notes"><PrivacyScope><NotesTab employeeId={employeeId} /></PrivacyScope></FolderPanel>
+      </FolderTabs>
     </div>
   );
 };

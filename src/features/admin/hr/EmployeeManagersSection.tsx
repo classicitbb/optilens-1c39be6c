@@ -101,6 +101,31 @@ const EmployeeManagersSection = ({ employeeId }: { employeeId: string }) => {
                   {!l.is_primary && l.relationship === "line" && (
                     <Button variant="ghost" size="sm" onClick={() => makePrimary(l.id).catch(fail)}>Make primary</Button>
                   )}
+                  <FormDialog edit title="Edit manager">
+                    {(close) => (
+                      <form
+                        onSubmit={(event) => {
+                          const v = formValues(event.currentTarget);
+                          return submit(
+                            () => mutate.mutateAsync({ update: { id: l.id, values: { manager_id: v.manager_id, ...(l.is_primary ? {} : { relationship: v.relationship }), employee_position_id: v.employee_position_id, start_date: v.start_date, end_date: v.end_date } } }),
+                            "Manager updated",
+                            close,
+                          )(event);
+                        }}
+                        className="grid gap-3 sm:grid-cols-4"
+                      >
+                        <Field label="Manager" htmlFor="edit_manager_id" className="sm:col-span-2"><NativeSelect id="edit_manager_id" name="manager_id" defaultValue={l.manager_id} options={{ ...(manager && !managerChoices[l.manager_id] ? { [l.manager_id]: employeeDisplayName(manager) } : {}), ...managerChoices }} /></Field>
+                        <Field label="Relationship" htmlFor="edit_relationship">
+                          <NativeSelect id="edit_relationship" name="relationship" defaultValue={l.relationship} options={RELATIONSHIP_LABELS} disabled={l.is_primary} />
+                        </Field>
+                        <Field label="For position" htmlFor="edit_employee_position_id"><NativeSelect id="edit_employee_position_id" name="employee_position_id" defaultValue={l.employee_position_id ?? ""} options={positionChoices} /></Field>
+                        <Field label="Start date" htmlFor="edit_manager_start"><Input id="edit_manager_start" name="start_date" type="date" defaultValue={l.start_date ?? ""} /></Field>
+                        <Field label="End date" htmlFor="edit_manager_end"><Input id="edit_manager_end" name="end_date" type="date" defaultValue={l.end_date ?? ""} /></Field>
+                        {l.is_primary && <p className="self-end pb-2 text-xs text-muted-foreground">The primary manager is always a line manager. Make someone else primary to change this.</p>}
+                        <FormActions submit="Save changes" pending={mutate.isPending} />
+                      </form>
+                    )}
+                  </FormDialog>
                   <Button variant="ghost" size="icon" aria-label={`Remove ${manager ? employeeDisplayName(manager) : "manager"}`} onClick={() => mutate.mutate({ deleteId: l.id }, { onError: fail })}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
