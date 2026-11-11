@@ -1,5 +1,5 @@
 // Innovations -> CV cloud sync receiver (customers, contacts, statements,
-// statement_lines, balances, order_activity). New statements auto-enqueue a "statement ready"
+// statement_lines, balances, order_activity, plus the read-only inn_* pricing mirror). New statements auto-enqueue a "statement ready"
 // email to the linked customer — see enqueueStatementReadyEmail below.
 // Server-to-server. Auth: x-api-key (scope `sync:write`), verified via
 // public.verify_api_key. Idempotent upsert by immutable Innovations id.
@@ -38,6 +38,21 @@ type EntityConfig = {
   scope: string;
   allow: string[];
 };
+
+// Read-only Innovations pricing mirror (phase 1): one generic batch-upsert entity per inn_* table, keyed on
+// the immutable Innovations id (the table's primary key). The office side (optilens-local
+// lib/innovations-pricing-mirror.js) and supabase/migrations/20261110170000_inn_pricing_mirror_tables.sql
+// are generated from the same column spec, so the allowlists below must stay in step with both.
+// Reuses supplies:write (the existing catalog push authority) so the current office key needs no change.
+// source_updated_at / source_hash / last_synced_at are audit columns the office computes per row.
+const MIRROR_AUDIT = ["source_updated_at", "source_hash", "last_synced_at"];
+const mirror = (table: string, key: string, columns: string[]): EntityConfig => ({
+  table,
+  conflictKey: key,
+  required: key,
+  scope: "supplies:write",
+  allow: [...columns, ...MIRROR_AUDIT],
+});
 
 const ENTITIES: Record<string, EntityConfig> = {
   // The local office service reads this catalog from dbo.EFTInstitutions. It
@@ -266,6 +281,32 @@ const ENTITIES: Record<string, EntityConfig> = {
       "last_synced_at",
     ],
   },
+  // ── Innovations pricing mirror (inn_*) ──
+  inn_price_lists: mirror("inn_price_lists", "price_list_id", ["price_list_id","parent_price_list_id","price_list_name","code","price_list_group","currency_id","is_active","active_start_date","active_end_date","cost_plus_pricing","cost_plus_type","cost_plus_percent","cost_plus_amount","discount_pricelist","discount_percent","edging_charge","flat_edging_charge","enabled_decimals","num_decimals","use_stock_price","use_rx_if_no_stock_price","include_power_rx","include_power_stock","power_over_std","rule_based_selection","rule_priority","and_rule","apply_freight_charges","price_edging_on_farmout","suppress_zero_freight","suppress_zero_lines","prompt_use_stock_flags","prompt_use_stock_price","gen_pricing_error","invoice_type_id"]),
+  inn_rx_pos_sheets: mirror("inn_rx_pos_sheets", "price_rx_pos_sheet_id", ["price_rx_pos_sheet_id","price_list_id","sheet_name","retail_name","pricesheet_type","grid_layout","is_active","is_discount","modifier_value","price","ih_price","edged","uncut","edging_charge","flat_edging_charge","use_edging_price_list","price_pos_charge_id","gl_account_id"]),
+  inn_rx_pos_members: mirror("inn_rx_pos_members", "price_rx_pos_member_id", ["price_rx_pos_member_id","price_list_id","price_rx_pos_sheet_id","price_lens_group_id","edged","uncut"]),
+  inn_rx_pos_items: mirror("inn_rx_pos_items", "price_rx_pos_item_id", ["price_rx_pos_item_id","price_rx_pos_sheet_id","price_lens_group_id","material_group_num","material_num","mf_type_num","lens_type_num","lens_option_num","min_sphere","max_sphere","min_cylinder","max_cylinder","price","ih_price","modifier_type","modifier_value","modifier_is_discount","pos_diopter_price","pos_diopter_value","pos_charge_id","retail_name","invoice_type_id"]),
+  inn_price_lens_groups: mirror("inn_price_lens_groups", "price_lens_group_id", ["price_lens_group_id","price_lens_group_name","code","flags","is_active"]),
+  inn_stock_lenses: mirror("inn_stock_lenses", "price_stock_lens_id", ["price_stock_lens_id","price_list_id","price_lens_group_id","stock_lens_name","retail_name","pricesheet_type","grid_layout","is_active","is_discount","modifier_value"]),
+  inn_stock_lens_items: mirror("inn_stock_lens_items", "price_stock_lens_item_id", ["price_stock_lens_item_id","price_stock_lens_id","vendor_id","material_group_num","material_num","mf_type_num","lens_type_num","lens_option_num","sphere","cylinder","diameter","price","ih_price","modifier_type","modifier_value","modifier_is_discount","retail_name","invoice_type_id"]),
+  inn_stock_vendors: mirror("inn_stock_vendors", "price_stock_vendor_id", ["price_stock_vendor_id","price_stock_lens_id","vendor_id"]),
+  inn_packages: mirror("inn_packages", "package_id", ["package_id","package_name","sku","is_active","priority","active_start_date","active_end_date","and_misc_inclusion","and_rule_exclusion","and_rule_inclusion","power_over_std","suppress_lines"]),
+  inn_package_items: mirror("inn_package_items", "package_item_id", ["package_item_id","package_id","item_type","exclusion","id01","id02","id03","id04","id05","id06"]),
+  inn_price_packages: mirror("inn_price_packages", "price_package_id", ["price_package_id","price_list_id","price_package_name","retail_name","price","modifier_value","is_active","is_discount","flags","invoice_flags","pricesheet_type","ih_price"]),
+  inn_price_package_members: mirror("inn_price_package_members", "price_package_member_id", ["price_package_member_id","package_id","price_list_id","price_package_id"]),
+  inn_price_package_items: mirror("inn_price_package_items", "price_package_item_id", ["price_package_item_id","package_id","price_package_id","price","retail_name","ih_price","ih_retail_name"]),
+  inn_labs: mirror("inn_labs", "lab_num", ["lab_num","lab_id","name","abbr","flags","flags2","po_supplier_id"]),
+  inn_lab_extras: mirror("inn_lab_extras", "lab_extra_id", ["lab_extra_id","lab_num","price_list_id","local_lab","taxable","destination_format"]),
+  inn_currencies: mirror("inn_currencies", "currency_id", ["currency_id","currency_name","symbol","current_exchange_rate","decimal_places"]),
+  inn_material_groups: mirror("inn_material_groups", "material_group_id", ["material_group_id","group_num","name","abbrev","flags","settings","je_default"]),
+  inn_materials: mirror("inn_materials", "material_id", ["material_id","material_group_id","group_num","material_num","name","abbrev","refractive_index","flags","settings"]),
+  inn_mf_types: mirror("inn_mf_types", "mf_type_id", ["mf_type_id","material_id","group_num","material_num","mf_num","name","abbrev","flags","settings"]),
+  inn_lens_types: mirror("inn_lens_types", "lens_type_id", ["lens_type_id","mf_type_id","group_num","material_num","mf_num","lens_type_num","name","abbrev","code","flags","settings"]),
+  inn_lens_options: mirror("inn_lens_options", "lens_option_id", ["lens_option_id","lens_type_id","group_num","material_num","mf_num","lens_type_num","option_num","name","abbrev","lab","price1","cost","price_chart","bill_code","add_group","flags","flags2","settings"]),
+  inn_lens_items: mirror("inn_lens_items", "lens_item_id", ["lens_item_id","lens_option_id","group_num","material_num","mf_num","lens_type_num","option_num","item_num","name","manufacturer","fin_semi","diameter","base_sphere","add_cyl","price1","cost","reorder_cost","flags","flags2","on_active_path"]),
+  inn_lens_alias: mirror("inn_lens_alias", "lens_alias_id", ["lens_alias_id","alias","lens_option_id","group_num","material_num","mf_num","lens_type_num","option_num"]),
+  inn_customer_price_list: mirror("inn_customer_price_list", "customer_id", ["customer_id","account_number","customer_name","is_active","price_list_id","rx_edged_price_list_id","rx_uncut_price_list_id","fin_edged_price_list_id","fin_uncut_price_list_id","stock_lens_price_list_id","package_price_list_id","misc_item_price_list_id","frame_price_list_id","freight_price_list_id","add_price_list_id","os_price_list_id","prism_price_list_id","special_price_list_id"]),
+  inn_invoice_lines: mirror("inn_invoice_lines", "invoice_line_id", ["invoice_line_id","invoice_id","customer_id","invoice_time","price_list_id","price_list_name","price_group_id","package_id","category_type","suppressed","quantity","price_list_price","invoice_price","cost_price","description","sku","line_number","reference_order_id"]),
 };
 
 // Both outboxes hand the office worker the same normalised order alongside
@@ -322,7 +363,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-10-01.1-rx-captures-ingest";
+const VERSION = "2026-11-10.1-inn-pricing-mirror";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
