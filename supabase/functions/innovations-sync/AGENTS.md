@@ -99,6 +99,16 @@ by an `ENTITIES` entry in `optilens-local/lib/innovations-sync.js`). To add one:
    Never ship a new entity straight to `commit:true`.
 7. Run the mandatory post-deploy check above.
 
+## The `inn_*` pricing mirror is generated, not hand-written
+
+The 25 `inn_*` entities (read-only Innovations pricing mirror, see
+`docs/INNOVATIONS_PRICING_MIRROR_RUNBOOK.md`) are built with the `mirror()` helper in
+`index.ts`. Their columns come from the `SPECS` array in optilens-local
+`lib/innovations-pricing-mirror.js`; the migration DDL and these allowlists were generated from
+it. Never edit an allowlist by hand — change the spec, regenerate, then run
+`node scripts/innovations-pricing-spec.js --check` in optilens-local. They are opt-in only (not in
+the scheduled default) and the office CLI dry-runs them unless `--commit` is passed.
+
 ## Don't guess ERP field semantics from source code alone
 
 The ERP (Innovations) encodes most of its checkboxes as bits in a single
