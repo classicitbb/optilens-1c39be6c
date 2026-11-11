@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { inAppConfirm } from "@/lib/inAppDialog";
 import { day, Field, fieldInputClass, formValues } from "./formFields";
-import { Section, useSubmit } from "./formBits";
+import { FormActions, FormDialog, Section, useSubmit } from "./formBits";
 import { KOLBE_MODES, kolbeZone, type EmployeeAssessment } from "./useAssessments";
 import { useEmployeeRows, useHrMutation } from "./useEmployees";
 
@@ -47,7 +47,46 @@ const EmployeeAssessmentTab = ({ employeeId, readOnly = false }: { employeeId: s
 
   return (
     <div className="space-y-4">
-      <Section title="Kolbe A Index">
+      <Section
+        title="Kolbe A Index"
+        action={!readOnly ? (
+          <FormDialog title="Record a result" description="Kolbe scores come from the employee's Kolbe A Index report. Enter the four mode scores (1-10) as printed on it.">
+            {(close) => (
+          <form
+            onSubmit={(event) => {
+              const v = formValues(event.currentTarget);
+              return submit(
+                () =>
+                  mutate.mutateAsync({
+                    insert: {
+                      employee_id: employeeId,
+                      assessed_on: v.assessed_on,
+                      fact_finder: Number(v.fact_finder),
+                      follow_thru: Number(v.follow_thru),
+                      quick_start: Number(v.quick_start),
+                      implementor: Number(v.implementor),
+                      notes: v.notes,
+                    },
+                  }),
+                "Result recorded",
+                close,
+              )(event);
+            }}
+            className="grid gap-3 sm:grid-cols-4"
+          >
+            {KOLBE_MODES.map((m) => (
+              <Field key={m.key} label={m.label} htmlFor={m.key}>
+                <Input id={m.key} name={m.key} type="number" min={1} max={10} step={1} required className={fieldInputClass} />
+              </Field>
+            ))}
+            <Field label="Assessed on" htmlFor="assessed_on"><Input id="assessed_on" name="assessed_on" type="date" defaultValue={today()} required /></Field>
+            <Field label="Notes" htmlFor="notes" className="sm:col-span-4"><Textarea id="notes" name="notes" rows={2} placeholder="Optional context, e.g. how the result shapes their role" /></Field>
+            <FormActions submit="Save result" pending={mutate.isPending} />
+          </form>
+            )}
+          </FormDialog>
+        ) : undefined}
+      >
         {latest ? (
           <>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -78,42 +117,6 @@ const EmployeeAssessmentTab = ({ employeeId, readOnly = false }: { employeeId: s
               </li>
             ))}
           </ul>
-        </Section>
-      )}
-
-      {!readOnly && (
-        <Section title="Record a result">
-          <p className="text-sm text-muted-foreground">Kolbe scores come from the employee's Kolbe A Index report. Enter the four mode scores (1–10) as printed on it.</p>
-          <form
-            onSubmit={(event) => {
-              const v = formValues(event.currentTarget);
-              return submit(
-                () =>
-                  mutate.mutateAsync({
-                    insert: {
-                      employee_id: employeeId,
-                      assessed_on: v.assessed_on,
-                      fact_finder: Number(v.fact_finder),
-                      follow_thru: Number(v.follow_thru),
-                      quick_start: Number(v.quick_start),
-                      implementor: Number(v.implementor),
-                      notes: v.notes,
-                    },
-                  }),
-                "Result recorded",
-              )(event);
-            }}
-            className="grid gap-3 sm:grid-cols-4"
-          >
-            {KOLBE_MODES.map((m) => (
-              <Field key={m.key} label={m.label} htmlFor={m.key}>
-                <Input id={m.key} name={m.key} type="number" min={1} max={10} step={1} required className={fieldInputClass} />
-              </Field>
-            ))}
-            <Field label="Assessed on" htmlFor="assessed_on"><Input id="assessed_on" name="assessed_on" type="date" defaultValue={today()} required /></Field>
-            <Field label="Notes" htmlFor="notes" className="sm:col-span-4"><Textarea id="notes" name="notes" rows={2} placeholder="Optional context, e.g. how the result shapes their role" /></Field>
-            <div className="sm:col-span-4 sm:text-right"><Button type="submit" disabled={mutate.isPending}>Save result</Button></div>
-          </form>
         </Section>
       )}
     </div>

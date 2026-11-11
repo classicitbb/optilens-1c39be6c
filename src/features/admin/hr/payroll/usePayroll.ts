@@ -161,6 +161,8 @@ const buildPayslip = (data: PayrollData, employee: Employee, periodStart: string
     basePay: comp.base_amount,
     annualAllowances,
     rrLevyExempt: employee.rr_levy_exempt,
+    nisExempt: !!employee.nis_exempt_reason,
+    payeExempt: !!employee.paye_exempt_reason,
     items,
     overrides,
     splits: data.splits

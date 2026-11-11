@@ -18,6 +18,7 @@ import PositionsPanel from "@/features/admin/hr/PositionsPanel";
 import { NativeSelect } from "@/features/admin/hr/formBits";
 import { departmentOptions, isCurrentManager, useDepartments, useEmployeeManagers } from "@/features/admin/hr/useDepartments";
 import { useEmployeePositions, usePositions } from "@/features/admin/hr/usePositions";
+import { useOpenChecklistCount } from "@/features/admin/hr/EmployeeChecklist";
 import HelpTip from "@/help/HelpTip";
 
 const statusVariant = (status: EmployeeStatus) => (status === "active" ? "default" : status === "on_leave" ? "secondary" : "outline");
@@ -27,6 +28,7 @@ const EmployeesPage = () => {
   const { toast } = useToast();
   const { data: employees = [], isLoading, error } = useEmployees();
   const createEmployee = useHrMutation("employees");
+  const openItems = useOpenChecklistCount();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<EmployeeStatus | "all">("active");
   const [department, setDepartment] = useState("all");
@@ -170,16 +172,17 @@ const EmployeesPage = () => {
               <TableHead className="hidden md:table-cell">Department</TableHead>
               <TableHead className="hidden lg:table-cell">Managers</TableHead>
               <TableHead className="hidden xl:table-cell">Hired</TableHead>
+              <TableHead className="hidden sm:table-cell">To complete</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {error ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-destructive">Could not load employees: {(error as Error).message}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-destructive">Could not load employees: {(error as Error).message}</TableCell></TableRow>
             ) : isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
             ) : visible.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No employees match.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No employees match.</TableCell></TableRow>
             ) : (
               visible.map((e) => (
                 <TableRow key={e.id} className="cursor-pointer" onClick={() => navigate(`/admin/finance/people/${e.id}`)}>
@@ -197,6 +200,9 @@ const EmployeesPage = () => {
                     )) ?? "—"}
                   </TableCell>
                   <TableCell className="hidden xl:table-cell">{day(e.hire_date)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {openItems(e) > 0 ? <Badge variant="outline" title="Blank details to fill in, on the employee's page">{openItems(e)} to complete</Badge> : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
                   <TableCell><Badge variant={statusVariant(e.status)}>{STATUS_LABELS[e.status]}</Badge></TableCell>
                 </TableRow>
               ))

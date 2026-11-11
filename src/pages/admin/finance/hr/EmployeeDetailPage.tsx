@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Eye, Pencil, Trash2, UserRound } from "lucide-react";
@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   createContactForEmployee,
+  EXEMPT_REASON_LABELS,
   employeeDisplayName,
   revealEmployeeSensitive,
   saveEmployeeSensitive,
@@ -31,7 +32,11 @@ import { LeaveAdjustmentForm, LeaveBalanceCards, LeaveRequestForm, LeaveRequestT
 import { EmployeeTaxPanel } from "@/features/admin/hr/tax/TaxComponents";
 import { useLeaveAdjustments, useLeavePolicy, useLeaveRequests, useLeaveTypes } from "@/features/admin/hr/leave/useLeave";
 import { day, EMPLOYMENT_TYPE_LABELS, Field, fieldInputClass, formValues, money, STATUS_LABELS } from "@/features/admin/hr/formFields";
-import { NativeSelect, Section, useSubmit } from "@/features/admin/hr/formBits";
+import { FormActions, FormDialog, NativeSelect, openForm, Section, useSubmit } from "@/features/admin/hr/formBits";
+import { focusField } from "@/features/admin/hr/focusField";
+import { describeReplaced, isPlanError, planPayChange } from "@/features/admin/hr/payHistory";
+import EmployeeChecklist from "@/features/admin/hr/EmployeeChecklist";
+import type { OutstandingItem } from "@/features/admin/hr/checklist";
 import { departmentOptions, isCurrentManager, useDepartments, useEmployeeManagers } from "@/features/admin/hr/useDepartments";
 import { isCurrentAssignment, useEmployeePositions } from "@/features/admin/hr/usePositions";
 import EmployeePositionsTab from "@/features/admin/hr/EmployeePositionsTab";
@@ -184,6 +189,8 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
   const update = useHrMutation("employees");
   const submit = useSubmit();
   if (!employee) return null;
+  // Until the database update adding the exemption columns is applied the record has no such keys.
+  const exemptionsReady = "nis_exempt_reason" in employee;
 
   // Job title and department follow the primary position once there is one; managers have their own section.
   const fromPosition = assignments.some((a) => a.employee_id === employee.id && a.is_primary && isCurrentAssignment(a));
@@ -242,6 +249,17 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
             Exempt from R&amp;R levy
             <HelpTip id="hr.employee.rrLevyExempt" />
           </label>
+          <Field label="NIS exemption" htmlFor="nis_exempt_reason" tip="hr.employee.nisExempt">
+            <NativeSelect id="nis_exempt_reason" name="nis_exempt_reason" defaultValue={employee.nis_exempt_reason ?? ""} options={{ "": "Not exempt", ...EXEMPT_REASON_LABELS }} disabled={!exemptionsReady} />
+          </Field>
+          <Field label="PAYE exemption" htmlFor="paye_exempt_reason" tip="hr.employee.payeExempt">
+            <NativeSelect id="paye_exempt_reason" name="paye_exempt_reason" defaultValue={employee.paye_exempt_reason ?? ""} options={{ "": "Not exempt", ...EXEMPT_REASON_LABELS }} disabled={!exemptionsReady} />
+          </Field>
+          {!exemptionsReady && (
+            <p className="text-xs text-amber-700 dark:text-amber-400 sm:col-span-2 lg:col-span-3">
+              NIS and PAYE exemptions can be chosen once the latest database update has been applied.
+            </p>
+          )}
           <Field label="Termination reason" htmlFor="termination_reason" className="sm:col-span-2 lg:col-span-3"><Input id="termination_reason" name="termination_reason" defaultValue={employee.termination_reason ?? ""} /></Field>
         </div>
       </Section>
@@ -251,60 +269,112 @@ const ProfileTab = ({ employeeId }: { employeeId: string }) => {
 };
 const ordinal = (n: number) => (n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th");
 
-const CompensationTab = ({ employeeId }: { employeeId: string }) => {
-  const { data: rows = [] } = useEmployeeRows<Compensation>("employee_compensation", employeeId, "effective_from");
+const PayChangeForm = ({ employeeId, rows, current, onDone }: { employeeId: string; rows: Compensation[]; current?: Compensation; onDone: () => void }) => {
   const mutate = useHrMutation("employee_compensation");
   const submit = useSubmit();
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const plan = from ? planPayChange(rows, from, to || null) : null;
+  const error = plan && isPlanError(plan) ? plan.error : null;
+  const ok = plan && !isPlanError(plan) ? plan : null;
+  const rowOf = (id: string) => rows.find((r) => r.id === id);
+
+  return (
+    <form
+      onSubmit={(event) => {
+        const v = formValues(event.currentTarget);
+        return submit(async () => {
+          const reason = v.reason?.trim();
+          if (!reason) throw new Error("Give the reason for this pay change.");
+          const p = planPayChange(rows, from, to || null);
+          if (isPlanError(p)) throw new Error(p.error);
+          const replaced = p.remove.map(describeReplaced);
+          const note = `${p.isCorrection ? "Correction: " : ""}${reason}${replaced.length ? ` (replaces ${replaced.join("; ")})` : ""}`;
+          const { effective_to: _unused, ...fields } = v;
+          // A blank pay day is left out so the record still saves before the pay_day column exists.
+          if (fields.pay_day == null) delete fields.pay_day;
+          // The new record goes in first, so a failure part-way leaves overlapping pay, never a gap.
+          await mutate.mutateAsync({ insert: { ...fields, reason: note, effective_from: from, effective_to: p.to, employee_id: employeeId } });
+          for (const t of p.tail) {
+            const src = t.source;
+            await mutate.mutateAsync({
+              insert: {
+                employee_id: employeeId, pay_type: src.pay_type, pay_frequency: src.pay_frequency, base_amount: src.base_amount, currency: src.currency,
+                annual_personal_allowance: src.annual_personal_allowance, annual_child_allowance: src.annual_child_allowance, annual_other_allowance: src.annual_other_allowance,
+                ...(src.pay_day != null ? { pay_day: src.pay_day } : {}), reason: src.reason, effective_from: t.effective_from, effective_to: t.effective_to,
+              },
+            });
+          }
+          for (const t of p.trim) await mutate.mutateAsync({ update: { id: t.id, values: t.values } });
+          for (const r of p.remove) await mutate.mutateAsync({ deleteId: r.id });
+        }, "Pay updated", onDone)(event);
+      }}
+      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      <Field label="Pay type" htmlFor="pay_type"><NativeSelect id="pay_type" name="pay_type" defaultValue={current?.pay_type} options={{ salary: "Salary", hourly: "Hourly" }} /></Field>
+      <Field label="Frequency" htmlFor="pay_frequency"><NativeSelect id="pay_frequency" name="pay_frequency" defaultValue={current?.pay_frequency} options={{ monthly: "Monthly", semi_monthly: "Semi-monthly", fortnightly: "Fortnightly", weekly: "Weekly" }} /></Field>
+      <Field label="Pay day (of month)" htmlFor="pay_day" tip="hr.compensation.payDay"><Input id="pay_day" name="pay_day" type="number" step="1" min="1" max="31" placeholder="e.g. 25" defaultValue={current?.pay_day ?? ""} /></Field>
+      <Field label="Base amount" htmlFor="base_amount" tip="hr.compensation.baseAmount"><Input id="base_amount" name="base_amount" type="number" step="0.01" min="0" required className={fieldInputClass} /></Field>
+      <Field label="Effective from" htmlFor="effective_from" tip="hr.compensation.effectiveFrom"><Input id="effective_from" name="effective_from" type="date" required value={from} onChange={(e) => setFrom(e.target.value)} className={fieldInputClass} /></Field>
+      <Field label="Effective to (corrections only)" htmlFor="effective_to" tip="hr.compensation.effectiveTo"><Input id="effective_to" name="effective_to" type="date" min={from || undefined} value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+      <Field label="Personal allowance (yr)" htmlFor="annual_personal_allowance" tip="hr.compensation.personalAllowance"><Input id="annual_personal_allowance" name="annual_personal_allowance" type="number" step="0.01" min="0" defaultValue={current?.annual_personal_allowance ?? 0} /></Field>
+      <Field label="Child allowance (yr)" htmlFor="annual_child_allowance" tip="hr.compensation.childAllowance"><Input id="annual_child_allowance" name="annual_child_allowance" type="number" step="0.01" min="0" defaultValue={current?.annual_child_allowance ?? 0} /></Field>
+      <Field label="Other allowance (yr)" htmlFor="annual_other_allowance" tip="hr.compensation.otherAllowance"><Input id="annual_other_allowance" name="annual_other_allowance" type="number" step="0.01" min="0" defaultValue={current?.annual_other_allowance ?? 0} /></Field>
+      <Field label="Reason (required)" htmlFor="reason" className="sm:col-span-2 lg:col-span-3">
+        <Textarea id="reason" name="reason" required rows={2} placeholder="e.g. Annual review, or: salary was keyed in wrong at hire" className={fieldInputClass} />
+      </Field>
+      {(ok || error) && (
+        <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-xs sm:col-span-2 lg:col-span-3" role="status">
+          {error && <p className="text-destructive">{error}</p>}
+          {ok && (
+            <>
+              <p className="font-medium">
+                {ok.isCorrection ? "Correction: " : ""}new pay applies {day(from)} – {ok.to ? day(ok.to) : "onwards"}.
+              </p>
+              {ok.trim.map((t) => {
+                const r = rowOf(t.id);
+                return r && <p key={t.id}>The record for {day(r.effective_from)} – {r.effective_to ? day(r.effective_to) : "now"} {t.values.effective_to ? `now ends ${day(t.values.effective_to)}` : `now starts ${day(t.values.effective_from)}`}.</p>;
+              })}
+              {ok.remove.map((r) => <p key={r.id}>Replaces {describeReplaced(r)}.</p>)}
+              {ok.tail.map((t) => <p key={t.source.id}>The earlier amount carries on from {day(t.effective_from)}.</p>)}
+              <p className="text-muted-foreground">Payslips already approved keep their figures.</p>
+            </>
+          )}
+        </div>
+      )}
+      <FormActions submit="Save pay change" pending={mutate.isPending} disabled={!!error} />
+    </form>
+  );
+};
+
+const CompensationTab = ({ employeeId }: { employeeId: string }) => {
+  const { data: rows = [] } = useEmployeeRows<Compensation>("employee_compensation", employeeId, "effective_from");
   const current = rows.find((r) => !r.effective_to);
 
   return (
-    <div className="space-y-4">
-      <Section title="Current pay">
+    <div className="space-y-3">
+      <Section
+        title="Current pay"
+        action={
+          <FormDialog id="change-pay" title="Change pay" description="Pick a start date in the past to correct pay that was entered wrongly. The reason is kept in the history.">
+            {(close) => <PayChangeForm employeeId={employeeId} rows={rows} current={current} onDone={close} />}
+          </FormDialog>
+        }
+      >
         {current ? (
-          <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <div><dt className="text-muted-foreground">Base ({current.pay_frequency.replace("_", "-")})</dt><dd className="text-lg font-semibold">{money(current.base_amount, current.currency)}</dd></div>
-            <div><dt className="text-muted-foreground">Annual allowances</dt><dd>{money(current.annual_personal_allowance + current.annual_child_allowance + current.annual_other_allowance, current.currency)}</dd></div>
-            <div><dt className="text-muted-foreground">Pay day</dt><dd>{current.pay_day ? `${current.pay_day}${ordinal(current.pay_day)} of the month` : "Not set"}</dd></div>
-            <div><dt className="text-muted-foreground">Effective from</dt><dd>{day(current.effective_from)}</dd></div>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm lg:grid-cols-4">
+            <div><dt className="text-xs text-muted-foreground">Base ({current.pay_frequency.replace("_", "-")})</dt><dd className="font-semibold">{money(current.base_amount, current.currency)}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Annual allowances</dt><dd>{money(current.annual_personal_allowance + current.annual_child_allowance + current.annual_other_allowance, current.currency)}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Pay day</dt><dd>{current.pay_day ? `${current.pay_day}${ordinal(current.pay_day)} of the month` : "Not set"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Effective from</dt><dd>{day(current.effective_from)}</dd></div>
           </dl>
         ) : <p className="text-sm text-muted-foreground">No pay set up yet.</p>}
-      </Section>
-
-      <Section title="Change pay">
-        <form
-          onSubmit={(event) => {
-            const v = formValues(event.currentTarget);
-            return submit(async () => {
-              // Close the open record the day before the new one starts.
-              if (current && v.effective_from) {
-                const end = new Date(`${v.effective_from}T00:00:00`);
-                end.setDate(end.getDate() - 1);
-                await mutate.mutateAsync({ update: { id: current.id, values: { effective_to: end.toISOString().slice(0, 10) } } });
-              }
-              // A blank pay day is left out so the record still saves before the pay_day column exists.
-              if (v.pay_day == null) delete v.pay_day;
-              await mutate.mutateAsync({ insert: { ...v, employee_id: employeeId } });
-            }, "Pay updated")(event);
-          }}
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <Field label="Pay type" htmlFor="pay_type"><NativeSelect id="pay_type" name="pay_type" defaultValue={current?.pay_type} options={{ salary: "Salary", hourly: "Hourly" }} /></Field>
-          <Field label="Frequency" htmlFor="pay_frequency"><NativeSelect id="pay_frequency" name="pay_frequency" defaultValue={current?.pay_frequency} options={{ monthly: "Monthly", semi_monthly: "Semi-monthly", fortnightly: "Fortnightly", weekly: "Weekly" }} /></Field>
-          <Field label="Pay day (of month)" htmlFor="pay_day" tip="hr.compensation.payDay"><Input id="pay_day" name="pay_day" type="number" step="1" min="1" max="31" placeholder="e.g. 25" defaultValue={current?.pay_day ?? ""} /></Field>
-          <Field label="Base amount" htmlFor="base_amount" tip="hr.compensation.baseAmount"><Input id="base_amount" name="base_amount" type="number" step="0.01" min="0" required className={fieldInputClass} /></Field>
-          <Field label="Effective from" htmlFor="effective_from" tip="hr.compensation.effectiveFrom"><Input id="effective_from" name="effective_from" type="date" required className={fieldInputClass} /></Field>
-          <Field label="Personal allowance (yr)" htmlFor="annual_personal_allowance" tip="hr.compensation.personalAllowance"><Input id="annual_personal_allowance" name="annual_personal_allowance" type="number" step="0.01" min="0" defaultValue={current?.annual_personal_allowance ?? 0} /></Field>
-          <Field label="Child allowance (yr)" htmlFor="annual_child_allowance" tip="hr.compensation.childAllowance"><Input id="annual_child_allowance" name="annual_child_allowance" type="number" step="0.01" min="0" defaultValue={current?.annual_child_allowance ?? 0} /></Field>
-          <Field label="Other allowance (yr)" htmlFor="annual_other_allowance" tip="hr.compensation.otherAllowance"><Input id="annual_other_allowance" name="annual_other_allowance" type="number" step="0.01" min="0" defaultValue={current?.annual_other_allowance ?? 0} /></Field>
-          <Field label="Reason" htmlFor="reason"><Input id="reason" name="reason" placeholder="e.g. Annual review" /></Field>
-          <div className="flex items-end lg:col-span-4 lg:justify-end"><Button type="submit" disabled={mutate.isPending}>Save pay change</Button></div>
-        </form>
       </Section>
 
       <Section title="History">
         <ul className="divide-y text-sm">
           {rows.map((r) => (
-            <li key={r.id} className="flex flex-wrap justify-between gap-2 py-2">
+            <li key={r.id} className="flex flex-wrap justify-between gap-2 py-1.5">
               <span>{day(r.effective_from)} – {r.effective_to ? day(r.effective_to) : "now"}</span>
               <span className="font-medium">{money(r.base_amount, r.currency)} / {r.pay_frequency.replace("_", "-")}</span>
               <span className="text-muted-foreground">{r.reason ?? ""}</span>
@@ -326,7 +396,27 @@ const PayItemsTab = ({ employeeId }: { employeeId: string }) => {
 
   return (
     <div className="space-y-4">
-      <Section title="Recurring earnings & deductions">
+      <Section
+        title="Recurring earnings & deductions"
+        action={<FormDialog title="Add a recurring item">{(close) => (
+        <form
+          onSubmit={(event) => {
+            const v = formValues(event.currentTarget);
+            const taxable = v.taxable === "on";
+            delete v.taxable;
+            return submit(() => itemMutation.mutateAsync({ insert: { ...v, taxable, employee_id: employeeId, loan_balance: v.loan_principal } }), "Item added", close)(event);
+          }}
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+        >
+          <Field label="Type" htmlFor="kind"><NativeSelect id="kind" name="kind" options={{ deduction: "Deduction", earning: "Earning" }} /></Field>
+          <Field label="Label" htmlFor="label"><Input id="label" name="label" required placeholder="Health insurance" className={fieldInputClass} /></Field>
+          <Field label="Amount per pay" htmlFor="amount" tip="hr.payItems.amount"><Input id="amount" name="amount" type="number" step="0.01" min="0" required className={fieldInputClass} /></Field>
+          <Field label="Loan principal (optional)" htmlFor="loan_principal" tip="hr.payItems.loanPrincipal"><Input id="loan_principal" name="loan_principal" type="number" step="0.01" min="0" /></Field>
+          <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="taxable" defaultChecked /> Taxable <HelpTip id="hr.payItems.taxable" /></label>
+          <FormActions submit="Add item" pending={itemMutation.isPending} />
+        </form>
+        )}</FormDialog>}
+      >
         <ul className="divide-y text-sm">
           {items.map((i) => (
             <li key={i.id} className="flex flex-wrap items-center gap-3 py-2">
@@ -343,25 +433,26 @@ const PayItemsTab = ({ employeeId }: { employeeId: string }) => {
           ))}
           {items.length === 0 && <li className="py-2 text-muted-foreground">None.</li>}
         </ul>
+      </Section>
+
+      <Section
+        title="Net pay distribution"
+        action={<FormDialog title="Add a split" narrow>{(close) => (
         <form
           onSubmit={(event) => {
             const v = formValues(event.currentTarget);
-            const taxable = v.taxable === "on";
-            delete v.taxable;
-            return submit(() => itemMutation.mutateAsync({ insert: { ...v, taxable, employee_id: employeeId, loan_balance: v.loan_principal } }), "Item added")(event);
+            const is_remainder = !v.amount;
+            return submit(() => splitMutation.mutateAsync({ insert: { ...v, is_remainder, employee_id: employeeId, sort_order: splits.length } }), "Split added", close)(event);
           }}
-          className="grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-5"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
         >
-          <Field label="Type" htmlFor="kind"><NativeSelect id="kind" name="kind" options={{ deduction: "Deduction", earning: "Earning" }} /></Field>
-          <Field label="Label" htmlFor="label"><Input id="label" name="label" required placeholder="Health insurance" className={fieldInputClass} /></Field>
-          <Field label="Amount per pay" htmlFor="amount" tip="hr.payItems.amount"><Input id="amount" name="amount" type="number" step="0.01" min="0" required className={fieldInputClass} /></Field>
-          <Field label="Loan principal (optional)" htmlFor="loan_principal" tip="hr.payItems.loanPrincipal"><Input id="loan_principal" name="loan_principal" type="number" step="0.01" min="0" /></Field>
-          <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="taxable" defaultChecked /> Taxable <HelpTip id="hr.payItems.taxable" /></label>
-          <div className="lg:col-span-5 lg:text-right"><Button type="submit" disabled={itemMutation.isPending}>Add item</Button></div>
+          <Field label="Label" htmlFor="split_label"><Input id="split_label" name="label" required placeholder="CIBC savings" className={fieldInputClass} /></Field>
+          <Field label="Method" htmlFor="method"><NativeSelect id="method" name="method" options={{ bank_transfer: "Bank transfer", cheque: "Cheque", cash: "Cash", third_party: "Third party" }} /></Field>
+          <Field label="Fixed amount (blank = remainder)" htmlFor="split_amount" tip="hr.payItems.splitAmount"><Input id="split_amount" name="amount" type="number" step="0.01" min="0" /></Field>
+          <FormActions submit="Add split" pending={splitMutation.isPending} />
         </form>
-      </Section>
-
-      <Section title="Net pay distribution">
+        )}</FormDialog>}
+      >
         <ul className="divide-y text-sm">
           {splits.map((s) => (
             <li key={s.id} className="flex flex-wrap items-center gap-3 py-2">
@@ -375,19 +466,6 @@ const PayItemsTab = ({ employeeId }: { employeeId: string }) => {
           ))}
           {splits.length === 0 && <li className="py-2 text-muted-foreground">Not set: all net pay goes to one account.</li>}
         </ul>
-        <form
-          onSubmit={(event) => {
-            const v = formValues(event.currentTarget);
-            const is_remainder = !v.amount;
-            return submit(() => splitMutation.mutateAsync({ insert: { ...v, is_remainder, employee_id: employeeId, sort_order: splits.length } }), "Split added")(event);
-          }}
-          className="grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <Field label="Label" htmlFor="split_label"><Input id="split_label" name="label" required placeholder="CIBC savings" className={fieldInputClass} /></Field>
-          <Field label="Method" htmlFor="method"><NativeSelect id="method" name="method" options={{ bank_transfer: "Bank transfer", cheque: "Cheque", cash: "Cash", third_party: "Third party" }} /></Field>
-          <Field label="Fixed amount (blank = remainder)" htmlFor="split_amount" tip="hr.payItems.splitAmount"><Input id="split_amount" name="amount" type="number" step="0.01" min="0" /></Field>
-          <div className="flex items-end"><Button type="submit" disabled={splitMutation.isPending}>Add split</Button></div>
-        </form>
       </Section>
     </div>
   );
@@ -463,19 +541,23 @@ const NotesTab = ({ employeeId }: { employeeId: string }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
-    <Section title="Notes">
+    <Section
+      title="Notes"
+      action={<FormDialog title="Add a note" narrow>{(close) => (
       <form
         onSubmit={(event) => {
           const v = formValues(event.currentTarget);
-          return submit(() => mutate.mutateAsync({ insert: { ...v, employee_id: employeeId } }), "Note added")(event);
+          return submit(() => mutate.mutateAsync({ insert: { ...v, employee_id: employeeId } }), "Note added", close)(event);
         }}
         className="grid gap-3 sm:grid-cols-3"
       >
         <Field label="Category" htmlFor="category" tip="hr.notes.category"><NativeSelect id="category" name="category" options={NOTE_CATEGORIES} /></Field>
         <Field label="Visibility" htmlFor="visibility" tip="hr.notes.visibility"><NativeSelect id="visibility" name="visibility" options={NOTE_VISIBILITY} /></Field>
         <Field label="Note" htmlFor="body" className="sm:col-span-3"><Textarea id="body" name="body" required rows={3} className={fieldInputClass} /></Field>
-        <div className="sm:col-span-3 sm:text-right"><Button type="submit" disabled={mutate.isPending}>Add note</Button></div>
+        <FormActions submit="Add note" pending={mutate.isPending} />
       </form>
+      )}</FormDialog>}
+    >
       <Private block>
         <ul className="divide-y text-sm">
           {notes.map((n) =>
@@ -528,13 +610,16 @@ const LeaveTab = ({ employee }: { employee: Employee }) => {
   return (
     <div className="space-y-4">
       <LeaveBalanceCards employee={employee} types={types} policy={policy} requests={requests} adjustments={adjustments} />
-      <Section title="Record leave">
-        <LeaveRequestForm employees={employees} types={types} policy={policy} employeeId={employee.id} />
-      </Section>
-      <Section title="Leave history">
+      <Section
+        title="Leave history"
+        action={<FormDialog title="Record leave">{(close) => <LeaveRequestForm employees={employees} types={types} policy={policy} employeeId={employee.id} onDone={close} />}</FormDialog>}
+      >
         <LeaveRequestTable requests={requests} employees={employees} types={types} showEmployee={false} />
       </Section>
-      <Section title="Balance adjustments">
+      <Section
+        title="Balance adjustments"
+        action={<FormDialog title="Adjust balance" narrow>{(close) => <LeaveAdjustmentForm employeeId={employee.id} types={types} onDone={close} />}</FormDialog>}
+      >
         <ul className="divide-y text-sm">
           {adjustments.map((a) => (
             <li key={a.id} className="flex flex-wrap gap-3 py-2">
@@ -546,7 +631,6 @@ const LeaveTab = ({ employee }: { employee: Employee }) => {
           ))}
           {adjustments.length === 0 && <li className="py-2 text-muted-foreground">None. Add an opening balance for leave owed before tracking started.</li>}
         </ul>
-        <LeaveAdjustmentForm employeeId={employee.id} types={types} />
       </Section>
     </div>
   );
@@ -556,6 +640,16 @@ const EmployeeDetailPage = () => {
   const { employeeId = "" } = useParams();
   const { data: employee, isLoading } = useEmployee(employeeId);
   const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get("tab") ?? "profile");
+  const [jump, setJump] = useState<OutstandingItem | null>(null);
+
+  // "Fill in" on the checklist: switch tab, open the pop-up if the field lives in one, then focus and flash it.
+  useEffect(() => {
+    if (!jump || tab !== jump.tab) return;
+    if (jump.opens) openForm(jump.opens);
+    focusField(jump.field);
+    setJump(null);
+  }, [jump, tab]);
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Loading…</div>;
   if (!employee) return <div className="p-4">Employee not found. <Link to="/admin/finance/people" className="underline">Back to People</Link></div>;
@@ -572,7 +666,9 @@ const EmployeeDetailPage = () => {
         </div>
       </AdminPageHeader>
 
-      <Tabs defaultValue={searchParams.get("tab") ?? "profile"} className="space-y-3">
+      <EmployeeChecklist employee={employee} onGo={(item) => { setTab(item.tab); setJump(item); }} />
+
+      <Tabs value={tab} onValueChange={setTab} className="space-y-3">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-0.5" data-tour="hr-employee-tabs">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="pay" data-tour="hr-employee-tab-pay">Compensation</TabsTrigger>

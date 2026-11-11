@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type EmployeeStatus = "active" | "on_leave" | "terminated";
 export type EmploymentType = "full_time" | "part_time" | "contract" | "casual";
+export type ExemptReason = "partner" | "retirement_age";
+export const EXEMPT_REASON_LABELS: Record<ExemptReason, string> = { partner: "Partner", retirement_age: "Retirement age" };
 
 export interface Employee {
   id: string;
@@ -27,6 +29,9 @@ export interface Employee {
   termination_reason: string | null;
   tax_code: string | null;
   rr_levy_exempt: boolean;
+  /** Why NIS / PAYE are not deducted; null = deducted as normal. Absent until the migration is applied. */
+  nis_exempt_reason?: ExemptReason | null;
+  paye_exempt_reason?: ExemptReason | null;
   contact_id: string | null;
   created_at: string;
   updated_at: string;

@@ -87,6 +87,9 @@ export interface PayslipInput {
   basePay: number;
   annualAllowances: number;
   rrLevyExempt?: boolean;
+  /** Partners and people past retirement age: nothing is deducted (an override can still be typed in). */
+  nisExempt?: boolean;
+  payeExempt?: boolean;
   items?: PayItemInput[];
   splits?: PaySplitInput[];
   overrides?: DeductionOverrides;
@@ -174,8 +177,8 @@ export const calculatePayslip = (input: PayslipInput, rules = rulesFor(input.per
   const taxableCents = earnings.filter((l) => l.taxable).reduce((sum, l) => sum + l.cents, 0);
 
   const round = input.statutoryRounding === "cent" ? (c: number) => c : roundToDollar;
-  const nis = overridden("nis", round(pct(Math.min(grossCents, toCents(rules.nisMonthlyCeiling)), rules.nisRate)));
-  const paye = overridden("paye", round(monthlyPayeCents(taxableCents, input.annualAllowances, rules)));
+  const nis = overridden("nis", input.nisExempt ? 0 : round(pct(Math.min(grossCents, toCents(rules.nisMonthlyCeiling)), rules.nisRate)));
+  const paye = overridden("paye", input.payeExempt ? 0 : round(monthlyPayeCents(taxableCents, input.annualAllowances, rules)));
   const rr = overridden("rr_levy", input.rrLevyExempt ? 0 : round(pct(grossCents, rules.rrLevyRate)));
   const nisCents = nis.cents;
   const payeCents = paye.cents;

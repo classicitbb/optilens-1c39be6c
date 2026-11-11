@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,17 +13,41 @@ type PrivacyState = { hidden: boolean; secondsLeft: number; reveal: () => void; 
 // Without a provider everything stays hidden, so a missed provider fails safe.
 const PrivacyContext = createContext<PrivacyState>({ hidden: true, secondsLeft: 0, reveal: () => {}, hide: () => {} });
 
-/** Salary figures and HR notes start blurred; a user can lift the filter briefly. */
+/** Anything that shows someone is still working on the page. Moving, clicking, typing, scrolling and focusing a field all count. */
+const ACTIVITY_EVENTS = ["mousemove", "pointerdown", "keydown", "input", "focusin", "wheel", "scroll", "touchstart"] as const;
+
+/**
+ * Salary figures and HR notes start blurred; a user can lift the filter briefly.
+ * The countdown only runs while the page is idle: any activity puts it back to the full time,
+ * so someone who is working in a revealed form is not timed out.
+ */
 export const PrivacyFilterProvider = ({ children, seconds = REVEAL_SECONDS }: { children: ReactNode; seconds?: number }) => {
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const reveal = useCallback(() => setSecondsLeft(seconds), [seconds]);
+  const lastActivity = useRef(0);
+  const revealed = secondsLeft > 0;
+  const reveal = useCallback(() => {
+    lastActivity.current = Date.now();
+    setSecondsLeft(seconds);
+  }, [seconds]);
   const hide = useCallback(() => setSecondsLeft(0), []);
 
+  // A ref, not state, so a stream of mouse moves does not re-render the page.
   useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [secondsLeft]);
+    if (!revealed) return;
+    const touch = () => { lastActivity.current = Date.now(); };
+    for (const name of ACTIVITY_EVENTS) document.addEventListener(name, touch, { capture: true, passive: true });
+    return () => { for (const name of ACTIVITY_EVENTS) document.removeEventListener(name, touch, { capture: true }); };
+  }, [revealed]);
+
+  // The time left is whatever remains of `seconds` since the last activity.
+  useEffect(() => {
+    if (!revealed) return;
+    const timer = setInterval(() => {
+      const idle = Math.floor((Date.now() - lastActivity.current) / 1000);
+      setSecondsLeft(Math.max(seconds - idle, 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [revealed, seconds]);
 
   // Switching tabs or locking the screen puts the filter straight back.
   useEffect(() => {

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { inAppConfirm } from "@/lib/inAppDialog";
 import { day, Field, fieldInputClass, formValues } from "./formFields";
-import { NativeSelect, Section, useSubmit } from "./formBits";
+import { FormActions, FormDialog, NativeSelect, Section, useSubmit } from "./formBits";
 import { useEmployeeRows, useHrMutation } from "./useEmployees";
 import {
   CONTRACT_TYPE_LABELS,
@@ -52,7 +52,45 @@ const EmployeeContractsTab = ({ employeeId }: { employeeId: string }) => {
 
   return (
     <div className="space-y-4">
-      <Section title="Contracts">
+      <Section
+        title="Contracts"
+        action={
+          <FormDialog title="Add a contract">
+            {(close) => (
+        <form
+          onSubmit={(event) => {
+            const form = event.currentTarget;
+            const v = formValues(form);
+            const file = (new FormData(form).get("file") as File | null) ?? null;
+            return submit(async () => {
+              if (!file || file.size === 0) throw new Error("Choose a file to upload.");
+              const path = await uploadHrDocument(`contracts/${employeeId}`, file);
+              try {
+                await mutate.mutateAsync({
+                  insert: { employee_id: employeeId, position_id: v.position_id, contract_type: v.contract_type, title: v.title, start_date: v.start_date, end_date: v.end_date, signed_date: v.signed_date, notes: v.notes, file_path: path, file_name: file.name },
+                });
+              } catch (error) {
+                await removeHrDocument(path).catch(() => undefined);
+                throw error;
+              }
+            }, "Contract added", close)(event);
+          }}
+          className="grid gap-3 sm:grid-cols-3"
+        >
+          <Field label="Title" htmlFor="title" className="sm:col-span-2"><Input id="title" name="title" required placeholder="e.g. Employment agreement 2026" className={fieldInputClass} /></Field>
+          <Field label="Type" htmlFor="contract_type"><NativeSelect id="contract_type" name="contract_type" options={CONTRACT_TYPE_LABELS} /></Field>
+          <Field label="Start date" htmlFor="start_date"><Input id="start_date" name="start_date" type="date" /></Field>
+          <Field label="End date" htmlFor="end_date"><Input id="end_date" name="end_date" type="date" /></Field>
+          <Field label="Signed on" htmlFor="signed_date"><Input id="signed_date" name="signed_date" type="date" /></Field>
+          <Field label="Position (optional)" htmlFor="position_id" className="sm:col-span-2"><NativeSelect id="position_id" name="position_id" options={positionOptions} /></Field>
+          <Field label="File (PDF, Word or image, up to 20 MB)" htmlFor="file"><Input id="file" name="file" type="file" accept={ACCEPT} required /></Field>
+          <Field label="Notes" htmlFor="notes" className="sm:col-span-3"><Textarea id="notes" name="notes" rows={2} /></Field>
+          <FormActions submit="Add contract" pending={mutate.isPending} />
+        </form>
+            )}
+          </FormDialog>
+        }
+      >
         <ul className="divide-y text-sm">
           {contracts.map((c) => (
             <li key={c.id} className="space-y-1 py-3">
@@ -77,39 +115,6 @@ const EmployeeContractsTab = ({ employeeId }: { employeeId: string }) => {
           ))}
           {contracts.length === 0 && <li className="py-2 text-muted-foreground">No contracts stored yet.</li>}
         </ul>
-      </Section>
-
-      <Section title="Add a contract">
-        <form
-          onSubmit={(event) => {
-            const form = event.currentTarget;
-            const v = formValues(form);
-            const file = (new FormData(form).get("file") as File | null) ?? null;
-            return submit(async () => {
-              if (!file || file.size === 0) throw new Error("Choose a file to upload.");
-              const path = await uploadHrDocument(`contracts/${employeeId}`, file);
-              try {
-                await mutate.mutateAsync({
-                  insert: { employee_id: employeeId, position_id: v.position_id, contract_type: v.contract_type, title: v.title, start_date: v.start_date, end_date: v.end_date, signed_date: v.signed_date, notes: v.notes, file_path: path, file_name: file.name },
-                });
-              } catch (error) {
-                await removeHrDocument(path).catch(() => undefined);
-                throw error;
-              }
-            }, "Contract added")(event);
-          }}
-          className="grid gap-3 sm:grid-cols-3"
-        >
-          <Field label="Title" htmlFor="title" className="sm:col-span-2"><Input id="title" name="title" required placeholder="e.g. Employment agreement 2026" className={fieldInputClass} /></Field>
-          <Field label="Type" htmlFor="contract_type"><NativeSelect id="contract_type" name="contract_type" options={CONTRACT_TYPE_LABELS} /></Field>
-          <Field label="Start date" htmlFor="start_date"><Input id="start_date" name="start_date" type="date" /></Field>
-          <Field label="End date" htmlFor="end_date"><Input id="end_date" name="end_date" type="date" /></Field>
-          <Field label="Signed on" htmlFor="signed_date"><Input id="signed_date" name="signed_date" type="date" /></Field>
-          <Field label="Position (optional)" htmlFor="position_id" className="sm:col-span-2"><NativeSelect id="position_id" name="position_id" options={positionOptions} /></Field>
-          <Field label="File (PDF, Word or image, up to 20 MB)" htmlFor="file"><Input id="file" name="file" type="file" accept={ACCEPT} required /></Field>
-          <Field label="Notes" htmlFor="notes" className="sm:col-span-3"><Textarea id="notes" name="notes" rows={2} /></Field>
-          <div className="sm:col-span-3 sm:text-right"><Button type="submit" disabled={mutate.isPending}>Add contract</Button></div>
-        </form>
       </Section>
     </div>
   );
