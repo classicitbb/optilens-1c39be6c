@@ -9,6 +9,8 @@
 //      column rename (policy_id vs sla_policy_id) is caught here rather than
 //      in a staff member's browser.
 //   3. Portal Copilot — preflight reachability.
+//   4. Office sync freshness — any Innovations entity older than its sync-worker
+//      cadence (public.innovations_sync_freshness) is a failure.
 //
 // Results are recorded through public.record_edge_function_health and, on a
 // failure, emailed to the ops/feedback address.
@@ -86,6 +88,24 @@ const probeSlaSchema = async (db: any): Promise<Check> => {
   };
 };
 
+const probeOfficeSync = async (db: any): Promise<Check> => {
+  const { data, error } = await db
+    .from("innovations_sync_freshness")
+    .select("entity,tier,last_delivered_at")
+    .eq("is_stale", true);
+  const stale = (data ?? []) as Array<{ entity: string; tier: string; last_delivered_at: string | null }>;
+  return {
+    name: "office-sync-freshness",
+    healthy: !error && stale.length === 0,
+    error: error
+      ? "freshness probe failed"
+      : stale.length
+        ? `stale: ${stale.map((row) => `${row.entity} (${row.tier}, last ${row.last_delivered_at ?? "never"})`).join(", ")}`
+        : null,
+    checkedAt: now(),
+  };
+};
+
 const alert = async (db: any, failures: Check[]) => {
   try {
     const { data: settings } = await db.from("company_settings").select("feedback_email").maybeSingle();
@@ -134,7 +154,7 @@ Deno.serve(async (req) => {
   if (recentRun) {
     return new Response(JSON.stringify({ ok: true, skipped: "recently_checked" }), { status: 200, headers });
   }
-  const checks = [await probeMcp(), await probeCopilot(), await probeSlaSchema(db)];
+  const checks = [await probeMcp(), await probeCopilot(), await probeSlaSchema(db), await probeOfficeSync(db)];
   const failures = checks.filter((check) => !check.healthy);
 
   const { error: recordError } = await db.rpc("record_edge_function_health", {
