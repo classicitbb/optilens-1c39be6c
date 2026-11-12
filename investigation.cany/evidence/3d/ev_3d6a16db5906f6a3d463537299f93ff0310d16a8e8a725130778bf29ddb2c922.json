@@ -1,0 +1,67 @@
+{
+  "id": "ev_3d6a16db5906f6a3d463537299f93ff0310d16a8e8a725130778bf29ddb2c922",
+  "subject": {
+    "kind": "website",
+    "name": "http://127.0.0.1:51602/"
+  },
+  "operation": "web_page_states_capture",
+  "params": {
+    "max_states": 8,
+    "width": 390
+  },
+  "result": {
+    "folder": "C:\\DEV\\optilens-1c39be6c\\checks\\round-0\\states-390",
+    "found": 2,
+    "states": [
+      {
+        "changed": [
+          "expanded",
+          "dialog appeared"
+        ],
+        "file": "state-1.png",
+        "index": 0,
+        "kind": "dialog",
+        "label": "Open mobile navigation menu",
+        "sha256": "3bc30e83af595739d0a88a40c43fd53fdf41107bcd6721f98a4a7e38e414c198"
+      },
+      {
+        "changed": [
+          "expanded"
+        ],
+        "file": "state-2.png",
+        "index": 1,
+        "kind": "menu",
+        "label": "What do you need today?",
+        "sha256": "af1c85ac8544b112a02b47775079fe977a85e8b8b6e9e44ddb51a4cee26ce84f"
+      }
+    ],
+    "url": "http://127.0.0.1:51602/"
+  },
+  "summary": "Opened 2 of 2 control(s) on http://127.0.0.1:51602/; 2 pictured in C:\\DEV\\optilens-1c39be6c\\checks\\round-0\\states-390.",
+  "confidence": "observed",
+  "authority": "our-run",
+  "environment": {
+    "clean_room": false,
+    "engine": "cdp",
+    "engine_version": "1.3",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "first_controls",
+      "message": "Only the first controls found are opened, one at a time; menus inside menus and hover-only menus are not."
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 2,
+    "total": 2
+  },
+  "locations": [
+    {
+      "kind": "url",
+      "value": "http://127.0.0.1:51602/"
+    }
+  ],
+  "links": []
+}

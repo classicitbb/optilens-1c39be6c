@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import BlockGutter from "./editor/BlockGutter";
 import BubbleToolbar from "./editor/BubbleToolbar";
 import TableContextMenu from "./editor/TableContextMenu";
+import TableHandles from "./editor/TableHandles";
 import { SuggestionPopup, useSuggestionBridge } from "./editor/SuggestionPopup";
 import {
   buildBaseExtensions,
@@ -222,6 +223,7 @@ const BlockEditor = ({ value, onChange, pages, searchPeople, onAskIris, onEditor
     <div ref={wrapperRef} className={cn("ws-editor-wrap relative", className)}>
       <BlockGutter editor={editor} wrapperRef={wrapperRef} onAskIris={askIris} />
       <BubbleToolbar editor={editor} onAskIris={askIris} />
+      <TableHandles editor={editor} wrapperRef={wrapperRef} />
       <TableContextMenu editor={editor}>
         <EditorContent editor={editor} />
       </TableContextMenu>

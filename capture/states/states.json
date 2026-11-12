@@ -1,0 +1,37 @@
+{
+  "states": [
+    {
+      "changed": [
+        "expanded"
+      ],
+      "file": "state-1.png",
+      "index": 0,
+      "kind": "menu",
+      "label": "Product",
+      "sha256": "33c4ca2ce046736730155cdc85d2f5c2486847e671739bf88f5701f49cda7fbe"
+    },
+    {
+      "changed": [
+        "expanded"
+      ],
+      "file": "state-2.png",
+      "index": 1,
+      "kind": "menu",
+      "label": "Resources",
+      "sha256": "95b641d69ec8d6ce52472a31282503ff45c8b8e9c65fe60a7a0658e5c3cf9a21"
+    },
+    {
+      "changed": [
+        "expanded",
+        "dialog appeared"
+      ],
+      "file": "state-3.png",
+      "index": 2,
+      "kind": "dialog",
+      "label": "English (US)",
+      "sha256": "d70e46a0814e5fca26bdcffa471d2b01d5157073e2e66482cfed55890b2510f7"
+    }
+  ],
+  "url": "https://www.notion.com/",
+  "width": 1440
+}

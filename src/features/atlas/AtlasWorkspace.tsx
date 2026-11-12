@@ -23,6 +23,7 @@ import { buildTree, toPageSlug } from "./pageTree";
 import { useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
 import { usePageEditor } from "./hooks/usePageEditor";
 import { useAtlasDefaultFullWidth, useAtlasExpanded, useAtlasFavorites, useAtlasPageMeta, useAtlasSidebarState } from "./hooks/useAtlasPrefs";
+import SpaceContents from "./components/SpaceContents";
 import WorkspaceShell from "./components/WorkspaceShell";
 import WorkspaceSidebar from "./components/WorkspaceSidebar";
 import WorkspaceRightPanel, { parsePanelTab, type PanelTab } from "./components/WorkspaceRightPanel";
@@ -110,11 +111,16 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     () => new Set(spacePages.filter((page) => !isPageUnlocked(page.id, page.doc.lock)).map((page) => page.id)),
     [spacePages, unlockVersion], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  const openSectionId = searchParams.get("section");
   const sidebarNodes = useMemo(() => {
     const prune = (nodes: TreeNode[]): TreeNode[] =>
       nodes.map((node) => (lockedIds.has(node.id) ? { ...node, children: [] } : { ...node, children: prune(node.children) }));
     return prune(visibleTree.roots);
   }, [lockedIds, visibleTree.roots]);
+  const openSection = useMemo(
+    () => (openSectionId ? sidebarNodes.find((node) => node.kind === "section" && sectionIdOf(node.id) === openSectionId) ?? null : null),
+    [openSectionId, sidebarNodes],
+  );
   // Deep links must keep working for archived pages, so lookups use every page in the space.
   const fullTree = useMemo(() => buildTree(sections, spacePages), [sections, spacePages]);
   const treePages = useMemo(() => spacePages.map(toTreePage), [spacePages]);
@@ -636,6 +642,12 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onArchive: (id) => void archivePage(id),
               onMove: (dragId, targetId, position) => void movePage(dragId, targetId, position),
               canEdit,
+              onOpenSection: (node) => navigate(`${base()}?section=${encodeURIComponent(sectionIdOf(node.id))}`),
+              pageHref: (node) => {
+                const page = spacePages.find((candidate) => candidate.id === node.id);
+                return page ? `${pagePath(page)}?articleId=${encodeURIComponent(page.id)}` : base(node.slug);
+              },
+              lastEdited: (id) => spacePages.find((page) => page.id === id)?.updatedAt,
             }}
             articles={spacePages}
             archived={archivedPages}
@@ -708,6 +720,10 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           hasPage={Boolean(selectedPage) && !showAssignments}
           irisOpen={panelTab === "iris"}
           fullWidth={fullWidth}
+          pageFont={meta?.font ?? "default"}
+          smallText={meta?.smallText ?? false}
+          onPageFontChange={(font) => selectedPage && patchPageMeta(selectedPage.id, { font })}
+          onToggleSmallText={() => selectedPage && patchPageMeta(selectedPage.id, { smallText: !meta?.smallText })}
           isFavorite={selectedPage ? isFavorite(selectedPage.id) : false}
           onToggleEdit={() => setMode(editing ? "view" : "edit")}
           onPublish={() => void savePublishedPage()}
@@ -748,7 +764,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
             />
           </Suspense>
         ) : selectedPage ? (
-          <>
+          <div data-page-font={meta?.font ?? "default"} data-small-text={meta?.smallText ? "true" : undefined}>
             <PageIdentity
               icon={meta?.icon}
               cover={meta?.cover ?? false}
@@ -772,8 +788,10 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onToggleCover={() => patchPageMeta(selectedPage.id, { cover: !meta?.cover })}
               onStatusChange={(status) => void changeStatus(status)}
               onContextsChange={(contexts) => setDraft((current) => ({ ...current, contexts }))}
+              docType={space.properties.some((property) => property.key === "docType") && "docType" in draft.props ? String(draft.props.docType ?? "doc") : undefined}
+              onDocTypeChange={(docType) => setDraft((current) => ({ ...current, props: { ...current.props, docType } }))}
             />
-            <div ref={bodyRef} className={`relative mx-auto w-full px-6 pb-24 pt-6 sm:px-12 ${fullWidth ? "max-w-none" : "max-w-[920px]"}`}>
+            <div ref={bodyRef} className={`relative mx-auto w-full px-6 pb-24 pt-6 sm:px-24 ${fullWidth ? "max-w-none" : "max-w-[900px]"}`}>
               <OutlineRail rootRef={bodyRef} />
               <PageBody
                 page={selectedPage}
@@ -791,7 +809,26 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
                 onUpdate={() => void savePublishedPage()}
               />
             </div>
-          </>
+          </div>
+        ) : isTree && (openSection || sidebarNodes.length > 0) ? (
+          <SpaceContents
+            title={openSection?.title ?? space.label}
+            description={openSection ? undefined : space.description}
+            nodes={openSection ? openSection.children : sidebarNodes}
+            pageMeta={pageMeta}
+            onOpen={openNode}
+            footer={
+              canCreate ? (
+                <button
+                  type="button"
+                  onClick={() => void (openSection ? addChildOf(openSection) : newPageDefault())}
+                  className="flex h-8 items-center gap-2 rounded-[6px] px-2 text-[14px] text-ws-ink-3 hover:bg-[var(--ws-hover)]"
+                >
+                  <FilePlus2 className="h-4 w-4" /> New page
+                </button>
+              ) : null
+            }
+          />
         ) : (
           <div className="mx-auto flex max-w-[560px] flex-col items-start gap-4 px-6 py-24 sm:px-12">
             <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-ws-accent-tint text-ws-accent">

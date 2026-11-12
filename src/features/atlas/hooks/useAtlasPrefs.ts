@@ -77,7 +77,12 @@ export interface AtlasPageMeta {
   icon?: string;
   cover?: boolean;
   fullWidth?: boolean;
+  /** Page typeface and smaller body text, chosen from the page actions menu (browser-local). */
+  font?: AtlasPageFont;
+  smallText?: boolean;
 }
+
+export type AtlasPageFont = "default" | "serif" | "mono";
 
 export function useAtlasPageMeta() {
   const [meta, setMeta] = useStoredState<Record<string, AtlasPageMeta>>("atlas-page-meta", {}, "wiki-page-meta");

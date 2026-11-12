@@ -1,0 +1,857 @@
+{
+  "id": "ev_ccf14e9c53b2ebc62341f05f6a716a04771e377a94d7b1c19f52ad106406fb98",
+  "subject": {
+    "kind": "website",
+    "name": "http://127.0.0.1:51602/"
+  },
+  "operation": "web_site_capture",
+  "params": {
+    "include_html": false,
+    "max_height": 12000,
+    "noise_pass": false,
+    "visitor_view": false,
+    "widths": [
+      1440,
+      768,
+      390
+    ]
+  },
+  "result": {
+    "counts": {
+      "forms": 0,
+      "headings": 32,
+      "images": 3,
+      "links": 115,
+      "outline": 358
+    },
+    "design": {
+      "backgrounds": [
+        {
+          "count": 28,
+          "value": "#c99131"
+        },
+        {
+          "count": 19,
+          "value": "#ffffff"
+        },
+        {
+          "count": 12,
+          "value": "#0b1f37"
+        },
+        {
+          "count": 8,
+          "value": "#f4f1ec"
+        },
+        {
+          "count": 6,
+          "value": "#1d899d1a"
+        },
+        {
+          "count": 5,
+          "value": "#eeeeee0f"
+        },
+        {
+          "count": 5,
+          "value": "#d1d8e0"
+        },
+        {
+          "count": 3,
+          "value": "#e8e6e166"
+        },
+        {
+          "count": 2,
+          "value": "#f4f1ecf2"
+        },
+        {
+          "count": 1,
+          "value": "#0a1d3b1a"
+        },
+        {
+          "count": 1,
+          "value": "#f4f1eccc"
+        },
+        {
+          "count": 1,
+          "value": "#0b1f38b3"
+        },
+        {
+          "count": 1,
+          "value": "#0c203799"
+        },
+        {
+          "count": 1,
+          "value": "#f2f2eb26"
+        }
+      ],
+      "css_variables": {
+        "--accent": "38 61% 49%",
+        "--accent-foreground": "213 66% 13%",
+        "--admin-overlay-sidebar-surface-bg": "30 22% 12%",
+        "--admin-overlay-sidebar-surface-fg": "30 15% 85%",
+        "--admin-overlay-surface-bg": "0 0% 100%",
+        "--admin-overlay-surface-border": "30 12% 85%",
+        "--admin-overlay-surface-fg": "30 25% 15%",
+        "--admin-overlay-surface-muted": "30 25% 96%",
+        "--animate-bounce": "bounce 1s infinite",
+        "--animate-pulse": "pulse 2s cubic-bezier(.4, 0, .6, 1) infinite",
+        "--animate-spin": "spin 1s linear infinite",
+        "--aspect-video": "16 / 9",
+        "--background": "43 25% 94%",
+        "--blur-3xl": "64px",
+        "--blur-md": "12px",
+        "--blur-sm": "8px",
+        "--blur-xl": "24px",
+        "--border": "213 20% 85%",
+        "--card": "0 0% 100%",
+        "--card-foreground": "213 66% 13%",
+        "--color-amber-100": "oklch(96.2% .059 95.617)",
+        "--color-amber-200": "oklch(92.4% .12 95.746)",
+        "--color-amber-300": "oklch(87.9% .169 91.605)",
+        "--color-amber-400": "oklch(82.8% .189 84.429)",
+        "--color-amber-50": "oklch(98.7% .022 95.277)",
+        "--color-amber-500": "oklch(76.9% .188 70.08)",
+        "--color-amber-600": "oklch(66.6% .179 58.318)",
+        "--color-amber-700": "oklch(55.5% .163 48.998)",
+        "--color-amber-800": "oklch(47.3% .137 46.201)",
+        "--color-amber-900": "oklch(41.4% .112 45.904)",
+        "--color-amber-950": "oklch(27.9% .077 45.635)",
+        "--color-black": "#000",
+        "--color-blue-100": "oklch(93.2% .032 255.585)",
+        "--color-blue-200": "oklch(88.2% .059 254.128)",
+        "--color-blue-300": "oklch(80.9% .105 251.813)",
+        "--color-blue-400": "oklch(70.7% .165 254.624)",
+        "--color-blue-50": "oklch(97% .014 254.604)",
+        "--color-blue-500": "oklch(62.3% .214 259.815)",
+        "--color-blue-600": "oklch(54.6% .245 262.881)",
+        "--color-blue-700": "oklch(48.8% .243 264.376)",
+        "--color-blue-800": "oklch(42.4% .199 265.638)",
+        "--color-blue-900": "oklch(37.9% .146 265.522)",
+        "--color-cyan-100": "oklch(95.6% .045 203.388)",
+        "--color-cyan-200": "oklch(91.7% .08 205.041)",
+        "--color-cyan-300": "oklch(86.5% .127 207.078)",
+        "--color-cyan-400": "oklch(78.9% .154 211.53)",
+        "--color-cyan-500": "oklch(71.5% .143 215.221)",
+        "--color-cyan-600": "oklch(60.9% .126 221.723)",
+        "--color-cyan-700": "oklch(52% .105 223.128)",
+        "--color-emerald-100": "oklch(95% .052 163.051)",
+        "--color-emerald-200": "oklch(90.5% .093 164.15)",
+        "--color-emerald-300": "oklch(84.5% .143 164.978)",
+        "--color-emerald-400": "oklch(76.5% .177 163.223)",
+        "--color-emerald-50": "oklch(97.9% .021 166.113)",
+        "--color-emerald-500": "oklch(69.6% .17 162.48)",
+        "--color-emerald-600": "oklch(59.6% .145 163.225)",
+        "--color-emerald-700": "oklch(50.8% .118 165.612)",
+        "--color-emerald-800": "oklch(43.2% .095 166.913)",
+        "--color-emerald-900": "oklch(37.8% .077 168.94)",
+        "--color-emerald-950": "oklch(26.2% .051 172.552)",
+        "--color-fuchsia-200": "oklch(90.3% .076 319.62)",
+        "--color-fuchsia-500": "oklch(66.7% .295 322.15)",
+        "--color-fuchsia-600": "oklch(59.1% .293 322.896)",
+        "--color-fuchsia-700": "oklch(51.8% .253 323.949)",
+        "--color-gray-100": "oklch(96.7% .003 264.542)",
+        "--color-gray-200": "oklch(92.8% .006 264.531)",
+        "--color-gray-400": "oklch(70.7% .022 261.325)",
+        "--color-gray-500": "oklch(55.1% .027 264.364)",
+        "--color-gray-700": "oklch(37.3% .034 259.733)",
+        "--color-gray-900": "oklch(21% .034 264.665)",
+        "--color-green-200": "oklch(92.5% .084 155.995)",
+        "--color-green-300": "oklch(87.1% .15 154.449)",
+        "--color-green-400": "oklch(79.2% .209 151.711)",
+        "--color-green-50": "oklch(98.2% .018 155.826)",
+        "--color-green-500": "oklch(72.3% .219 149.579)",
+        "--color-green-600": "oklch(62.7% .194 149.214)",
+        "--color-green-700": "oklch(52.7% .154 150.069)",
+        "--color-green-800": "oklch(44.8% .119 151.328)",
+        "--color-green-950": "oklch(26.6% .065 152.934)",
+        "--color-indigo-600": "oklch(51.1% .262 276.966)",
+        "--color-indigo-700": "oklch(45.7% .24 277.023)",
+        "--color-lime-100": "oklch(96.7% .067 122.328)",
+        "--color-lime-400": "oklch(84.1% .238 128.85)",
+        "--color-lime-600": "oklch(64.8% .2 131.684)",
+        "--color-neutral-100": "oklch(97% 0 none)",
+        "--color-neutral-300": "oklch(87% 0 none)",
+        "--color-neutral-400": "oklch(70.8% 0 none)",
+        "--color-neutral-500": "oklch(55.6% 0 none)",
+        "--color-neutral-600": "oklch(43.9% 0 none)",
+        "--color-neutral-700": "oklch(37.1% 0 none)",
+        "--color-neutral-800": "oklch(26.9% 0 none)",
+        "--color-neutral-900": "oklch(20.5% 0 none)",
+        "--color-neutral-950": "oklch(14.5% 0 none)",
+        "--color-orange-100": "oklch(95.4% .038 75.164)",
+        "--color-orange-200": "oklch(90.1% .076 70.697)",
+        "--color-orange-400": "oklch(75% .183 55.934)",
+        "--color-orange-500": "oklch(70.5% .213 47.604)",
+        "--color-orange-600": "oklch(64.6% .222 41.116)",
+        "--color-orange-700": "oklch(55.3% .195 38.402)",
+        "--color-pink-100": "oklch(94.8% .028 342.258)",
+        "--color-pink-300": "oklch(82.3% .12 346.018)",
+        "--color-pink-600": "oklch(59.2% .249 .584)",
+        "--color-purple-400": "oklch(71.4% .203 305.504)",
+        "--color-purple-500": "oklch(62.7% .265 303.9)",
+        "--color-purple-600": "oklch(55.8% .288 302.321)",
+        "--color-red-100": "oklch(93.6% .032 17.717)",
+        "--color-red-200": "oklch(88.5% .062 18.334)",
+        "--color-red-300": "oklch(80.8% .114 19.571)",
+        "--color-red-400": "oklch(70.4% .191 22.216)",
+        "--color-red-50": "oklch(97.1% .013 17.38)",
+        "--color-red-500": "oklch(63.7% .237 25.331)",
+        "--color-red-600": "oklch(57.7% .245 27.325)",
+        "--color-red-700": "oklch(50.5% .213 27.518)",
+        "--color-red-800": "oklch(44.4% .177 26.899)",
+        "--color-red-900": "oklch(39.6% .141 25.723)",
+        "--color-rose-100": "oklch(94.1% .03 12.58)",
+        "--color-rose-300": "oklch(81% .117 11.638)",
+        "--color-rose-400": "oklch(71.2% .194 13.428)",
+        "--color-rose-500": "oklch(64.5% .246 16.439)",
+        "--color-rose-600": "oklch(58.6% .253 17.585)",
+        "--color-rose-700": "oklch(51.4% .222 16.935)",
+        "--color-sky-100": "oklch(95.1% .026 236.824)",
+        "--color-sky-200": "oklch(90.1% .058 230.902)",
+        "--color-sky-300": "oklch(82.8% .111 230.318)",
+        "--color-sky-400": "oklch(74.6% .16 232.661)",
+        "--color-sky-50": "oklch(97.7% .013 236.62)",
+        "--color-sky-500": "oklch(68.5% .169 237.323)",
+        "--color-sky-700": "oklch(50% .134 242.749)",
+        "--color-sky-800": "oklch(44.3% .11 240.79)",
+        "--color-sky-900": "oklch(39.1% .09 240.876)",
+        "--color-sky-950": "oklch(29.3% .066 243.157)",
+        "--color-slate-100": "oklch(96.8% .007 247.896)",
+        "--color-slate-200": "oklch(92.9% .013 255.508)",
+        "--color-slate-300": "oklch(86.9% .022 252.894)",
+        "--color-slate-400": "oklch(70.4% .04 256.788)",
+        "--color-slate-50": "oklch(98.4% .003 247.858)",
+        "--color-slate-500": "oklch(55.4% .046 257.417)",
+        "--color-slate-600": "oklch(44.6% .043 257.281)",
+        "--color-slate-700": "oklch(37.2% .044 257.287)",
+        "--color-slate-800": "oklch(27.9% .041 260.031)",
+        "--color-slate-900": "oklch(20.8% .042 265.755)",
+        "--color-slate-950": "oklch(12.9% .042 264.695)",
+        "--color-teal-100": "oklch(95.3% .051 180.801)",
+        "--color-teal-50": "oklch(98.4% .014 180.72)",
+        "--color-teal-500": "oklch(70.4% .14 182.503)",
+        "--color-teal-600": "oklch(60% .118 184.704)",
+        "--color-teal-700": "oklch(51.1% .096 186.391)",
+        "--color-teal-800": "oklch(43.7% .078 188.216)",
+        "--color-violet-100": "oklch(94.3% .029 294.588)",
+        "--color-violet-200": "oklch(89.4% .057 293.283)",
+        "--color-violet-300": "oklch(81.1% .111 293.571)",
+        "--color-violet-400": "oklch(70.2% .183 293.541)",
+        "--color-violet-50": "oklch(96.9% .016 293.756)",
+        "--color-violet-500": "oklch(60.6% .25 292.717)",
+        "--color-violet-600": "oklch(54.1% .281 293.009)",
+        "--color-violet-700": "oklch(49.1% .27 292.581)",
+        "--color-violet-800": "oklch(43.2% .232 292.759)",
+        "--color-violet-900": "oklch(38% .189 293.745)",
+        "--color-violet-950": "oklch(28.3% .141 291.089)",
+        "--color-white": "#fff",
+        "--color-yellow-100": "oklch(97.3% .071 103.193)",
+        "--color-yellow-300": "oklch(90.5% .182 98.111)",
+        "--color-yellow-400": "oklch(85.2% .199 91.936)",
+        "--color-yellow-500": "oklch(79.5% .184 86.047)",
+        "--color-yellow-600": "oklch(68.1% .162 75.834)",
+        "--color-yellow-700": "oklch(55.4% .135 66.442)",
+        "--color-zinc-100": "oklch(96.7% .001 286.375)",
+        "--color-zinc-300": "oklch(87.1% .006 286.286)",
+        "--color-zinc-400": "oklch(70.5% .015 286.067)",
+        "--color-zinc-500": "oklch(55.2% .016 285.938)",
+        "--color-zinc-700": "oklch(37% .013 285.805)",
+        "--color-zinc-900": "oklch(21% .006 285.885)",
+        "--color-zinc-950": "oklch(14.1% .005 285.823)",
+        "--container-2xl": "42rem",
+        "--container-3xl": "48rem",
+        "--container-4xl": "56rem",
+        "--container-5xl": "64rem",
+        "--container-6xl": "72rem",
+        "--container-7xl": "80rem",
+        "--container-lg": "32rem",
+        "--container-md": "28rem",
+        "--container-sm": "24rem",
+        "--container-xl": "36rem",
+        "--container-xs": "20rem",
+        "--default-transition-duration": ".15s",
+        "--default-transition-timing-function": "cubic-bezier(.4, 0, .2, 1)",
+        "--destructive": "0 84.2% 60.2%",
+        "--destructive-foreground": "43 25% 94%",
+        "--drop-shadow-2xl": "0 25px 25px #00000026",
+        "--ease-in": "cubic-bezier(.4, 0, 1, 1)",
+        "--ease-in-out": "cubic-bezier(.4, 0, .2, 1)",
+        "--ease-out": "cubic-bezier(0, 0, .2, 1)",
+        "--font-weight-bold": "700",
+        "--font-weight-extrabold": "800",
+        "--font-weight-medium": "500",
+        "--font-weight-normal": "400",
+        "--font-weight-semibold": "600",
+        "--foreground": "213 66% 13%",
+        "--gradient-accent": "linear-gradient(135deg, #c99131 0%, #dfa849 100%)",
+        "--gradient-glass": "linear-gradient(135deg, #ffffff1a 0%, #ffffff0d 100%)",
+        "--gradient-hero": "linear-gradient(180deg, #f4f1ec 0%, #ebe8e0 100%)",
+        "--gradient-primary": "linear-gradient(135deg, #0b1f37 0%, #193557 100%)",
+        "--gradient-secondary": "linear-gradient(135deg, #1b8c9d 0%, #28a9bd 100%)",
+        "--input": "213 20% 85%",
+        "--leading-normal": "1.5",
+        "--leading-relaxed": "1.625",
+        "--leading-snug": "1.375",
+        "--leading-tight": "1.25",
+        "--lightningcss-dark": "",
+        "--lightningcss-light": "initial",
+        "--muted": "43 15% 90%",
+        "--muted-foreground": "213 30% 45%",
+        "--popover": "0 0% 100%",
+        "--popover-foreground": "213 66% 13%",
+        "--primary": "213 66% 13%",
+        "--primary-foreground": "43 25% 94%",
+        "--radius": ".75rem",
+        "--radius-2xl": "1rem",
+        "--radius-3xl": "1.5rem",
+        "--radius-xl": ".75rem",
+        "--ring": "188 71% 36%",
+        "--sc-accent": "hsl(var(--accent))",
+        "--sc-ease-out": "cubic-bezier(.23, 1, .32, 1)",
+        "--secondary": "188 71% 36%",
+        "--secondary-foreground": "0 0% 100%",
+        "--shadow-elegant": "0 10px 40px -10px #0b1f3726",
+        "--shadow-fab": "0 6px 18px -8px #0b1f3712",
+        "--shadow-glow": "0 0 40px #c9913140",
+        "--shadow-glow-teal": "0 0 40px #1b8c9d33",
+        "--shadow-lg": "0 10px 15px -3px #0000001a, 0 4px 6px -4px #0000001a",
+        "--shadow-medium": "0 8px 30px -6px #0b1f371f",
+        "--shadow-soft": "0 4px 20px -4px #0b1f3714",
+        "--sidebar-accent": "43 15% 91%",
+        "--sidebar-accent-foreground": "213 66% 13%",
+        "--sidebar-background": "43 25% 96%",
+        "--sidebar-border": "213 20% 88%",
+        "--sidebar-foreground": "213 40% 28%",
+        "--sidebar-primary": "213 66% 13%",
+        "--sidebar-primary-foreground": "43 25% 94%",
+        "--sidebar-ring": "188 71% 36%",
+        "--spacing": ".25rem",
+        "--success": "140 45% 40%",
+        "--success-foreground": "0 0% 100%",
+        "--surface-deep": "213 66% 13%",
+        "--surface-deep-foreground": "43 25% 94%",
+        "--text-2xl": "1.5rem",
+        "--text-2xl--line-height": "calc(2 / 1.5)",
+        "--text-3xl": "1.875rem",
+        "--text-3xl--line-height": "calc(2.25 / 1.875)",
+        "--text-4xl": "2.25rem",
+        "--text-4xl--line-height": "calc(2.5 / 2.25)",
+        "--text-5xl": "3rem",
+        "--text-5xl--line-height": "1",
+        "--text-6xl": "3.75rem",
+        "--text-6xl--line-height": "1",
+        "--text-7xl": "4.5rem",
+        "--text-7xl--line-height": "1",
+        "--text-base": "1rem",
+        "--text-base--line-height": "calc(1.5 / 1)",
+        "--text-lg": "1.125rem",
+        "--text-lg--line-height": "calc(1.75 / 1.125)",
+        "--text-sm": ".875rem",
+        "--text-sm--line-height": "calc(1.25 / .875)",
+        "--text-xl": "1.25rem",
+        "--text-xl--line-height": "calc(1.75 / 1.25)",
+        "--text-xs": ".75rem",
+        "--text-xs--line-height": "calc(1 / .75)",
+        "--tracking-normal": "0em",
+        "--tracking-tight": "-.025em",
+        "--tracking-wide": ".025em",
+        "--tracking-wider": ".05em",
+        "--tracking-widest": ".1em",
+        "--ws-c-blue": "209 62% 45%",
+        "--ws-c-brown": "20 30% 46%",
+        "--ws-c-gray": "220 5% 49%",
+        "--ws-c-green": "152 49% 36%",
+        "--ws-c-orange": "28 89% 42%",
+        "--ws-c-pink": "329 47% 49%",
+        "--ws-c-purple": "275 32% 50%",
+        "--ws-c-red": "2 56% 51%",
+        "--ws-c-yellow": "46 91% 36%",
+        "--ws-t-blue": "209 51% 92%",
+        "--ws-t-brown": "20 26% 93%",
+        "--ws-t-gray": "220 5% 93%",
+        "--ws-t-green": "152 28% 91%",
+        "--ws-t-orange": "28 64% 92%",
+        "--ws-t-pink": "329 45% 93%",
+        "--ws-t-purple": "275 32% 93%",
+        "--ws-t-red": "2 56% 93%",
+        "--ws-t-yellow": "46 52% 91%"
+      },
+      "font_faces": [
+        {
+          "family": "Plus Jakarta Sans",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "300"
+        },
+        {
+          "family": "Plus Jakarta Sans",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "Plus Jakarta Sans",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "500"
+        },
+        {
+          "family": "Plus Jakarta Sans",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "600"
+        },
+        {
+          "family": "Plus Jakarta Sans",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "700"
+        },
+        {
+          "family": "Plus Jakarta Sans",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "800"
+        },
+        {
+          "family": "JetBrains Mono",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "JetBrains Mono",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "500"
+        },
+        {
+          "family": "DM Sans",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "300"
+        },
+        {
+          "family": "DM Sans",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "DM Sans",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "500"
+        },
+        {
+          "family": "DM Sans",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "600"
+        },
+        {
+          "family": "DM Sans",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "700"
+        }
+      ],
+      "font_sizes": [
+        {
+          "count": 150,
+          "value": "14px"
+        },
+        {
+          "count": 38,
+          "value": "16px"
+        },
+        {
+          "count": 25,
+          "value": "11px"
+        },
+        {
+          "count": 18,
+          "value": "18px"
+        },
+        {
+          "count": 15,
+          "value": "10px"
+        },
+        {
+          "count": 9,
+          "value": "12px"
+        },
+        {
+          "count": 8,
+          "value": "20px"
+        },
+        {
+          "count": 6,
+          "value": "36px"
+        },
+        {
+          "count": 2,
+          "value": "60px"
+        },
+        {
+          "count": 1,
+          "value": "30px"
+        },
+        {
+          "count": 1,
+          "value": "28px"
+        },
+        {
+          "count": 1,
+          "value": "24px"
+        },
+        {
+          "count": 1,
+          "value": "48px"
+        }
+      ],
+      "font_weights": [
+        {
+          "count": 119,
+          "value": "400"
+        },
+        {
+          "count": 102,
+          "value": "600"
+        },
+        {
+          "count": 52,
+          "value": "500"
+        },
+        {
+          "count": 2,
+          "value": "700"
+        }
+      ],
+      "fonts": [
+        {
+          "count": 213,
+          "value": "\"Plus Jakarta Sans\", system-ui, sans-serif"
+        },
+        {
+          "count": 40,
+          "value": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        },
+        {
+          "count": 22,
+          "value": "\"Plus Jakarta Sans\", ui-sans-serif, system-ui, sans-serif"
+        }
+      ],
+      "max_widths": [
+        {
+          "count": 11,
+          "value": "1400px"
+        },
+        {
+          "count": 4,
+          "value": "672px"
+        },
+        {
+          "count": 4,
+          "value": "768px"
+        },
+        {
+          "count": 2,
+          "value": "1500px"
+        },
+        {
+          "count": 1,
+          "value": "420px"
+        },
+        {
+          "count": 1,
+          "value": "773.28px"
+        },
+        {
+          "count": 1,
+          "value": "576px"
+        },
+        {
+          "count": 1,
+          "value": "512px"
+        }
+      ],
+      "radii": [
+        {
+          "count": 32,
+          "value": "10px"
+        },
+        {
+          "count": 29,
+          "value": "12px"
+        },
+        {
+          "count": 16,
+          "value": "9999px"
+        },
+        {
+          "count": 6,
+          "value": "16px"
+        },
+        {
+          "count": 1,
+          "value": "8px"
+        },
+        {
+          "count": 1,
+          "value": "0px 0px 12px 12px"
+        },
+        {
+          "count": 1,
+          "value": "22.4px"
+        },
+        {
+          "count": 1,
+          "value": "20px"
+        }
+      ],
+      "shadows": [
+        {
+          "count": 5,
+          "value": "rgba(11, 31, 55, 0.12) 0px 8px 30px -6px"
+        },
+        {
+          "count": 1,
+          "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px"
+        },
+        {
+          "count": 1,
+          "value": "rgba(11, 31, 55, 0.08) 0px 4px 20px -4px"
+        },
+        {
+          "count": 1,
+          "value": "rgba(0, 0, 0, 0.1) 0px 10px 15px -3px"
+        },
+        {
+          "count": 1,
+          "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px"
+        },
+        {
+          "count": 1,
+          "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.959366 0.000198424 0.00766838 / 0.15) 0px 0px 0px 1px, rgba(0, 0, 0, 0.65) 0px 30px 80px -30px"
+        }
+      ],
+      "spacing": [
+        {
+          "count": 205,
+          "value": "8px"
+        },
+        {
+          "count": 128,
+          "value": "12px"
+        },
+        {
+          "count": 109,
+          "value": "16px"
+        },
+        {
+          "count": 96,
+          "value": "6px"
+        },
+        {
+          "count": 67,
+          "value": "10px"
+        },
+        {
+          "count": 55,
+          "value": "20px"
+        },
+        {
+          "count": 53,
+          "value": "28px"
+        },
+        {
+          "count": 47,
+          "value": "32px"
+        },
+        {
+          "count": 45,
+          "value": "24px"
+        },
+        {
+          "count": 27,
+          "value": "4px"
+        },
+        {
+          "count": 21,
+          "value": "2px"
+        },
+        {
+          "count": 12,
+          "value": "96px"
+        },
+        {
+          "count": 10,
+          "value": "64px"
+        },
+        {
+          "count": 8,
+          "value": "14px"
+        },
+        {
+          "count": 7,
+          "value": "40px"
+        },
+        {
+          "count": 4,
+          "value": "1px"
+        },
+        {
+          "count": 3,
+          "value": "36px"
+        },
+        {
+          "count": 2,
+          "value": "-1px"
+        },
+        {
+          "count": 2,
+          "value": "112px"
+        },
+        {
+          "count": 2,
+          "value": "56px"
+        },
+        {
+          "count": 2,
+          "value": "48px"
+        },
+        {
+          "count": 2,
+          "value": "3px"
+        }
+      ],
+      "text_colors": [
+        {
+          "count": 71,
+          "value": "#506f95"
+        },
+        {
+          "count": 57,
+          "value": "#0b1f37"
+        },
+        {
+          "count": 30,
+          "value": "#c99131"
+        },
+        {
+          "count": 28,
+          "value": "#f4f1ec"
+        },
+        {
+          "count": 25,
+          "value": "#1b8c9d"
+        },
+        {
+          "count": 24,
+          "value": "#f4f1ecb3"
+        },
+        {
+          "count": 18,
+          "value": "#0b1f37bf"
+        },
+        {
+          "count": 4,
+          "value": "#f4f0ed8c"
+        },
+        {
+          "count": 4,
+          "value": "#f4f1eccc"
+        },
+        {
+          "count": 4,
+          "value": "#f4f2ecbf"
+        },
+        {
+          "count": 4,
+          "value": "#506f95cc"
+        },
+        {
+          "count": 3,
+          "value": "#f3f2ed99"
+        },
+        {
+          "count": 2,
+          "value": "#f4f1ecd9"
+        },
+        {
+          "count": 1,
+          "value": "#f3f1eb80"
+        }
+      ]
+    },
+    "files": [
+      "README.md",
+      "capture.json"
+    ],
+    "html_bytes": 0,
+    "output_directory": "C:\\DEV\\optilens-1c39be6c\\checks\\round-0",
+    "screenshots": [
+      {
+        "css_width": 1440,
+        "cut": false,
+        "file": "screenshot-1440.png",
+        "height": 8773,
+        "sha256": "6cd37164749389dd2b21e7f8765ec840ed48f6d79e11a8f01faadefc33043b95",
+        "width": 1440
+      },
+      {
+        "css_width": 768,
+        "cut": true,
+        "file": "screenshot-768.png",
+        "height": 12000,
+        "sha256": "5c011882cab4540e70df6a5b8446a675ffe24aaab368f0358f2f700ac5e40380",
+        "width": 768
+      },
+      {
+        "css_width": 390,
+        "cut": true,
+        "file": "screenshot-390.png",
+        "height": 12000,
+        "sha256": "b20c7c62e910d93c0574d53a4bd893eedd28f97b9fcd0cda07f8d95eeff6c454",
+        "width": 390
+      }
+    ],
+    "title": "Wholesale Prescription Lenses & Optical Lab — Barbados | Classic Visions",
+    "url": "http://127.0.0.1:51602/"
+  },
+  "summary": "Captured http://127.0.0.1:51602/: 3 screenshot(s), 358 outline items, 32 headings, 3 images, 115 links, 0 forms → C:\\DEV\\optilens-1c39be6c\\checks\\round-0.",
+  "confidence": "observed",
+  "authority": "our-run",
+  "environment": {
+    "clean_room": false,
+    "engine": "cdp",
+    "engine_version": "1.3",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "one_state",
+      "message": "One state of the page: menus, dialogs and content behind interactions are not opened."
+    },
+    {
+      "code": "cross_origin_css",
+      "message": "CSS custom properties and breakpoints from cross-origin stylesheets can't be read."
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 3,
+    "total": 3
+  },
+  "locations": [
+    {
+      "kind": "url",
+      "value": "http://127.0.0.1:51602/"
+    },
+    {
+      "kind": "path",
+      "value": "C:\\DEV\\optilens-1c39be6c\\checks\\round-0"
+    }
+  ],
+  "links": []
+}

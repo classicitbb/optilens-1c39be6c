@@ -1,0 +1,13 @@
+{
+  "id": "unk_94bda852afa955bd",
+  "revision": 1,
+  "question": "Exact Notion light-theme colours inside the app (only dark-theme screenshots were supplied)",
+  "severity": "low",
+  "domain": "web",
+  "status": "open",
+  "probes": [
+    "A light-mode screenshot of the person's Notion workspace"
+  ],
+  "evidence_for": [],
+  "evidence_against": []
+}

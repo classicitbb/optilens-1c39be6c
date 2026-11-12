@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { ChevronRight, Copy, FileText, FolderInput, Link2, MoreHorizontal, Pencil, Plus, Star, StarOff, Trash2 } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Copy, CornerUpRight, FileText, Link2, MoreHorizontal, Pencil, Plus, Star, StarOff, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -31,6 +31,12 @@ export interface PageTreeProps {
   onDeleteSection: (id: string) => void;
   onMove: (dragId: string, targetId: string, position: DropPosition) => void;
   canEdit: boolean;
+  /** Clicking a section's name shows its contents; without this it only folds. */
+  onOpenSection?: (node: TreeNode) => void;
+  /** A page's address, for Copy link and Open in new tab. */
+  pageHref?: (node: TreeNode) => string;
+  /** When a page was last edited, shown at the foot of its menu. */
+  lastEdited?: (id: string) => string | undefined;
 }
 
 const bySort = (a: TreeNode, b: TreeNode) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
@@ -100,6 +106,9 @@ const TreeRow = (props: RowProps) => {
     onDeleteSection,
     onMove,
     canEdit,
+    onOpenSection,
+    pageHref,
+    lastEdited,
     dragId,
     setDragId,
     drop,
@@ -130,6 +139,13 @@ const TreeRow = (props: RowProps) => {
   };
 
   const draggable = canEdit && !isSection && !renaming;
+  const pageIcon = (
+    <span className="flex items-center justify-center text-[16px] leading-none text-[hsl(var(--ws-side-ink,var(--ws-ink-2)))] opacity-80">
+      {icon ? icon : node.kind === "link" ? <Link2 className="h-[18px] w-[18px]" strokeWidth={1.75} /> : <FileText className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+    </span>
+  );
+  const href = !isSection ? pageHref?.(node) : undefined;
+  const editedAt = !isSection ? lastEdited?.(node.id) : undefined;
 
   return (
     <div role="none">
@@ -168,9 +184,9 @@ const TreeRow = (props: RowProps) => {
         }}
         style={{ paddingLeft: 4 + depth * 14 }}
         className={cn(
-          "group relative flex h-7 items-center gap-1 rounded-[4px] pr-1 text-[14px] text-ws-ink-2",
+          "group relative flex h-[30px] items-center gap-1 rounded-[6px] pr-1 text-[14px] font-medium text-[hsl(var(--ws-side-ink,var(--ws-ink-2)))]",
           "hover:bg-[var(--ws-hover)] active:bg-[var(--ws-press)]",
-          isActive && "bg-ws-side-hover font-semibold text-ws-ink",
+          isActive && "bg-ws-side-hover text-ws-ink",
           dragId === node.id && "opacity-40",
           dropHere === "inside" && "bg-ws-accent-tint ring-1 ring-ws-accent",
         )}
@@ -178,18 +194,22 @@ const TreeRow = (props: RowProps) => {
         {dropHere === "before" ? <span className="pointer-events-none absolute inset-x-1 -top-px h-0.5 bg-ws-accent" /> : null}
         {dropHere === "after" ? <span className="pointer-events-none absolute inset-x-1 -bottom-px h-0.5 bg-ws-accent" /> : null}
 
-        <button
-          type="button"
-          aria-label={open ? "Collapse" : "Expand"}
-          tabIndex={-1}
-          onClick={() => onToggle(node.id)}
-          className={cn(
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] text-ws-ink-3 hover:bg-[var(--ws-press)]",
-            !hasChildren && !isSection && "invisible",
-          )}
-        >
-          <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-90")} />
-        </button>
+        {/* Sections show their chevron. Pages show their icon; only a page with pages inside swaps it for
+            the chevron on hover, so a page with nothing inside never offers an arrow. */}
+        {isSection || hasChildren ? (
+          <button
+            type="button"
+            aria-label={open ? "Collapse" : "Expand"}
+            tabIndex={-1}
+            onClick={() => onToggle(node.id)}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] text-ws-ink-3 hover:bg-[var(--ws-press)]"
+          >
+            {isSection ? null : <span className="flex items-center justify-center group-hover:hidden">{pageIcon}</span>}
+            <ChevronRight className={cn("h-4 w-4 transition-transform", open && "rotate-90", !isSection && "hidden group-hover:block")} />
+          </button>
+        ) : (
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center">{pageIcon}</span>
+        )}
 
         {renaming ? (
           <input
@@ -210,17 +230,18 @@ const TreeRow = (props: RowProps) => {
         ) : (
           <button
             type="button"
-            onClick={() => (isSection ? onToggle(node.id) : onOpen(node))}
+            onClick={() => {
+              if (!isSection) return onOpen(node);
+              if (onOpenSection) {
+                onOpenSection(node);
+                if (!open) onToggle(node.id);
+              } else onToggle(node.id);
+            }}
             className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
           >
-            {isSection ? null : (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[15px] leading-none text-ws-ink-3">
-                {icon ? icon : node.kind === "link" ? <Link2 className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-              </span>
-            )}
-            <span className={cn("truncate", isSection && "ws-label text-ws-ink-3")}>{node.title}</span>
+            <span className={cn("truncate", isSection && "text-[12px] text-ws-ink-3")}>{node.title}</span>
             {!isSection && node.status === "draft" ? (
-              <span className="ws-label ml-auto shrink-0 text-[9px] text-ws-ink-3">Draft</span>
+              <span className="ml-auto shrink-0 text-[11px] font-normal text-ws-ink-3">Draft</span>
             ) : null}
           </button>
         )}
@@ -260,24 +281,43 @@ const TreeRow = (props: RowProps) => {
                     <MoreHorizontal className="h-3.5 w-3.5" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  <DropdownMenuItem onSelect={() => setRenaming(true)}>
-                    <Pencil className="mr-2 h-3.5 w-3.5" /> Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onDuplicate(node.id)}>
-                    <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onMoveTo(node.id)}>
-                    <FolderInput className="mr-2 h-3.5 w-3.5" /> Move to…
-                  </DropdownMenuItem>
+                <DropdownMenuContent align="start" className="w-[265px] p-1.5">
+                  <p className="px-2 pb-1 pt-0.5 text-[12px] font-medium text-ws-ink-3">Page</p>
                   <DropdownMenuItem onSelect={() => onToggleFavorite(node.id)}>
-                    {favorite ? <StarOff className="mr-2 h-3.5 w-3.5" /> : <Star className="mr-2 h-3.5 w-3.5" />}
-                    {favorite ? "Remove from favorites" : "Add to favorites"}
+                    {favorite ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />}
+                    {favorite ? "Remove from Favorites" : "Add to Favorites"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => onArchive(node.id)}>
-                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Archive
+                  {href ? (
+                    <DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(new URL(href, window.location.origin).toString())}>
+                      <Link2 className="mr-2 h-4 w-4" /> Copy link
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem onSelect={() => onDuplicate(node.id)}>
+                    <Copy className="mr-2 h-4 w-4" /> Duplicate
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setRenaming(true)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onMoveTo(node.id)}>
+                    <CornerUpRight className="mr-2 h-4 w-4" /> Move to
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onArchive(node.id)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Move to Trash
+                  </DropdownMenuItem>
+                  {href ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => window.open(href, "_blank", "noopener")}>
+                        <ArrowUpRight className="mr-2 h-4 w-4" /> Open in new tab
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                  <DropdownMenuSeparator />
+                  <div className="px-2 pb-1 pt-0.5 text-[12px] leading-[1.6] text-ws-ink-3">
+                    <p>Last edited</p>
+                    <p>{editedAt ? new Date(editedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "Not saved yet"}</p>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
@@ -300,6 +340,7 @@ const TreeRow = (props: RowProps) => {
           ))}
         </div>
       ) : null}
+
     </div>
   );
 };

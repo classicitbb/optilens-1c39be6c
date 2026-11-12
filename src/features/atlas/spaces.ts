@@ -60,6 +60,11 @@ export interface AtlasScope {
   statuses?: AtlasStatus[];
   /** Property key -> allowed values (a filtered view: pages must match). */
   where?: Record<string, AtlasPropValue[]>;
+  /**
+   * Like `where`, but only for pages that carry the property at all (storage that has not gained the
+   * field yet keeps the space showing what it showed before).
+   */
+  whereStored?: Record<string, AtlasPropValue[]>;
   /** Include pages switched off in the legacy `active` property (shown as drafts). */
   includeInactive?: boolean;
 }
@@ -95,7 +100,22 @@ const STATUS_OPTIONS: AtlasOption[] = [
 ];
 export const ATLAS_STATUS_OPTIONS = STATUS_OPTIONS;
 
+/** Every page is a doc; a doc can be marked as a wiki page (knowledge) or an SOP (a procedure to follow). */
+export const ATLAS_DOC_TYPES: (AtlasOption & { help: string })[] = [
+  { value: "doc", label: "Doc", help: "A working document." },
+  { value: "wiki", label: "Wiki", help: "Knowledge for people or AI to look things up in." },
+  { value: "sop", label: "SOP", help: "A procedure for people or AI to follow step by step." },
+];
+
 const wikiProperties: AtlasPropertyDef[] = [
+  {
+    key: "docType",
+    label: "Type",
+    type: "select",
+    target: "prop",
+    options: ATLAS_DOC_TYPES.map(({ value, label }) => ({ value, label })),
+    help: "Wiki: knowledge for people or AI. SOP: a procedure to follow; SOPs are listed in the SOPs space.",
+  },
   {
     key: "entryKind",
     label: "Entry type",
@@ -161,11 +181,11 @@ export const BUILT_IN_SPACES: AtlasSpaceDef[] = [
   {
     id: "sops",
     label: "SOPs",
-    description: "The published procedures, read-only until you choose to edit.",
+    description: "Published docs marked as SOPs: procedures for people or AI to follow.",
     icon: ListChecks,
     layout: "tree",
-    // A filtered view over the wiki: nothing is stored under "sops".
-    scope: { storeSpace: "wiki", statuses: ["published"], where: { visibility: ["internal"], active: [true] } },
+    // A filtered view over the wiki: nothing is stored under "sops". Once docs carry a type, only SOPs show.
+    scope: { storeSpace: "wiki", statuses: ["published"], where: { visibility: ["internal"], active: [true] }, whereStored: { docType: ["sop"] } },
     views: [],
     defaultView: "table",
     savedViews: [],
@@ -248,6 +268,9 @@ export const pageInSpace = (space: AtlasSpaceDef, page: AtlasPage): boolean => {
   if (!scope.includeInactive && page.props.active === false) return false;
   for (const [key, allowed] of Object.entries(scope.where ?? {})) {
     if (!allowed.includes(page.props[key] as AtlasPropValue)) return false;
+  }
+  for (const [key, allowed] of Object.entries(scope.whereStored ?? {})) {
+    if (key in page.props && !allowed.includes(page.props[key] as AtlasPropValue)) return false;
   }
   return true;
 };

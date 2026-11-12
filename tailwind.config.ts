@@ -55,7 +55,15 @@ export default {
   				ink3: 'hsl(var(--ws-ink-3))',
   				line: 'hsl(var(--ws-line))',
   				accent: 'hsl(var(--ws-accent))',
-  				accentTint: 'hsl(var(--ws-accent-tint))'
+  				accentTint: 'hsl(var(--ws-accent-tint))',
+  				/* Hyphenated names the components use (text-ws-ink-3, bg-ws-side-hover…). */
+  				'ink-2': 'hsl(var(--ws-ink-2))',
+  				'ink-3': 'hsl(var(--ws-ink-3))',
+  				'side-hover': 'hsl(var(--ws-side-hover))',
+  				'input-border': 'hsl(var(--ws-input-border))',
+  				'accent-tint': 'hsl(var(--ws-accent-tint))',
+  				'accent-line': 'hsl(var(--ws-accent-line))',
+  				navy: 'hsl(var(--ws-navy))'
   			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',

@@ -1,0 +1,54 @@
+{
+  "id": "ev_9619f7fc6bfd9ce7a86f8625925037d0ab40c1c6450b8c9e8068fde39baf677b",
+  "subject": {
+    "kind": "website",
+    "name": "https://www.notion.com/"
+  },
+  "operation": "web_page_states_capture",
+  "params": {
+    "max_states": 4,
+    "width": 390
+  },
+  "result": {
+    "folder": "C:\\DEV\\optilens-1c39be6c\\capture\\states-390",
+    "found": 1,
+    "states": [
+      {
+        "changed": [],
+        "file": "state-1.png",
+        "index": 0,
+        "kind": "dialog",
+        "label": "English (US)",
+        "sha256": "f4b578d1f4d4be2d421a7c1511fdffe2534556f6ded12de2a9e576f3f3a4c76b"
+      }
+    ],
+    "url": "https://www.notion.com/"
+  },
+  "summary": "Opened 1 of 1 control(s) on https://www.notion.com/; 1 pictured in C:\\DEV\\optilens-1c39be6c\\capture\\states-390.",
+  "confidence": "observed",
+  "authority": "our-run",
+  "environment": {
+    "clean_room": false,
+    "engine": "cdp",
+    "engine_version": "1.3",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "first_controls",
+      "message": "Only the first controls found are opened, one at a time; menus inside menus and hover-only menus are not."
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 1,
+    "total": 1
+  },
+  "locations": [
+    {
+      "kind": "url",
+      "value": "https://www.notion.com/"
+    }
+  ],
+  "links": []
+}

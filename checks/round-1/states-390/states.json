@@ -1,0 +1,27 @@
+{
+  "states": [
+    {
+      "changed": [
+        "expanded",
+        "dialog appeared"
+      ],
+      "file": "state-1.png",
+      "index": 0,
+      "kind": "dialog",
+      "label": "Open mobile navigation menu",
+      "sha256": "3bc30e83af595739d0a88a40c43fd53fdf41107bcd6721f98a4a7e38e414c198"
+    },
+    {
+      "changed": [
+        "expanded"
+      ],
+      "file": "state-2.png",
+      "index": 1,
+      "kind": "menu",
+      "label": "What do you need today?",
+      "sha256": "660c23adf4cd10a166cf6e05186d788f6ff041b2caef6d79f968532966a241f3"
+    }
+  ],
+  "url": "http://127.0.0.1:58581/",
+  "width": 390
+}

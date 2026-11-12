@@ -1,0 +1,14 @@
+{
+  "states": [
+    {
+      "changed": [],
+      "file": "state-1.png",
+      "index": 0,
+      "kind": "dialog",
+      "label": "English (US)",
+      "sha256": "f4b578d1f4d4be2d421a7c1511fdffe2534556f6ded12de2a9e576f3f3a4c76b"
+    }
+  ],
+  "url": "https://www.notion.com/",
+  "width": 390
+}
