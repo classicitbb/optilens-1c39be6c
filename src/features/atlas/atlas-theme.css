@@ -1,0 +1,295 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Atlas theme: a calm, document-first workspace look (warm greys, one blue
+   accent, the system UI font, airy page column).
+
+   Scope: the Atlas canvas (`.admin-tool.ws-atlas`, nested inside the host's
+   admin shell so the host chrome keeps its own look) and `body.ws-atlas`
+   (set while Atlas is mounted) for portaled menus, popovers and dialogs.
+   Only --ws-* tokens and Atlas-scoped rules live here; workspace.css stays
+   the theme for the rest of admin.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.admin-tool.ws-atlas,
+body.ws-admin.ws-atlas {
+  --ws-paper: 0 0% 100%;
+  --ws-bg: 0 0% 100%;
+  --ws-side: 60 11% 96%;
+  --ws-side-hover: 60 4% 92%;
+  --ws-side-ink: 45 2% 36%;
+  --ws-ink: 45 8% 20%;
+  --ws-ink-2: 45 2% 47%;
+  --ws-ink-3: 45 2% 60%;
+  --ws-line: 60 2% 93%;
+  --ws-input-border: 60 3% 87%;
+  --ws-accent: 210 77% 51%;
+  --ws-accent-fg: 0 0% 100%;
+  --ws-accent-tint: 205 60% 94%;
+  --ws-accent-line: 45 8% 20%;
+  --ws-thumb: 45 3% 64%;
+
+  --ws-hover: hsl(var(--ws-ink) / 0.06);
+  --ws-press: hsl(var(--ws-ink) / 0.12);
+  --ws-selection: hsl(var(--ws-accent) / 0.28);
+
+  --ws-radius-block: 4px;
+  --ws-radius-control: 6px;
+  --ws-radius-float: 10px;
+
+  --ws-font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', 'Segoe UI', Helvetica,
+    'Apple Color Emoji', Arial, sans-serif, 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --ws-font-serif: Lyon-Text, Georgia, ui-serif, serif;
+  --ws-font-mono: 'SFMono-Regular', Menlo, Consolas, 'PT Mono', 'Liberation Mono', Courier, monospace;
+  --ws-float-shadow: 0 0 0 1px hsl(0 0% 6% / 0.05), 0 3px 6px hsl(0 0% 6% / 0.1), 0 9px 24px hsl(0 0% 6% / 0.2);
+
+  --ws-c-gray: 45 2% 46%;     --ws-t-gray: 60 6% 94%;
+  --ws-c-brown: 19 31% 47%;   --ws-t-brown: 0 21% 95%;
+  --ws-c-orange: 30 89% 45%;  --ws-t-orange: 30 79% 93%;
+  --ws-c-yellow: 38 62% 49%;  --ws-t-yellow: 45 80% 92%;
+  --ws-c-green: 148 32% 39%;  --ws-t-green: 111 23% 94%;
+  --ws-c-blue: 202 54% 43%;   --ws-t-blue: 198 55% 94%;
+  --ws-c-purple: 274 32% 54%; --ws-t-purple: 270 29% 96%;
+  --ws-c-pink: 328 49% 53%;   --ws-t-pink: 333 47% 96%;
+  --ws-c-red: 2 62% 55%;      --ws-t-red: 357 82% 96%;
+}
+
+.dark .admin-tool.ws-atlas,
+.dark body.ws-admin.ws-atlas {
+  /* Sampled from reference screenshots: page #191919, sidebar #202020, menus #252525,
+     selected row #2c2c2c, dividers #373735, sidebar text #bcbab6, labels #7d7a75. */
+  --ws-paper: 0 0% 14.5%;
+  --ws-bg: 0 0% 10%;
+  --ws-side: 0 0% 12.5%;
+  --ws-side-hover: 0 0% 17.3%;
+  --ws-side-ink: 40 4% 72%;
+  --ws-ink: 40 9% 94%;
+  --ws-ink-2: 45 2% 60%;
+  --ws-ink-3: 38 3% 47%;
+  --ws-line: 60 2% 21%;
+  --ws-input-border: 60 2% 21%;
+  --ws-accent-tint: 210 40% 18%;
+  --ws-accent-line: 0 0% 83%;
+  --ws-thumb: 0 0% 40%;
+  --ws-float-shadow: 0 0 0 1px hsl(0 0% 100% / 0.08), 0 3px 6px hsl(0 0% 0% / 0.3), 0 9px 24px hsl(0 0% 0% / 0.5);
+
+  --ws-c-gray: 0 0% 61%;      --ws-t-gray: 0 0% 18%;
+  --ws-c-brown: 20 30% 55%;   --ws-t-brown: 20 18% 18%;
+  --ws-c-orange: 27 79% 57%;  --ws-t-orange: 27 40% 17%;
+  --ws-c-yellow: 45 67% 55%;  --ws-t-yellow: 45 38% 17%;
+  --ws-c-green: 150 43% 55%;  --ws-t-green: 150 32% 16%;
+  --ws-c-blue: 209 69% 64%;   --ws-t-blue: 209 40% 19%;
+  --ws-c-purple: 274 43% 69%; --ws-t-purple: 274 28% 21%;
+  --ws-c-pink: 329 62% 68%;   --ws-t-pink: 329 30% 21%;
+  --ws-c-red: 3 76% 69%;      --ws-t-red: 3 38% 20%;
+}
+
+body.ws-admin.ws-atlas :is([data-radix-popper-content-wrapper], [role='dialog'], [role='alertdialog']) {
+  font-family: var(--ws-font-sans);
+}
+
+/* Floating layers: a soft three-step shadow, larger radius. */
+:is(.ws-atlas, body.ws-atlas) :is([role='dialog'], [role='alertdialog'], [role='menu'], [role='listbox'], [data-radix-popper-content-wrapper] > *) {
+  border-radius: var(--ws-radius-float);
+  border-color: transparent;
+  box-shadow: var(--ws-float-shadow);
+}
+
+body.ws-atlas [role='menuitem'] {
+  font-size: 14px;
+  min-height: 28px;
+}
+
+/* Section labels: small grey sentence case instead of mono capitals. */
+:is(.ws-atlas, body.ws-atlas) .ws-label {
+  font-family: var(--ws-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ws-atlas .ws-page-title {
+  font-size: 40px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: normal;
+}
+
+.ws-atlas .ws-h1 { font-size: 30px; line-height: 1.3; font-weight: 600; letter-spacing: normal; }
+.ws-atlas .ws-h2 { font-size: 24px; line-height: 1.3; font-weight: 600; letter-spacing: normal; }
+.ws-atlas .ws-h3 { font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: normal; }
+.ws-atlas .ws-body { font-size: 16px; line-height: 1.5; }
+
+/* Opaque tag tints */
+:is(.ws-atlas, body.ws-atlas) .ws-bg-gray   { background-color: hsl(var(--ws-t-gray)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-brown  { background-color: hsl(var(--ws-t-brown)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-orange { background-color: hsl(var(--ws-t-orange)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-yellow { background-color: hsl(var(--ws-t-yellow)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-green  { background-color: hsl(var(--ws-t-green)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-blue   { background-color: hsl(var(--ws-t-blue)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-purple { background-color: hsl(var(--ws-t-purple)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-pink   { background-color: hsl(var(--ws-t-pink)); }
+:is(.ws-atlas, body.ws-atlas) .ws-bg-red    { background-color: hsl(var(--ws-t-red)); }
+
+/* Database tables: plain grey headers with column lines. */
+.ws-atlas table th {
+  font-family: var(--ws-font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: hsl(var(--ws-ink-2));
+  padding: 7px 8px;
+  border-right: 1px solid hsl(var(--ws-line));
+}
+
+.ws-atlas table td {
+  font-size: 14px;
+  padding: 7px 8px;
+  border-right: 1px solid hsl(var(--ws-line));
+}
+
+.ws-atlas table :is(th, td):last-child {
+  border-right: 0;
+}
+
+/* ── Page content ───────────────────────────────────────────────────────── */
+
+.ws-atlas .ws-prose {
+  font-family: var(--ws-font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.ws-atlas .ws-prose :is(p, li, blockquote, td, th) {
+  font-size: inherit;
+  line-height: 1.5;
+}
+
+.ws-atlas .ws-prose p {
+  margin: 1px 0;
+  padding: 3px 2px;
+}
+
+.ws-atlas .ws-prose :is(h1, h2, h3, h4) {
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: normal;
+  padding: 3px 2px;
+  margin-bottom: 1px;
+}
+
+.ws-atlas .ws-prose h1 { font-size: 1.875em; margin-top: 2em; }
+.ws-atlas .ws-prose h2 { font-size: 1.5em; margin-top: 1.4em; }
+.ws-atlas .ws-prose h3 { font-size: 1.25em; margin-top: 1em; }
+.ws-atlas .ws-prose h4 { font-size: 1em; margin-top: 1em; }
+.ws-atlas .ws-prose > :first-child { margin-top: 0; }
+
+.ws-atlas .ws-prose :is(ul, ol) {
+  padding-left: 1.7em;
+}
+
+.ws-atlas .ws-prose li {
+  padding: 3px 0;
+}
+
+.ws-atlas .ws-prose li::marker {
+  color: hsl(var(--ws-ink));
+}
+
+.ws-atlas .ws-prose blockquote {
+  margin: 4px 0;
+  padding: 3px 2px 3px 14px;
+  border-left: 3px solid currentColor;
+}
+
+.ws-atlas .ws-prose :is(a, .ws-link) {
+  color: inherit;
+  text-decoration-color: hsl(var(--ws-ink) / 0.4);
+  text-underline-offset: 3px;
+}
+
+.ws-atlas .ws-prose hr {
+  margin: 12px 0;
+  border-top-color: hsl(var(--ws-ink) / 0.16);
+}
+
+.ws-atlas .ws-prose :is(.ws-inline-code, :not(pre) > code) {
+  font-family: var(--ws-font-mono);
+  font-size: 85%;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  background: hsl(40 8% 50% / 0.15);
+  color: #eb5757;
+}
+
+.ws-atlas .ws-prose :is(pre, .ws-code) {
+  margin: 4px 0;
+  padding: 32px 16px 32px 32px;
+  border: 0;
+  border-radius: 4px;
+  background: hsl(var(--ws-side));
+  font-family: var(--ws-font-mono);
+  font-size: 85%;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+.ws-atlas .ws-prose :is(img, .ws-image) {
+  border: 0;
+  border-radius: 4px;
+}
+
+.ws-atlas .ws-prose :is(.ws-mention, .ws-secret, .ws-dropdown) {
+  background: hsl(var(--ws-t-gray));
+}
+
+.ws-atlas .ws-prose :is(table, .ws-table) {
+  margin: 4px 0;
+}
+
+.ws-atlas .ws-prose :is(th, td) {
+  border-color: hsl(var(--ws-input-border));
+  padding: 7px 9px;
+  font-size: 14px;
+}
+
+.ws-atlas .ws-prose th {
+  background: hsl(var(--ws-side));
+  color: hsl(var(--ws-ink));
+  font-weight: 600;
+}
+
+.ws-atlas .ws-editor .ws-callout-node,
+.ws-atlas .ws-prose .ws-callout {
+  margin: 4px 0;
+  padding: 16px 16px 16px 12px;
+  border: 0;
+  background: hsl(var(--ws-t-gray));
+}
+
+.ws-atlas .ws-editor .ws-page-link-node {
+  border: 0;
+  padding: 3px 2px;
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--ws-ink) / 0.25);
+  text-underline-offset: 3px;
+}
+
+.ws-atlas .ws-editor .ProseMirror-selectednode {
+  outline: 0;
+  background: hsl(var(--ws-accent) / 0.14);
+}
+
+/* Page style: font and small text, chosen from the page actions menu. */
+.ws-atlas [data-page-font='serif'] :is(.ws-page-title, .ws-prose, .ws-prose :is(h1, h2, h3, h4)) {
+  font-family: var(--ws-font-serif);
+}
+
+.ws-atlas [data-page-font='mono'] :is(.ws-page-title, .ws-prose, .ws-prose :is(h1, h2, h3, h4)) {
+  font-family: var(--ws-font-mono);
+}
+
+.ws-atlas [data-small-text='true'] .ws-prose {
+  font-size: 14px;
+}

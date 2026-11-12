@@ -47,6 +47,7 @@ const PROP_COLUMNS: Record<string, string> = {
   pageSlug: "page_slug",
   active: "is_active",
   fullWidth: "full_width",
+  docType: "doc_type",
 };
 
 const propsToColumns = (props: AtlasProps | undefined): Record<string, unknown> => {
@@ -97,6 +98,8 @@ const toPage = (row: Row): AtlasPage => {
       pageSlug: row.page_slug ?? "",
       active: row.is_active !== false,
       ...("full_width" in row ? { fullWidth: row.full_width } : {}),
+      // Only present once the doc_type column exists; an unset type is a plain doc.
+      ...("doc_type" in row ? { docType: row.doc_type ?? "doc" } : {}),
     },
     authorId: row.author_id ?? null,
     ownerId: row.owner_id ?? null,
@@ -126,9 +129,11 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
   let drafts = false;
   let spaceColumn = false;
   let layoutColumn = false;
+  let docTypeColumn = false;
   const storedProps = (props: AtlasProps | undefined) => {
     const columns = propsToColumns(props);
     if (!layoutColumn) delete columns.full_width;
+    if (!docTypeColumn) delete columns.doc_type;
     return columns;
   };
 
@@ -206,6 +211,7 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
       drafts = rows.some((row) => "draft_body_json" in row);
       spaceColumn = rows.some((row) => "space" in row);
       layoutColumn = rows.some((row) => "full_width" in row);
+      docTypeColumn = rows.some((row) => "doc_type" in row);
       return { pages: rows.filter(readable).map(toPage), supportsDrafts: drafts };
     },
 

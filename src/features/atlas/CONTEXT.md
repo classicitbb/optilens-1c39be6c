@@ -64,7 +64,15 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
 ## Not done / seams
 
 - Blog is an embed in the Website space (`blog-posts`) until a `blogPostsSource` exists.
-- Favorites, page icon, cover and full width are `localStorage` only; comments are disabled.
+- Favorites, page icon, cover, font style and small text are `localStorage` only; comments are disabled.
+- Doc type (Doc / Wiki / SOP) is the `docType` prop on wiki docs, stored in `help_articles.doc_type`
+  (`20261111200000_atlas_doc_type.sql`, **not applied yet**). Until the column exists the Type row is hidden and the SOPs
+  space keeps its old filter (`scope.whereStored`); afterwards SOPs lists only published docs typed SOP.
+- Tree: only pages with pages inside show an arrow; clicking a section (or opening a tree space with no page) shows its
+  pages as a numbered table of contents (`SpaceContents`, `?section=<id>`). Tables get row/column hover grips and a
+  Merge / Unmerge bar for multi-cell selections (`editor/TableHandles.tsx`).
+- Look: `atlas-theme.css` re-points the `--ws-*` tokens inside the nested `.admin-tool.ws-atlas` scope and on `body.ws-atlas`
+  (portals), so the host chrome keeps the admin theme. Dark values were sampled from reference screenshots; light values are estimates.
 - Importing for real (a hosted write) needs explicit approval and is not implemented.
 - `companion-assistant` trusts Atlas evidence only for staff after its source change is deployed.
 

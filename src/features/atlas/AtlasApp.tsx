@@ -10,6 +10,7 @@ import { useAtlasCapabilities } from "./hooks/useAtlas";
 import { getAtlasHost } from "./host";
 import { useStandaloneDisplay } from "./hooks/useStandaloneDisplay";
 import { getAtlasSpace, listAtlasSpaces } from "./spaces";
+import "./atlas-theme.css";
 
 const MANIFEST_ID = "atlas-manifest";
 
@@ -32,6 +33,14 @@ const useAtlasInstall = () => {
       navigator.serviceWorker.register(`${ATLAS_CONFIG.basePath}-sw.js`, { scope: `${ATLAS_CONFIG.basePath}/` }).catch(() => undefined);
     }
     return () => link?.remove();
+  }, []);
+};
+
+/** Portaled menus and dialogs render on <body>; this class gives them the Atlas theme while it is mounted. */
+const useAtlasBodyClass = () => {
+  useEffect(() => {
+    document.body.classList.add("ws-atlas");
+    return () => document.body.classList.remove("ws-atlas");
   }, []);
 };
 
@@ -69,6 +78,7 @@ const AtlasApp = () => {
   useAdminBodyClass();
   useScrollingClass();
   useAtlasInstall();
+  useAtlasBodyClass();
   // In a browser tab the host's chrome (site header, launcher, search, profile, help) frames Atlas;
   // as an installed window Atlas is the whole window and the chrome is skipped.
   const standalone = useStandaloneDisplay();
@@ -78,7 +88,10 @@ const AtlasApp = () => {
       <div className="admin-tool flex h-screen w-full flex-col overflow-hidden rounded-none">
         <Frame>
           <main className="admin-content h-full min-h-0 w-full flex-1 overflow-hidden p-0">
-            <AtlasGate />
+            {/* Nested theme scope: the host chrome above keeps its look, Atlas gets its own tokens. */}
+            <div className="admin-tool admin-content ws-atlas h-full min-h-0 w-full rounded-none">
+              <AtlasGate />
+            </div>
           </main>
         </Frame>
       </div>
