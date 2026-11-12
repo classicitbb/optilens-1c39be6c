@@ -70,6 +70,8 @@ function cors(req: GatewayRequest, res: GatewayResponse) {
   const allowed = new Set([
     ...env("QBO_ADMIN_ORIGIN").split(",").map((o) => o.trim()).filter(Boolean),
     "https://classicvisions.lovable.app",
+    "https://www.classicvisions.net",
+    "https://classicvisions.net",
     "https://qbo.classicvisions.net",
     "https://id-preview--d568bffd-cdad-4066-b271-1e09c9a376d6.lovable.app",
   ]);
