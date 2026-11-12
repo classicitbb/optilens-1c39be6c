@@ -178,7 +178,7 @@ export function RelationshipJourney({ portalAccess = false }: { portalAccess?: b
   const signedIn = useHomeSignedIn();
   return <section id="why-classic" className="scroll-mt-24 bg-background py-14" aria-labelledby="relationship-heading"><div className="container mx-auto px-5 sm:px-8">
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-secondary">From first enquiry to your next order</p>
-    <h2 id="relationship-heading" className="mt-3 max-w-3xl font-serif text-3xl sm:text-4xl">Caribbean optical supply, with a person to help.</h2>
+    <h2 id="relationship-heading" className="mt-3 max-w-3xl font-serif text-3xl sm:text-4xl">Caribbean optical supply, with a personal touch.</h2>
     <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">Classic Visions is a Barbados-based wholesale optical laboratory. Explore lens options, request a price list and speak with the team before you decide. Already a customer? Keep using your account; ask us to help connect your online access.</p>
     <div className="mt-7 grid gap-4 md:grid-cols-3">{[
       ["Understand your options", "Explore prescriptions, materials, coatings and lab services, with practical guides to help you specify an order.", "/rx-lab-services", "Explore lab services"],
