@@ -141,7 +141,10 @@ Deno.serve(async (req) => {
     return json({ error: "Upstream request failed." }, 502);
   }
 
-  const text = await upstream.text();
+  // 204/205/304 must not carry a body (Deno throws), e.g. a PATCH without
+  // Prefer: return=representation. Pass the status through with no body.
+  const nullBody = upstream.status === 204 || upstream.status === 205 || upstream.status === 304;
+  const text = nullBody ? null : await upstream.text();
   return new Response(text, {
     status: upstream.status,
     headers: {
