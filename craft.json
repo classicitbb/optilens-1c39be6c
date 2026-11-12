@@ -7,10 +7,10 @@
     "url": "https://notion.com"
   },
   "stack": "React + TypeScript (Vite)",
-  "status": "needs_you",
-  "note": "The build stopped after two builder turns changed no files in the project folder. Send a new request with a concrete correction, or edit the app's files before trying again.",
+  "status": "ready",
+  "note": "Ready: you called it done. Everything so far is kept; a new message carries on from here.",
   "created_ms": 1794444225307,
-  "updated_ms": 1794450674254,
+  "updated_ms": 1794451630757,
   "checks": [
     {
       "round": 1,
