@@ -7,10 +7,15 @@ import { useToast } from "@/hooks/use-toast";
 
 type QboState = { environment: "sandbox" | "production"; status: string; company_name: string | null; realm_id_masked: string | null; connected_at: string | null; last_refresh_at: string | null; last_reconciliation_status: string | null; last_reconciliation_at: string | null; last_error_message_sanitized: string | null };
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : "—";
-const environment = (import.meta.env.VITE_QBO_ENVIRONMENT || "sandbox") as "sandbox" | "production";
-const gatewayUrl = (import.meta.env.VITE_QBO_GATEWAY_URL || (environment === "sandbox" ? "https://qbo-sandbox.classicvisions.net" : "https://qbo.classicvisions.net")).replace(/\/$/, "");
+type QboEnvironment = "sandbox" | "production";
+// Each environment has its own gateway. VITE_QBO_GATEWAY_URL still overrides the
+// gateway for the build's VITE_QBO_ENVIRONMENT (the default card).
+const buildEnvironment = (import.meta.env.VITE_QBO_ENVIRONMENT || "sandbox") as QboEnvironment;
+const defaultGateway = (env: QboEnvironment) => env === "sandbox" ? "https://qbo-sandbox.classicvisions.net" : "https://qbo.classicvisions.net";
+const gatewayFor = (env: QboEnvironment) => ((env === buildEnvironment && import.meta.env.VITE_QBO_GATEWAY_URL) || defaultGateway(env)).replace(/\/$/, "");
 
-export function QboIntegrationCard() {
+export function QboIntegrationCard({ environment = buildEnvironment }: { environment?: QboEnvironment } = {}) {
+  const gatewayUrl = gatewayFor(environment);
   const { toast } = useToast(); const queryClient = useQueryClient();
   const state = useQuery({ queryKey: ["qbo-integration-state", environment], refetchInterval: 10_000, queryFn: async () => {
     const { data, error } = await (supabase as any).from("qbo_integration_state").select("environment,status,company_name,realm_id_masked,connected_at,last_refresh_at,last_reconciliation_status,last_reconciliation_at,last_error_message_sanitized").eq("provider", "quickbooks_online").eq("environment", environment).maybeSingle();

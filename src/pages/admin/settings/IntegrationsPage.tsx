@@ -366,7 +366,8 @@ export default function IntegrationsPage() {
         </TabsList>
         <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
-      <QboIntegrationCard />
+      <QboIntegrationCard environment="production" />
+      <QboIntegrationCard environment="sandbox" />
 
       <Card>
         <CardHeader className="space-y-1">
