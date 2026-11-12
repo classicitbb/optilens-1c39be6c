@@ -59,10 +59,18 @@ async function requireAdmin(req: GatewayRequest) {
 }
 
 function cors(req: GatewayRequest, res: GatewayResponse) {
-  const allowed = env("QBO_ADMIN_ORIGIN");
+  // QBO_ADMIN_ORIGIN may list several exact origins (comma-separated). The
+  // Lovable-hosted admin origins are always allowed so the integrations page
+  // works from the published app and the editor preview, not only www.
+  const allowed = new Set([
+    ...env("QBO_ADMIN_ORIGIN").split(",").map((o) => o.trim()).filter(Boolean),
+    "https://classicvisions.lovable.app",
+    "https://qbo.classicvisions.net",
+    "https://id-preview--d568bffd-cdad-4066-b271-1e09c9a376d6.lovable.app",
+  ]);
   const origin = String(req.headers.origin || "");
-  if (origin !== allowed) return false;
-  res.setHeader("Access-Control-Allow-Origin", allowed);
+  if (!allowed.has(origin)) return false;
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Headers", "authorization, content-type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Vary", "Origin");

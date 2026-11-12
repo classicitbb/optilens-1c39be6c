@@ -14,6 +14,7 @@ function run(action: string, init: { method?: string; headers?: Record<string, s
     status: (s) => { out.status = s; return res; },
     json: (b) => { out.body = b; },
     redirect: (s) => { out.status = s; },
+    send: (b) => { out.body = b; },
     setHeader: () => undefined,
   };
   return handler({ method: init.method ?? "POST", query: { action, ...init.query }, headers: init.headers ?? {}, body: {} }, res).then(() => out);
@@ -27,12 +28,13 @@ describe("QBO gateway routing", () => {
     vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("QBO_LOVABLE_API_KEY", "k");
     vi.stubEnv("QBO_GATEWAY_RATE_LIMIT_SECRET", "s");
+    vi.stubEnv("QBO_ADMIN_SUCCESS_URL", "https://www.classicvisions.net/admin/settings/integrations");
     vi.stubGlobal("fetch", vi.fn(async () => new Response("true", { status: 200 })));
   });
   afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
   it("finds the multi-segment actions the handler serves", () => {
-    expect(multiSegmentActions.sort()).toEqual(["commands/claim", "commands/result", "handoff/claim", "handoff/result", "oauth/callback"]);
+    expect(multiSegmentActions.sort()).toEqual(["commands/claim", "commands/result", "handoff/claim", "handoff/next", "handoff/result", "oauth/callback"]);
   });
 
   it.each(multiSegmentActions)("rewrites /qbo/%s to a single-segment function path the handler resolves", async (action) => {

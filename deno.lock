@@ -6281,6 +6281,8 @@
         "npm:@hookform/resolvers@^5.4.0",
         "npm:@lovable.dev/cloud-auth-js@^1.1.2",
         "npm:@lovable.dev/mcp-js@~0.26.1",
+        "npm:@lovable.dev/vite-plugin-dev-server-bridge@^1.0.2",
+        "npm:@lovable.dev/vite-plugin-hmr-gate@^1.8.0",
         "npm:@radix-ui/react-accordion@^1.2.16",
         "npm:@radix-ui/react-alert-dialog@^1.1.19",
         "npm:@radix-ui/react-aspect-ratio@^1.1.11",
@@ -6349,6 +6351,7 @@
         "npm:eslint-plugin-react-hooks@^7.1.1",
         "npm:eslint-plugin-react-refresh@~0.5.3",
         "npm:eslint@^10.7.0",
+        "npm:fflate@~0.8.3",
         "npm:fuse.js@^7.5.0",
         "npm:globals@^17.7.0",
         "npm:husky@^9.1.7",
@@ -6356,6 +6359,7 @@
         "npm:jsdom@^29.1.1",
         "npm:jspdf-autotable@^5.0.8",
         "npm:jspdf@^4.2.1",
+        "npm:lovable-tagger@^1.3.5",
         "npm:lucide-react@^1.25.0",
         "npm:next-themes@~0.4.6",
         "npm:pdfjs-dist@^4.8.69",
@@ -6389,7 +6393,27 @@
         "npm:write-excel-file@^4.1.1",
         "npm:zod@^4.4.3",
         "npm:zustand@^5.0.14"
-      ]
+      ],
+      "overrides": {
+        "esbuild": "0.28.1",
+        "brace-expansion@^1.1.7": "1.1.13",
+        "brace-expansion@^2.0.0": "2.0.3",
+        "brace-expansion@^2.0.1": "2.0.3",
+        "brace-expansion@^5.0.4": "5.0.12",
+        "fast-uri": "^3.1.8",
+        "flatted": "3.4.2",
+        "picomatch@^4.0.3": "4.0.4",
+        "uuid": "11.1.1",
+        "ws@^8": "8.22.0",
+        "deepmerge-ts": "8.0.2",
+        "proxy-addr": "2.0.8",
+        "source-map-js": "1.2.2",
+        "@modelcontextprotocol/sdk": "1.32.1",
+        "dompurify": "3.4.17",
+        "hono": "4.13.13",
+        "ip-address": "10.7.4",
+        "qs": "6.16.1"
+      }
     }
   }
 }

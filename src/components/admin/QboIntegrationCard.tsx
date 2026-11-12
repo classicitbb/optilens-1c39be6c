@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 type QboState = { environment: "sandbox" | "production"; status: string; company_name: string | null; realm_id_masked: string | null; connected_at: string | null; last_refresh_at: string | null; last_reconciliation_status: string | null; last_reconciliation_at: string | null; last_error_message_sanitized: string | null };
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : "—";
 const environment = (import.meta.env.VITE_QBO_ENVIRONMENT || "sandbox") as "sandbox" | "production";
+const gatewayUrl = (import.meta.env.VITE_QBO_GATEWAY_URL || (environment === "sandbox" ? "https://qbo-sandbox.classicvisions.net" : "https://qbo.classicvisions.net")).replace(/\/$/, "");
 
 export function QboIntegrationCard() {
   const { toast } = useToast(); const queryClient = useQueryClient();
@@ -18,13 +19,13 @@ export function QboIntegrationCard() {
   const connect = useMutation({ mutationFn: async () => {
     const { data: sessionData } = await supabase.auth.getSession(); const token = sessionData.session?.access_token;
     if (!token) throw new Error("Your session has expired.");
-    const response = await fetch(`${import.meta.env.VITE_QBO_GATEWAY_URL}/qbo/transaction`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    const response = await fetch(`${gatewayUrl}/qbo/transaction`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
     const result = await response.json(); if (!response.ok || !result.connect_url) throw new Error(result.error || "Unable to start QuickBooks connection.");
     window.location.assign(result.connect_url);
   }, onError: (error: Error) => toast({ title: "QuickBooks connection unavailable", description: error.message, variant: "destructive" }) });
   const command = useMutation({ mutationFn: async (command: "disconnect" | "reconcile") => {
     const { data: sessionData } = await supabase.auth.getSession(); const token = sessionData.session?.access_token;
-    const response = await fetch(`${import.meta.env.VITE_QBO_GATEWAY_URL}/qbo/command`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
+    const response = await fetch(`${gatewayUrl}/qbo/command`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
     const result = await response.json(); if (!response.ok) throw new Error(result.error || "Unable to queue command."); return command;
   }, onSuccess: (command) => { void queryClient.invalidateQueries({ queryKey: ["qbo-integration-state", environment] }); toast({ title: command === "reconcile" ? "Reconciliation queued" : "Disconnect queued", description: "OptiLens Local will process this request securely." }); }, onError: (error: Error) => toast({ title: "QuickBooks command unavailable", description: error.message, variant: "destructive" }) });
   const status = state.data?.status ?? "not_connected";
