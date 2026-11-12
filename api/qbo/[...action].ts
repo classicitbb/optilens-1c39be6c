@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, 
 
 const INTUIT_AUTHORIZE = "https://appcenter.intuit.com/connect/oauth2";
 type GatewayRequest = { method?: string; query: Record<string, string | string[] | undefined>; headers: Record<string, string | string[] | undefined>; body?: Record<string, unknown> };
-type GatewayResponse = { status: (status: number) => GatewayResponse; json: (body: unknown) => void; redirect: (status: number, url: string) => void; setHeader: (name: string, value: string) => void };
+type GatewayResponse = { status: (status: number) => GatewayResponse; json: (body: unknown) => void; send: (body: string) => void; redirect: (status: number, url: string) => void; setHeader: (name: string, value: string) => void };
 type TransactionRow = { authorization_code_ciphertext?: string; callback_received_at?: string; claimed_at?: string; completed_at?: string; environment?: string; expires_at: string; realm_id_masked?: string; state_hash?: string };
 const json = (res: GatewayResponse, status: number, body: unknown) => res.status(status).json(body);
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -142,7 +142,19 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
     // initiated by an authenticated admin through the queued command endpoint.
     if (action === "disconnect") {
       if (!(await consumeRateLimit(req, action))) return json(res, 429, { error: "Too many requests." });
-      return json(res, 200, { ok: true });
+      // Intuit sends users here after they disconnect inside QuickBooks. OptiLens Local
+      // learns of it on its next token refresh (invalid_grant -> reconnect required).
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuickBooks disconnected · Classic Visions</title></head><body style="font-family:system-ui,sans-serif;max-width:560px;margin:64px auto;padding:0 20px;line-height:1.5"><h1 style="font-size:1.4rem">QuickBooks is disconnected</h1><p>Classic Visions no longer has access to your QuickBooks Online company. Invoices will not sync until you reconnect.</p><p>To reconnect, sign in to the Classic Visions admin and open <a href="${env("QBO_ADMIN_SUCCESS_URL")}">Settings → Integrations</a>, then choose <strong>Connect QuickBooks</strong>.</p></body></html>`);
+    }
+    // OptiLens Local polls this (outbound only) to learn that a sign-in finished.
+    if (action === "handoff/next") {
+      if (req.method !== "POST") return json(res, 405, { error: "Method not allowed." });
+      const supplied = Buffer.from(String(req.headers["x-qbo-handoff-token"] || "")); const expected = Buffer.from(env("QBO_LOCAL_HANDOFF_TOKEN"));
+      if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return json(res, 401, { error: "Unauthorized." });
+      const pending = await supabase(`/rest/v1/qbo_oauth_transactions?environment=eq.${environment}&authorization_code_ciphertext=not.is.null&claimed_at=is.null&completed_at=is.null&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&order=callback_received_at.asc&limit=1&select=id`);
+      const row = (await pending.json())[0] as { id?: string } | undefined;
+      return json(res, 200, { transaction_id: row?.id ?? null });
     }
     if (action === "handoff/claim") {
       if (req.method !== "POST") return json(res, 405, { error: "Method not allowed." });
