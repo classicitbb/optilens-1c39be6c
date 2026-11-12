@@ -33,13 +33,18 @@ function gatewayRoot(environment: string) {
   return environment === "sandbox" ? "https://qbo-sandbox.classicvisions.net" : "https://qbo.classicvisions.net";
 }
 
+// Public project address and publishable key (safe to ship). Used so a stale or
+// mistyped Vercel env value can't break admin sign-in verification.
+const PROJECT_URL = "https://xstmeirxhfbiyayrrsob.supabase.co";
+const PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzdG1laXJ4aGZiaXlheXJyc29iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwOTUzNjMsImV4cCI6MjA4MjY3MTM2M30.bRo7PkzMGFLeqMN47a3h4ctLqMuC9InnNE4CclgokuI";
+
 async function supabase(path: string, init: RequestInit = {}) {
   const headers = init.headers instanceof Headers
     ? Object.fromEntries(init.headers.entries())
     : (init.headers || {}) as Record<string, string>;
   let body: unknown = null;
   if (typeof init.body === "string" && init.body.length) body = JSON.parse(init.body);
-  const response = await fetch(`${env("SUPABASE_URL")}/functions/v1/qbo-gateway`, {
+  const response = await fetch(`${PROJECT_URL}/functions/v1/qbo-gateway`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": env("QBO_LOVABLE_API_KEY") },
     body: JSON.stringify({ path, method: init.method || "GET", headers: { Prefer: headers.Prefer || headers.prefer }, body }),
@@ -51,8 +56,8 @@ async function supabase(path: string, init: RequestInit = {}) {
 async function requireAdmin(req: GatewayRequest) {
   const token = String(req.headers.authorization || "");
   if (!token.startsWith("Bearer ")) return null;
-  const userResponse = await fetch(`${env("SUPABASE_URL")}/auth/v1/user`, { headers: { apikey: env("SUPABASE_ANON_KEY"), Authorization: token } });
-  if (!userResponse.ok) return null;
+  const userResponse = await fetch(`${PROJECT_URL}/auth/v1/user`, { headers: { apikey: PUBLISHABLE_KEY, Authorization: token } });
+  if (!userResponse.ok) { console.warn("qbo requireAdmin: session rejected", userResponse.status); return null; }
   const user = await userResponse.json();
   const roles = await supabase(`/rest/v1/user_roles?user_id=eq.${encodeURIComponent(user.id)}&role=eq.admin&select=id`);
   return (await roles.json()).length ? user : null;
