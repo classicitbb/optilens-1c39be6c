@@ -164,7 +164,13 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return json(res, 401, { error: "Unauthorized." });
       const body = (req.body || {}) as Record<string, unknown>;
       const status = typeof body.status === "string" ? body.status : "";
-      if (!body.transaction_id || !["connected", "error", "disconnected", "token_refresh_required"].includes(status)) return json(res, 400, { error: "Invalid status." });
+      if (!["connected", "error", "disconnected", "token_refresh_required"].includes(status)) return json(res, 400, { error: "Invalid status." });
+      // Local reports an expired/revoked authorization outside any sign-in attempt: only flag the state.
+      if (!body.transaction_id) {
+        if (status !== "token_refresh_required") return json(res, 400, { error: "Invalid status." });
+        await supabase(`/rest/v1/qbo_integration_state?provider=eq.quickbooks_online&environment=eq.${environment}`, { method: "PATCH", body: JSON.stringify({ status, last_error_code: "reconnect_required", last_error_message_sanitized: "QuickBooks authorization expired or was revoked. Reconnect QuickBooks.", updated_at: new Date().toISOString() }) });
+        return json(res, 200, { ok: true });
+      }
       await supabase(`/rest/v1/qbo_oauth_transactions?id=eq.${encodeURIComponent(String(body.transaction_id))}&environment=eq.${environment}&claimed_at=not.is.null&completed_at=is.null`, { method: "PATCH", body: JSON.stringify({ completed_at: new Date().toISOString(), authorization_code_ciphertext: null, failure_code: status === "error" ? "exchange_failed" : null, failure_message_sanitized: status === "error" ? "QuickBooks authorization could not be completed." : null }) });
       await supabase(`/rest/v1/qbo_integration_state?on_conflict=provider,environment`, { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ provider: "quickbooks_online", environment, status, company_name: body.company_name || null, realm_id_masked: body.realm_id_masked || null, connected_at: status === "connected" ? (body.connected_at || new Date().toISOString()) : null, updated_at: new Date().toISOString(), last_error_message_sanitized: status === "error" ? "QuickBooks authorization could not be completed." : null }) });
       return json(res, 200, { ok: true });
