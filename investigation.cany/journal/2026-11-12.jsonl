@@ -198,3 +198,13 @@
 {"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T02:47:10Z","tool":"project_pins_list","ts":1794451630}
 {"caller":"ui","duration_ms":8,"kind":"tool_call","ok":true,"params":{"project":"C:\\DEV\\optilens-1c39be6c"},"time":"2026-11-12T02:47:10Z","tool":"project_build_finish","ts":1794451630}
 {"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T02:48:01Z","tool":"project_pins_list","ts":1794451681}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T03:40:22Z","tool":"project_pins_list","ts":1794454822}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:09:14Z","tool":"project_pins_list","ts":1794456554}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:20:14Z","tool":"project_pins_list","ts":1794457214}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:20:25Z","tool":"project_pins_list","ts":1794457225}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:20:56Z","tool":"project_pins_list","ts":1794457256}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:21:28Z","tool":"project_pins_list","ts":1794457288}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:23:42Z","tool":"project_pins_list","ts":1794457422}
+{"caller":"ui","duration_ms":1,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:26:43Z","tool":"project_pins_list","ts":1794457603}
+{"caller":"ui","duration_ms":0,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:27:10Z","tool":"project_pins_list","ts":1794457630}
+{"caller":"ui","duration_ms":1,"kind":"tool_call","ok":true,"params":{},"time":"2026-11-12T04:27:10Z","tool":"project_pins_list","ts":1794457630}
