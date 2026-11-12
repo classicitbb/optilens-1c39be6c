@@ -16869,6 +16869,19 @@ export type Database = {
         }
         Relationships: []
       }
+      innovations_sync_freshness: {
+        Row: {
+          age: string | null
+          entity: string | null
+          is_stale: boolean | null
+          last_attempt_at: string | null
+          last_delivered_at: string | null
+          last_status: string | null
+          max_age: string | null
+          tier: string | null
+        }
+        Relationships: []
+      }
       integration_health_metrics_dashboard: {
         Row: {
           error_rate: number | null
