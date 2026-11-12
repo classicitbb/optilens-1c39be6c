@@ -1,0 +1,14 @@
+{
+  "id": "unk_0f53bcee7c5ec7f5",
+  "revision": 2,
+  "question": "The recorded capture is notion.com's public homepage, not the signed-in app; what does the inside of the app look like?",
+  "severity": "high",
+  "domain": "web",
+  "status": "resolved",
+  "probes": [
+    "Person's own screenshots of app.notion.com (attachments/picture-1.png, picture-2.png)"
+  ],
+  "evidence_for": [],
+  "evidence_against": [],
+  "resolution": "The person's two screenshots of their signed-in Notion workspace were used as the reference instead of the public homepage capture; colours were sampled from them."
+}

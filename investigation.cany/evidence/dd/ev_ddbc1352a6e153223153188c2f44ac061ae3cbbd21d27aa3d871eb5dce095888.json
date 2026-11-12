@@ -1,0 +1,975 @@
+{
+  "id": "ev_ddbc1352a6e153223153188c2f44ac061ae3cbbd21d27aa3d871eb5dce095888",
+  "subject": {
+    "kind": "website",
+    "name": "https://www.notion.com/"
+  },
+  "operation": "web_site_capture",
+  "params": {
+    "include_html": true,
+    "max_height": 12000,
+    "noise_pass": true,
+    "visitor_view": false,
+    "widths": [
+      1440,
+      768,
+      390
+    ]
+  },
+  "result": {
+    "counts": {
+      "forms": 0,
+      "headings": 16,
+      "images": 54,
+      "links": 93,
+      "outline": 201
+    },
+    "design": {
+      "backgrounds": [
+        {
+          "count": 20,
+          "value": "#ffffff"
+        },
+        {
+          "count": 17,
+          "value": "#ffffff00"
+        },
+        {
+          "count": 17,
+          "value": "#000000bf"
+        },
+        {
+          "count": 6,
+          "value": "#f9f9f8"
+        },
+        {
+          "count": 3,
+          "value": "#0075de"
+        },
+        {
+          "count": 3,
+          "value": "#000000"
+        },
+        {
+          "count": 2,
+          "value": "#097fe8"
+        },
+        {
+          "count": 2,
+          "value": "#ffb110"
+        },
+        {
+          "count": 2,
+          "value": "#f64932"
+        },
+        {
+          "count": 1,
+          "value": "#d0f4d8"
+        },
+        {
+          "count": 1,
+          "value": "#e6f3fe"
+        },
+        {
+          "count": 1,
+          "value": "#0000000d"
+        },
+        {
+          "count": 1,
+          "value": "#1aae39"
+        },
+        {
+          "count": 1,
+          "value": "#1313ba"
+        },
+        {
+          "count": 1,
+          "value": "#e32d14"
+        },
+        {
+          "count": 1,
+          "value": "#005bab"
+        }
+      ],
+      "css_variables": {
+        "--direction": "1",
+        "--tatami-border-radius-0": "0",
+        "--tatami-border-radius-200": ".25rem",
+        "--tatami-border-radius-300": ".3125rem",
+        "--tatami-border-radius-400": ".375rem",
+        "--tatami-border-radius-500": ".5rem",
+        "--tatami-border-radius-600": ".625rem",
+        "--tatami-border-radius-700": ".75rem",
+        "--tatami-border-radius-800": ".875rem",
+        "--tatami-border-radius-900": "1rem",
+        "--tatami-border-radius-round": "624.938rem",
+        "--tatami-border-style-dashed": "dashed",
+        "--tatami-border-style-solid": "solid",
+        "--tatami-border-width-1": "var(--tatami-dimension-thickness-1)",
+        "--tatami-color-alpha-black-100": "#0000000d",
+        "--tatami-color-alpha-black-200": "#0000001a",
+        "--tatami-color-alpha-black-300": "#0003",
+        "--tatami-color-alpha-black-400": "#0000004d",
+        "--tatami-color-alpha-black-500": "#0000008a",
+        "--tatami-color-alpha-black-600": "#00000096",
+        "--tatami-color-alpha-black-700": "#000000bf",
+        "--tatami-color-alpha-black-800": "#000000e5",
+        "--tatami-color-alpha-black-900": "#000000f2",
+        "--tatami-color-alpha-white-100": "#ffffff0d",
+        "--tatami-color-alpha-white-200": "#ffffff1a",
+        "--tatami-color-alpha-white-300": "#fff3",
+        "--tatami-color-alpha-white-400": "#ffffff4d",
+        "--tatami-color-alpha-white-500": "#ffffff80",
+        "--tatami-color-alpha-white-600": "#ffffffa8",
+        "--tatami-color-alpha-white-700": "#ffffffbf",
+        "--tatami-color-alpha-white-800": "#ffffffd9",
+        "--tatami-color-alpha-white-900": "#fffffff2",
+        "--tatami-color-black": "#000",
+        "--tatami-color-blue-100": "#f2f9ff",
+        "--tatami-color-blue-200": "#e6f3fe",
+        "--tatami-color-blue-300": "#93cdfe",
+        "--tatami-color-blue-400": "#62aef0",
+        "--tatami-color-blue-500": "#097fe8",
+        "--tatami-color-blue-600": "#0075de",
+        "--tatami-color-blue-700": "#005bab",
+        "--tatami-color-blue-800": "#00396b",
+        "--tatami-color-blue-900": "#002a4f",
+        "--tatami-color-brown-100": "#fcf8f5",
+        "--tatami-color-brown-200": "#ebd5c5",
+        "--tatami-color-brown-300": "#d9b79f",
+        "--tatami-color-brown-400": "#b18164",
+        "--tatami-color-brown-500": "#9c7054",
+        "--tatami-color-brown-600": "#885d3d",
+        "--tatami-color-brown-700": "#744d2d",
+        "--tatami-color-brown-800": "#654124",
+        "--tatami-color-brown-900": "#523410",
+        "--tatami-color-campaigns-agents-launch-blue-200": "#2537b1",
+        "--tatami-color-campaigns-agents-launch-blue-300": "#607df6",
+        "--tatami-color-campaigns-agents-launch-blue-400": "#455dd3",
+        "--tatami-color-campaigns-agents-launch-blue-500": "#394ea3",
+        "--tatami-color-campaigns-agents-launch-blue-600": "#213183",
+        "--tatami-color-campaigns-agents-launch-blue-900": "#02093a",
+        "--tatami-color-campaigns-agents-launch-yellow": "#fefcd5",
+        "--tatami-color-campaigns-dev-platform-dos-alpha-blue": "#1313baa8",
+        "--tatami-color-campaigns-dev-platform-dos-alpha-gray": "#f6f6fc70",
+        "--tatami-color-campaigns-dev-platform-dos-alpha-lavender": "#cbcbef70",
+        "--tatami-color-campaigns-dev-platform-dos-alpha-white": "var(--tatami-color-alpha-white-700)",
+        "--tatami-color-campaigns-dev-platform-dos-black": "#0a0a5d",
+        "--tatami-color-campaigns-dev-platform-dos-blue": "#1313ba",
+        "--tatami-color-campaigns-dev-platform-dos-gray": "#f6f6fc",
+        "--tatami-color-campaigns-dev-platform-dos-lavender": "#cbcbef",
+        "--tatami-color-campaigns-dev-platform-dos-neon": "#6666fd",
+        "--tatami-color-campaigns-dev-platform-dos-slate": "#7171a8",
+        "--tatami-color-campaigns-dev-platform-dos-white": "var(--tatami-color-white)",
+        "--tatami-color-gray-100": "#f9f9f8",
+        "--tatami-color-gray-200": "#f6f5f4",
+        "--tatami-color-gray-300": "#dfdcd9",
+        "--tatami-color-gray-400": "#a39e98",
+        "--tatami-color-gray-500": "#78736f",
+        "--tatami-color-gray-600": "#615d59",
+        "--tatami-color-gray-700": "#494744",
+        "--tatami-color-gray-800": "#31302e",
+        "--tatami-color-gray-900": "#191918",
+        "--tatami-color-green-100": "#f0faf2",
+        "--tatami-color-green-200": "#d0f4d8",
+        "--tatami-color-green-300": "#abe5b8",
+        "--tatami-color-green-400": "#68ce7e",
+        "--tatami-color-green-500": "#1aae39",
+        "--tatami-color-green-600": "#14832b",
+        "--tatami-color-green-700": "#0f6220",
+        "--tatami-color-green-800": "#0a4216",
+        "--tatami-color-green-900": "#05210b",
+        "--tatami-color-orange-100": "#fff5ed",
+        "--tatami-color-orange-200": "#ffdec4",
+        "--tatami-color-orange-300": "#ffad71",
+        "--tatami-color-orange-400": "#ff8a33",
+        "--tatami-color-orange-500": "#ff6d00",
+        "--tatami-color-orange-600": "#dd5b00",
+        "--tatami-color-orange-700": "#ab4a00",
+        "--tatami-color-orange-800": "#793400",
+        "--tatami-color-orange-900": "#532200",
+        "--tatami-color-pink-100": "#fff5fc",
+        "--tatami-color-pink-200": "#ffcdf1",
+        "--tatami-color-pink-300": "#ffb5eb",
+        "--tatami-color-pink-400": "#ff83dd",
+        "--tatami-color-pink-500": "#ff64c8",
+        "--tatami-color-pink-600": "#d13f9d",
+        "--tatami-color-pink-700": "#9d2472",
+        "--tatami-color-pink-800": "#6c1b4f",
+        "--tatami-color-pink-900": "#481034",
+        "--tatami-color-purple-100": "#f8f5fc",
+        "--tatami-color-purple-200": "#eadbfa",
+        "--tatami-color-purple-300": "#d6b6f6",
+        "--tatami-color-purple-400": "#ad6ded",
+        "--tatami-color-purple-500": "#9849e8",
+        "--tatami-color-purple-600": "#7237ae",
+        "--tatami-color-purple-700": "#562983",
+        "--tatami-color-purple-800": "#391c57",
+        "--tatami-color-purple-900": "#1c0e2c",
+        "--tatami-color-red-100": "#fef3f1",
+        "--tatami-color-red-200": "#fdd3cd",
+        "--tatami-color-red-300": "#ff8b7c",
+        "--tatami-color-red-400": "#f77463",
+        "--tatami-color-red-500": "#f64932",
+        "--tatami-color-red-600": "#e32d14",
+        "--tatami-color-red-700": "#b01601",
+        "--tatami-color-red-800": "#6f0d00",
+        "--tatami-color-red-900": "#4f0900",
+        "--tatami-color-teal-100": "#f2fafa",
+        "--tatami-color-teal-200": "#bde6e4",
+        "--tatami-color-teal-300": "#83cbc9",
+        "--tatami-color-teal-400": "#2a9d99",
+        "--tatami-color-teal-500": "#27918d",
+        "--tatami-color-teal-600": "#0a7b77",
+        "--tatami-color-teal-700": "#126764",
+        "--tatami-color-teal-800": "#0a4d4b",
+        "--tatami-color-teal-900": "#042b29",
+        "--tatami-color-transparent": "#fff0",
+        "--tatami-color-white": "#fff",
+        "--tatami-color-yellow-100": "#fff5e0",
+        "--tatami-color-yellow-200": "#ffe4af",
+        "--tatami-color-yellow-300": "#ffd786",
+        "--tatami-color-yellow-400": "#ffc95e",
+        "--tatami-color-yellow-500": "#ffb110",
+        "--tatami-color-yellow-600": "#e89d01",
+        "--tatami-color-yellow-700": "#c78600",
+        "--tatami-color-yellow-800": "#a16c00",
+        "--tatami-color-yellow-900": "#704b00",
+        "--tatami-dimension-offset-0": "0",
+        "--tatami-dimension-offset-1": ".0625rem",
+        "--tatami-dimension-offset-2": ".125rem",
+        "--tatami-dimension-size-1252": "78.25rem",
+        "--tatami-dimension-size-1344": "84rem",
+        "--tatami-dimension-size-960": "60rem",
+        "--tatami-dimension-spacing-0": "0",
+        "--tatami-dimension-spacing-100": "6.25rem",
+        "--tatami-dimension-spacing-12": ".75rem",
+        "--tatami-dimension-spacing-128": "8rem",
+        "--tatami-dimension-spacing-16": "1rem",
+        "--tatami-dimension-spacing-160": "10rem",
+        "--tatami-dimension-spacing-20": "1.25rem",
+        "--tatami-dimension-spacing-24": "1.5rem",
+        "--tatami-dimension-spacing-28": "1.75rem",
+        "--tatami-dimension-spacing-30": "1.875rem",
+        "--tatami-dimension-spacing-32": "2rem",
+        "--tatami-dimension-spacing-36": "2.25rem",
+        "--tatami-dimension-spacing-4": ".25rem",
+        "--tatami-dimension-spacing-40": "2.5rem",
+        "--tatami-dimension-spacing-44": "2.75rem",
+        "--tatami-dimension-spacing-48": "3rem",
+        "--tatami-dimension-spacing-52": "3.25rem",
+        "--tatami-dimension-spacing-56": "3.5rem",
+        "--tatami-dimension-spacing-64": "4rem",
+        "--tatami-dimension-spacing-72": "4.5rem",
+        "--tatami-dimension-spacing-8": ".5rem",
+        "--tatami-dimension-spacing-80": "5rem",
+        "--tatami-dimension-spacing-96": "6rem",
+        "--tatami-dimension-thickness-1": ".0625rem",
+        "--tatami-dimension-thickness-2": ".125rem",
+        "--tatami-font-family-emoji": "var(--tatami-font-family-primary-emoji), var(--tatami-font-family-fallback-emoji)",
+        "--tatami-font-family-fallback-emoji": "\"Segoe UI Emoji\", NotoColorEmoji, \"Noto Color Emoji\", \"Segoe UI Symbol\", \"Android Emoji\", EmojiSymbols",
+        "--tatami-font-family-fallback-handwriting": "\"Permanent Marker\", \"Marker Felt\", \"Segoe Print\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, \"Apple Color",
+        "--tatami-font-family-fallback-mono": "Nitti, Menlo, Courier, monospace",
+        "--tatami-font-family-fallback-sans": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, \"Apple Color Emoji\", Arial, sans-serif, \"Segoe UI Emoji",
+        "--tatami-font-family-fallback-sans-arabic": "NotionInter, Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, \"Apple Color Emoji\", Arial, sans-serif, \"S",
+        "--tatami-font-family-fallback-sans-hebrew": "NotionInter, Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, \"Apple Color Emoji\", Arial, sans-serif, \"S",
+        "--tatami-font-family-fallback-sans-vietnamese": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, \"Apple Color Emoji\", Arial, sans-serif, \"Segoe UI E",
+        "--tatami-font-family-fallback-serif": "Georgia, YuMincho, \"Yu Mincho\", \"Hiragino Mincho ProN\", \"Hiragino Mincho Pro\", \"Songti TC\", \"Songti SC\", SimSun, \"Nanum ",
+        "--tatami-font-family-fallback-serif-chinese-simplified": "Georgia, \"Songti TC\", SimSun, serif",
+        "--tatami-font-family-fallback-serif-chinese-traditional": "Georgia, \"Songti SC\", SimSun, serif",
+        "--tatami-font-family-fallback-serif-japanese": "Georgia, YuMincho, \"Yu Mincho\", \"Hiragino Mincho ProN\", serif",
+        "--tatami-font-family-fallback-serif-vietnamese": "\"Times New Roman\", serif",
+        "--tatami-font-family-handwriting": "var(--tatami-font-family-primary-handwriting), var(--tatami-font-family-fallback-handwriting)",
+        "--tatami-font-family-mono": "var(--tatami-font-family-primary-mono), var(--tatami-font-family-fallback-mono)",
+        "--tatami-font-family-mono-font-feature-settings": "\"lnum\" 1, \"locl\" 0",
+        "--tatami-font-family-primary-emoji": "\"Apple Color Emoji\"",
+        "--tatami-font-family-primary-handwriting": "NotionHand",
+        "--tatami-font-family-primary-mono": "\"iA Writer Mono\"",
+        "--tatami-font-family-primary-sans": "NotionInter",
+        "--tatami-font-family-primary-sans-arabic": "\"Noto Sans Arabic\"",
+        "--tatami-font-family-primary-sans-hebrew": "\"Noto Sans Hebrew\"",
+        "--tatami-font-family-primary-sans-vietnamese": "ui-sans-serif",
+        "--tatami-font-family-primary-serif": "\"Lyon Text\"",
+        "--tatami-font-family-primary-serif-chinese-simplified": "\"Lyon Text\"",
+        "--tatami-font-family-primary-serif-chinese-traditional": "\"Lyon Text\"",
+        "--tatami-font-family-primary-serif-japanese": "\"Lyon Text\"",
+        "--tatami-font-family-primary-serif-vietnamese": "ui-serif",
+        "--tatami-font-family-sans": "var(--tatami-font-family-primary-sans), var(--tatami-font-family-fallback-sans)",
+        "--tatami-font-family-sans-arabic": "var(--tatami-font-family-primary-sans-arabic), var(--tatami-font-family-fallback-sans-arabic)",
+        "--tatami-font-family-sans-arabic-font-feature-settings": "\"lnum\" 1, \"locl\" 0",
+        "--tatami-font-family-sans-font-feature-settings": "\"lnum\" 1, \"locl\" 0",
+        "--tatami-font-family-sans-hebrew": "var(--tatami-font-family-primary-sans-hebrew), var(--tatami-font-family-fallback-sans-hebrew)",
+        "--tatami-font-family-sans-hebrew-font-feature-settings": "\"lnum\" 1, \"locl\" 0",
+        "--tatami-font-family-sans-vietnamese": "var(--tatami-font-family-primary-sans-vietnamese), var(--tatami-font-family-fallback-sans-vietnamese)",
+        "--tatami-font-family-sans-vietnamese-font-feature-settings": "\"lnum\" 1, \"locl\" 0",
+        "--tatami-font-family-serif": "var(--tatami-font-family-primary-serif), var(--tatami-font-family-fallback-serif)",
+        "--tatami-font-family-serif-chinese-simplified": "var(--tatami-font-family-primary-serif-chinese-simplified), var(--tatami-font-family-fallback-serif-chinese-simplified)",
+        "--tatami-font-family-serif-chinese-simplified-font-feature-settings": "\"lnum\" 1, \"locl\" 0, \"liga\" 1",
+        "--tatami-font-family-serif-chinese-traditional": "var(--tatami-font-family-primary-serif-chinese-traditional), var(--tatami-font-family-fallback-serif-chinese-traditional",
+        "--tatami-font-family-serif-chinese-traditional-font-feature-settings": "\"lnum\" 1, \"locl\" 0, \"liga\" 1",
+        "--tatami-font-family-serif-font-feature-settings": "\"lnum\" 1, \"locl\" 0, \"liga\" 1",
+        "--tatami-font-family-serif-japanese": "var(--tatami-font-family-primary-serif-japanese), var(--tatami-font-family-fallback-serif-japanese)",
+        "--tatami-font-family-serif-japanese-font-feature-settings": "\"lnum\" 1, \"locl\" 0, \"liga\" 1",
+        "--tatami-font-family-serif-vietnamese": "var(--tatami-font-family-primary-serif-vietnamese), var(--tatami-font-family-fallback-serif-vietnamese)",
+        "--tatami-font-family-serif-vietnamese-font-feature-settings": "\"lnum\" 1, \"locl\" 0",
+        "--tatami-font-letter-spacing-handwriting-100": "0",
+        "--tatami-font-letter-spacing-handwriting-150": "0",
+        "--tatami-font-letter-spacing-handwriting-200": "0",
+        "--tatami-font-letter-spacing-handwriting-300": "0",
+        "--tatami-font-letter-spacing-handwriting-350": "0",
+        "--tatami-font-letter-spacing-handwriting-400": "0",
+        "--tatami-font-letter-spacing-handwriting-50": "0",
+        "--tatami-font-letter-spacing-handwriting-500": "0",
+        "--tatami-font-letter-spacing-mono-100": "-.0078125rem",
+        "--tatami-font-letter-spacing-mono-200": "-.00893125rem",
+        "--tatami-font-letter-spacing-mono-300": "-.0100438rem",
+        "--tatami-font-letter-spacing-mono-400": "-.012275rem",
+        "--tatami-font-letter-spacing-mono-50": "-.00669375rem",
+        "--tatami-font-letter-spacing-mono-500": "-.0145063rem",
+        "--tatami-font-letter-spacing-mono-600": "-.0178563rem",
+        "--tatami-font-letter-spacing-mono-700": "-.0234375rem",
+        "--tatami-font-letter-spacing-mono-800": "-.0301313rem",
+        "--tatami-font-letter-spacing-sans-100": "0",
+        "--tatami-font-letter-spacing-sans-1000-bold": "-.15625rem",
+        "--tatami-font-letter-spacing-sans-1000-regular": "-.25rem",
+        "--tatami-font-letter-spacing-sans-1100-semibold": "-.2875rem",
+        "--tatami-font-letter-spacing-sans-150": "0",
+        "--tatami-font-letter-spacing-sans-200": "0",
+        "--tatami-font-letter-spacing-sans-300": "-.0078125rem",
+        "--tatami-font-letter-spacing-sans-350": "-.0078125rem",
+        "--tatami-font-letter-spacing-sans-400": "-.015625rem",
+        "--tatami-font-letter-spacing-sans-50": ".0078125rem",
+        "--tatami-font-letter-spacing-sans-500": "-.0390625rem",
+        "--tatami-font-letter-spacing-sans-600-bold": "-.046875rem",
+        "--tatami-font-letter-spacing-sans-600-regular": "-.0625rem",
+        "--tatami-font-letter-spacing-sans-600-semibold": "-.046875rem",
+        "--tatami-font-letter-spacing-sans-700-bold": "-.09375rem",
+        "--tatami-font-letter-spacing-sans-700-regular": "-.125rem",
+        "--tatami-font-letter-spacing-sans-700-semibold": "-.09375rem",
+        "--tatami-font-letter-spacing-sans-800-bold": "-.117188rem",
+        "--tatami-font-letter-spacing-sans-800-regular": "-.21875rem",
+        "--tatami-font-letter-spacing-sans-800-semibold": "-.117188rem",
+        "--tatami-font-letter-spacing-sans-900-bold": "-.132813rem",
+        "--tatami-font-letter-spacing-sans-900-regular": "-.171875rem",
+        "--tatami-font-letter-spacing-sans-900-semibold": "-.132813rem",
+        "--tatami-font-letter-spacing-serif-200": "0",
+        "--tatami-font-letter-spacing-serif-300": "0",
+        "--tatami-font-letter-spacing-serif-350": "0",
+        "--tatami-font-letter-spacing-serif-400": "0",
+        "--tatami-font-letter-spacing-serif-500": "0",
+        "--tatami-font-letter-spacing-serif-600": "0",
+        "--tatami-font-letter-spacing-serif-700": "-.09375rem",
+        "--tatami-font-letter-spacing-serif-800": "-.125rem",
+        "--tatami-font-letter-spacing-serif-900": "-.125rem",
+        "--tatami-font-line-height-100": "var(--tatami-dimension-spacing-20)",
+        "--tatami-font-line-height-1000": "var(--tatami-dimension-spacing-80)",
+        "--tatami-font-line-height-1050": "var(--tatami-dimension-spacing-96)",
+        "--tatami-font-line-height-1100": "var(--tatami-dimension-spacing-100)",
+        "--tatami-font-line-height-150": "var(--tatami-dimension-spacing-20)",
+        "--tatami-font-line-height-200": "var(--tatami-dimension-spacing-24)",
+        "--tatami-font-line-height-300": "var(--tatami-dimension-spacing-28)",
+        "--tatami-font-line-height-350": "var(--tatami-dimension-spacing-28)",
+        "--tatami-font-line-height-400": "var(--tatami-dimension-spacing-28)",
+        "--tatami-font-line-height-450": "var(--tatami-dimension-spacing-30)",
+        "--tatami-font-line-height-50": "var(--tatami-dimension-spacing-16)",
+        "--tatami-font-line-height-500": "var(--tatami-dimension-spacing-32)",
+        "--tatami-font-line-height-600": "var(--tatami-dimension-spacing-40)",
+        "--tatami-font-line-height-700": "var(--tatami-dimension-spacing-48)",
+        "--tatami-font-line-height-800": "var(--tatami-dimension-spacing-56)",
+        "--tatami-font-line-height-900": "var(--tatami-dimension-spacing-64)",
+        "--tatami-font-size-100": ".875rem",
+        "--tatami-font-size-1000": "4.75rem",
+        "--tatami-font-size-1100": "6rem",
+        "--tatami-font-size-150": ".9375rem",
+        "--tatami-font-size-200": "1rem",
+        "--tatami-font-size-300": "1.125rem",
+        "--tatami-font-size-350": "1.25rem",
+        "--tatami-font-size-400": "1.375rem",
+        "--tatami-font-size-450": "1.5rem",
+        "--tatami-font-size-50": ".75rem",
+        "--tatami-font-size-500": "1.625rem",
+        "--tatami-font-size-600": "2rem",
+        "--tatami-font-size-700": "2.625rem",
+        "--tatami-font-size-800": "3.375rem",
+        "--tatami-font-size-900": "4rem"
+      },
+      "font_faces": [
+        {
+          "family": "NotionInter",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "NotionInter",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "500"
+        },
+        {
+          "family": "NotionInter",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "600"
+        },
+        {
+          "family": "NotionInter",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "700"
+        },
+        {
+          "family": "Noto Sans Arabic",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "100 900"
+        },
+        {
+          "family": "Noto Sans Hebrew",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "100 900"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "400"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "500"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "600"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "700"
+        },
+        {
+          "family": "Lyon Text",
+          "status": "loaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "Lyon Text",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "400"
+        },
+        {
+          "family": "Lyon Text",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "600"
+        },
+        {
+          "family": "Lyon Text",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "600"
+        },
+        {
+          "family": "iA Writer Mono",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "iA Writer Mono",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "400"
+        },
+        {
+          "family": "iA Writer Mono",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "600"
+        },
+        {
+          "family": "iA Writer Mono",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "600"
+        },
+        {
+          "family": "NotionHand",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "Permanent Marker",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "400"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "500"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "500"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "600"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "600"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "700"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "700"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "400"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "400"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "500"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "500"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "600"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "600"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "normal",
+          "weight": "700"
+        },
+        {
+          "family": "NotionInter",
+          "status": "unloaded",
+          "style": "italic",
+          "weight": "700"
+        }
+      ],
+      "font_sizes": [
+        {
+          "count": 60,
+          "value": "14px"
+        },
+        {
+          "count": 16,
+          "value": "16px"
+        },
+        {
+          "count": 4,
+          "value": "20px"
+        },
+        {
+          "count": 4,
+          "value": "12px"
+        },
+        {
+          "count": 3,
+          "value": "22px"
+        },
+        {
+          "count": 3,
+          "value": "18px"
+        },
+        {
+          "count": 2,
+          "value": "54px"
+        },
+        {
+          "count": 1,
+          "value": "96px"
+        },
+        {
+          "count": 1,
+          "value": "72px"
+        },
+        {
+          "count": 1,
+          "value": "42px"
+        }
+      ],
+      "font_weights": [
+        {
+          "count": 55,
+          "value": "500"
+        },
+        {
+          "count": 20,
+          "value": "400"
+        },
+        {
+          "count": 16,
+          "value": "700"
+        },
+        {
+          "count": 4,
+          "value": "600"
+        }
+      ],
+      "fonts": [
+        {
+          "count": 91,
+          "value": "NotionInter, Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, \"Apple Color Emoji\", Arial, sans-serif, \"Segoe UI Emoji\", \"Segoe UI Symbol\""
+        },
+        {
+          "count": 4,
+          "value": "\"Lyon Text\", Georgia, YuMincho, \"Yu Mincho\", \"Hiragino Mincho ProN\", \"Hiragino Mincho Pro\", \"Songti TC\", \"Songti SC\", SimSun, \"Nanum Myeongjo\", NanumMyeongjo, Batang, serif"
+        }
+      ],
+      "max_widths": [
+        {
+          "count": 17,
+          "value": "116px"
+        },
+        {
+          "count": 9,
+          "value": "84px"
+        },
+        {
+          "count": 8,
+          "value": "86px"
+        },
+        {
+          "count": 2,
+          "value": "280px"
+        },
+        {
+          "count": 2,
+          "value": "1184px"
+        },
+        {
+          "count": 2,
+          "value": "1252px"
+        },
+        {
+          "count": 2,
+          "value": "891.92px"
+        },
+        {
+          "count": 2,
+          "value": "90px"
+        }
+      ],
+      "radii": [
+        {
+          "count": 46,
+          "value": "8px"
+        },
+        {
+          "count": 20,
+          "value": "4px"
+        },
+        {
+          "count": 17,
+          "value": "12px"
+        },
+        {
+          "count": 7,
+          "value": "9999px"
+        },
+        {
+          "count": 3,
+          "value": "100%"
+        },
+        {
+          "count": 2,
+          "value": "12px 12px 0px 0px"
+        },
+        {
+          "count": 2,
+          "value": "12px 0px 0px"
+        },
+        {
+          "count": 1,
+          "value": "50%"
+        }
+      ],
+      "shadows": [
+        {
+          "count": 4,
+          "value": "rgba(0, 0, 0, 0.01) 0px 0.175px 1.041px 0px, rgba(0, 0, 0, 0.02) 0px 0.8px 2.925px 0px, rgba(0, 0, 0, 0.027) 0px 2.025px 7.847px 0px, rgba(0, 0, 0, 0.04) 0px 4px 18px 0px"
+        },
+        {
+          "count": 1,
+          "value": "rgba(0, 0, 0, 0) 0px 1px 0px 0px"
+        },
+        {
+          "count": 1,
+          "value": "rgba(0, 0, 0, 0.008) 0px 0.667px 3.502px 0px, rgba(0, 0, 0, 0.016) 0px 2.933px 7.252px 0px, rgba(0, 0, 0, 0.02) 0px 7.2px 14.462px 0px, rgba(0, 0, 0, 0.024) 0px 13.867px 28.348px 0px, rgba(0, 0, 0, 0.03) 0px 23.333px 52.123px 0px, rgba(0, 0, 0, 0.04) 0px 36px 89px 0px"
+        }
+      ],
+      "spacing": [
+        {
+          "count": 165,
+          "value": "8px"
+        },
+        {
+          "count": 63,
+          "value": "24px"
+        },
+        {
+          "count": 53,
+          "value": "16px"
+        },
+        {
+          "count": 46,
+          "value": "3px"
+        },
+        {
+          "count": 42,
+          "value": "6px"
+        },
+        {
+          "count": 38,
+          "value": "12px"
+        },
+        {
+          "count": 26,
+          "value": "15px"
+        },
+        {
+          "count": 10,
+          "value": "5px"
+        },
+        {
+          "count": 10,
+          "value": "10px"
+        },
+        {
+          "count": 9,
+          "value": "4px"
+        },
+        {
+          "count": 8,
+          "value": "32px"
+        },
+        {
+          "count": 4,
+          "value": "14px"
+        },
+        {
+          "count": 4,
+          "value": "96px"
+        },
+        {
+          "count": 4,
+          "value": "105.6px"
+        },
+        {
+          "count": 4,
+          "value": "64px"
+        },
+        {
+          "count": 3,
+          "value": "-1px"
+        },
+        {
+          "count": 3,
+          "value": "20px"
+        },
+        {
+          "count": 3,
+          "value": "80px"
+        },
+        {
+          "count": 2,
+          "value": "28px"
+        },
+        {
+          "count": 2,
+          "value": "36px"
+        },
+        {
+          "count": 2,
+          "value": "9px"
+        },
+        {
+          "count": 1,
+          "value": "40px"
+        },
+        {
+          "count": 1,
+          "value": "71px"
+        }
+      ],
+      "text_colors": [
+        {
+          "count": 31,
+          "value": "#000000e5"
+        },
+        {
+          "count": 16,
+          "value": "#ffffff"
+        },
+        {
+          "count": 15,
+          "value": "#615d59"
+        },
+        {
+          "count": 13,
+          "value": "#000000"
+        },
+        {
+          "count": 9,
+          "value": "#0000008a"
+        },
+        {
+          "count": 7,
+          "value": "#000000f2"
+        },
+        {
+          "count": 2,
+          "value": "#00000096"
+        },
+        {
+          "count": 1,
+          "value": "#005bab"
+        },
+        {
+          "count": 1,
+          "value": "#097fe8"
+        }
+      ]
+    },
+    "files": [
+      "README.md",
+      "capture.json"
+    ],
+    "html_bytes": 206994,
+    "output_directory": "C:\\DEV\\optilens-1c39be6c\\capture",
+    "screenshots": [
+      {
+        "css_width": 1440,
+        "cut": false,
+        "file": "screenshot-1440.png",
+        "height": 4668,
+        "noise_file": "noise-1440.png",
+        "noise_tiles": 855,
+        "sha256": "34cbe5cc13ea7eedb595a1a2cdc0df5c0ecd1e0abab52508f9e0a0359bad6d30",
+        "width": 1440
+      },
+      {
+        "css_width": 768,
+        "cut": false,
+        "file": "screenshot-768.png",
+        "height": 4881,
+        "noise_file": "noise-768.png",
+        "noise_tiles": 376,
+        "sha256": "a950630abc6c9cde17881d527e3c3bfcc43aaeb8cc860459f6be8543aa085707",
+        "width": 768
+      },
+      {
+        "css_width": 390,
+        "cut": false,
+        "file": "screenshot-390.png",
+        "height": 4003,
+        "noise_file": "noise-390.png",
+        "noise_tiles": 155,
+        "sha256": "b308b561bbc2221cd839c798ab55e5de4c32ae65dcf90cae91e93cdd6b4b2cad",
+        "width": 390
+      }
+    ],
+    "title": "The AI workspace that works for you. | Notion",
+    "url": "https://www.notion.com/"
+  },
+  "summary": "Captured https://www.notion.com/: 3 screenshot(s), 201 outline items, 16 headings, 54 images, 93 links, 0 forms → C:\\DEV\\optilens-1c39be6c\\capture.",
+  "confidence": "observed",
+  "authority": "our-run",
+  "environment": {
+    "clean_room": false,
+    "engine": "cdp",
+    "engine_version": "1.3",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "one_state",
+      "message": "One state of the page: menus, dialogs and content behind interactions are not opened."
+    },
+    {
+      "code": "cross_origin_css",
+      "message": "CSS custom properties and breakpoints from cross-origin stylesheets can't be read."
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 3,
+    "total": 3
+  },
+  "locations": [
+    {
+      "kind": "url",
+      "value": "https://www.notion.com/"
+    },
+    {
+      "kind": "path",
+      "value": "C:\\DEV\\optilens-1c39be6c\\capture"
+    }
+  ],
+  "links": []
+}

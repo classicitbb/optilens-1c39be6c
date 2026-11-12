@@ -1,0 +1,1314 @@
+{
+  "id": "ev_ad91c25134f8ae909fb418b820934d2243ab0467161fecf20b4465572219df26",
+  "subject": {
+    "kind": "website",
+    "name": "https://www.notion.com/"
+  },
+  "operation": "web_page_watch",
+  "params": {
+    "endpoint": "http://127.0.0.1:58348",
+    "sensitive_value_declarations": 0
+  },
+  "result": {
+    "accessibility": null,
+    "console": {
+      "count": 12,
+      "entries": [
+        {
+          "level": "warning",
+          "source": "console-api"
+        },
+        {
+          "level": "info",
+          "source": "console-api"
+        },
+        {
+          "level": "error",
+          "source": "console-api"
+        },
+        {
+          "level": "error",
+          "source": "console-api"
+        },
+        {
+          "level": "warning",
+          "source": "console-api"
+        },
+        {
+          "level": "error",
+          "source": "console-api"
+        },
+        {
+          "level": "error",
+          "source": "security"
+        },
+        {
+          "level": "error",
+          "source": "javascript"
+        },
+        {
+          "level": "error",
+          "source": "security"
+        },
+        {
+          "level": "error",
+          "source": "other"
+        },
+        {
+          "level": "error",
+          "source": "network"
+        },
+        {
+          "level": "error",
+          "source": "console-api"
+        }
+      ],
+      "has_text": false
+    },
+    "dom": {
+      "attribute_names": [
+        "alt",
+        "aria-activedescendant",
+        "aria-autocomplete",
+        "aria-controls",
+        "aria-current",
+        "aria-describedby",
+        "aria-expanded",
+        "aria-haspopup",
+        "aria-hidden",
+        "aria-label",
+        "aria-labelledby",
+        "aria-live",
+        "aria-selected",
+        "as",
+        "async",
+        "autocomplete",
+        "charset",
+        "class",
+        "clip-path",
+        "clip-rule",
+        "content",
+        "crossorigin",
+        "d",
+        "data-airgap-id",
+        "data-analytics-event",
+        "data-analytics-href",
+        "data-analytics-label",
+        "data-analytics-name",
+        "data-analytics-scroll-point",
+        "data-cancel_on_tap_outside",
+        "data-css",
+        "data-customer-logo-artwork",
+        "data-customer-logo-box",
+        "data-endcap",
+        "data-gtm-vis-first-on-screen40392510_305",
+        "data-gtm-vis-has-fired40392510_305",
+        "data-gtm-vis-recent-on-screen40392510_305",
+        "data-gtm-vis-total-visible-time40392510_305",
+        "data-locale",
+        "data-n-css",
+        "data-n-g",
+        "data-n-p",
+        "data-next-font",
+        "data-next-head",
+        "data-nimg",
+        "data-nscript",
+        "data-position",
+        "data-prompt_parent_id",
+        "data-route",
+        "data-sample-rate",
+        "data-scroll-behavior",
+        "data-sdkn",
+        "data-sdkv",
+        "data-tailor-extension",
+        "data-ueto",
+        "data-ui-shadow-root",
+        "decoding",
+        "defer",
+        "fetchpriority",
+        "fill",
+        "fill-rule",
+        "height",
+        "href",
+        "hreflang",
+        "id",
+        "imagesrcset",
+        "itemprop",
+        "lang",
+        "loading",
+        "loop",
+        "mask",
+        "maskunits",
+        "media",
+        "muted",
+        "name",
+        "nomodule",
+        "placeholder",
+        "playsinline",
+        "points",
+        "popover",
+        "popovertarget",
+        "preload",
+        "property",
+        "rel",
+        "role",
+        "sizes",
+        "src",
+        "srcset",
+        "style",
+        "tabindex",
+        "text",
+        "type",
+        "value",
+        "viewbox",
+        "width",
+        "x",
+        "xmlns",
+        "y"
+      ],
+      "elements_by_name": {
+        "a": 94,
+        "article": 3,
+        "blockquote": 4,
+        "body": 2,
+        "br": 1,
+        "button": 6,
+        "clippath": 1,
+        "defs": 1,
+        "div": 124,
+        "figcaption": 4,
+        "figure": 4,
+        "footer": 1,
+        "g": 2,
+        "h1": 1,
+        "h2": 6,
+        "h3": 9,
+        "head": 2,
+        "header": 4,
+        "html": 2,
+        "iframe": 1,
+        "img": 62,
+        "input": 1,
+        "li": 69,
+        "link": 103,
+        "main": 1,
+        "mask": 1,
+        "meta": 21,
+        "nav": 2,
+        "next-route-announcer": 1,
+        "noscript": 2,
+        "p": 22,
+        "path": 33,
+        "picture": 11,
+        "polygon": 2,
+        "script": 97,
+        "section": 3,
+        "source": 8,
+        "span": 195,
+        "style": 2,
+        "svg": 27,
+        "title": 1,
+        "ul": 9,
+        "video": 1
+      },
+      "text_nodes": 177,
+      "total_nodes": 1126,
+      "truncated": false
+    },
+    "dropped_events": 0,
+    "frame_origins": [
+      "about:blank",
+      "https://www.notion.com"
+    ],
+    "network": {
+      "request_count": 3,
+      "requests": [
+        {
+          "initiator": "script",
+          "method": "POST",
+          "mime_type": "text/plain",
+          "response_headers": {
+            "credentials_present": [],
+            "kept": {
+              "access-control-allow-credentials": {
+                "value_length": 4
+              },
+              "access-control-allow-origin": {
+                "value_length": 22
+              },
+              "alt-svc": {
+                "value_length": 46
+              },
+              "cache-control": "no-cache, no-store, must-revalidate",
+              "content-length": "0",
+              "content-security-policy-report-only": "script-src 'none'; form-action 'none'; frame-src 'none'; report-uri https://csp.withgoogle.com/csp/scaffolding/ascnsrsggc:201:0",
+              "content-type": "text/plain",
+              "cross-origin-opener-policy-report-only": {
+                "value_length": 39
+              },
+              "cross-origin-resource-policy": "cross-origin",
+              "date": {
+                "value_length": 29
+              },
+              "expires": {
+                "value_length": 29
+              },
+              "pragma": {
+                "value_length": 8
+              },
+              "report-to": {
+                "value_length": 141
+              },
+              "server": {
+                "value_length": 6
+              }
+            }
+          },
+          "status": 204,
+          "type": "Fetch",
+          "url": "https://analytics.google.com/g/collect?v=2&tid=G-9ZJ8CB186L&gtm=45je6ba1v876131458za20ozb840392510zd840392510xf1&_p=1794444256094&gcs=G111&gcd=13t3t3t3t5l1&npa=0&dma=0&tcfd=10000&_eu=AAAAAGQC&cid=571339941.1794444231&frm=0&pscdl=noapi&rcb=4&sr=800x600&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uam=&uamb=0&uap=Windows&uapv=19.0.0&uaw=0&ul=en-us&gaf=2&_s=2&tag_exp=115616986~115938465~115938468~118897920~118897930~120213116~120385423~120412528~120420414~120469145~120469153~121246026~121246034~123329125~124170883&sid=1794444231&sct=1&seg=1&dl=https%3A%2F%2Fwww.notion.com%2F&dt=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&en=page_view&tfd=6317"
+        },
+        {
+          "initiator": "other",
+          "method": "GET",
+          "mime_type": "image/gif",
+          "response_headers": {
+            "credentials_present": [],
+            "kept": {
+              "cache-control": "no-cache, no-store, max-age=0",
+              "cf-cache-status": {
+                "value_length": 7
+              },
+              "cf-ray": {
+                "value_length": 20
+              },
+              "content-length": "43",
+              "content-type": "image/gif;charset=utf-8",
+              "date": {
+                "value_length": 29
+              },
+              "origin-cf-ray": {
+                "value_length": 20
+              },
+              "perf": {
+                "value_length": 10
+              },
+              "server": {
+                "value_length": 16
+              },
+              "strict-transport-security": "max-age=631138519; includeSubdomains",
+              "x-response-time": {
+                "value_length": 1
+              },
+              "x-served-by": {
+                "value_length": 4
+              },
+              "x-transaction-id": {
+                "value_length": 16
+              }
+            }
+          },
+          "status": 200,
+          "type": "Image",
+          "url": "https://t.co/i/adsct?bci=4&cv=96%261&dv=America%2FBarbados%26en-US%2Cen%26Google%20Inc.%26Win32%26255%26800%26600%2624%2624%26800%26600%260%26na%261&eci=2&event_id=56a94373-4d9e-4eaa-88b9-3df7dbc55341&events=%5B%5B%22auto_long_site_dwell%22%2C%7B%7D%5D%5D&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=58d5b328-e321-47b7-8eb4-2b7c5fc62214&tw_ch_fvl=Not-A.Brand%2F99.0.0.0%2CGoogle%20Chrome%2F157.0.8103.51%2CChromium%2F157.0.8103.51&tw_ch_pv=19.0.0&tw_document_href=https%3A%2F%2Fwww.notion.com%2F&tw_engaged_ms=0&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1794444256350-440335588&twpid=tw.1794444256350.526050895351346672&txn_id=ofilm&type=javascript&version=2.4.12"
+        },
+        {
+          "initiator": "other",
+          "method": "GET",
+          "mime_type": "image/gif",
+          "response_headers": {
+            "credentials_present": [],
+            "kept": {
+              "cache-control": "no-cache, no-store, max-age=0",
+              "cf-cache-status": {
+                "value_length": 7
+              },
+              "cf-ray": {
+                "value_length": 20
+              },
+              "content-length": "43",
+              "content-type": "image/gif;charset=utf-8",
+              "date": {
+                "value_length": 29
+              },
+              "origin-cf-ray": {
+                "value_length": 20
+              },
+              "perf": {
+                "value_length": 10
+              },
+              "server": {
+                "value_length": 16
+              },
+              "strict-transport-security": "max-age=631138519; includeSubdomains",
+              "x-response-time": {
+                "value_length": 1
+              },
+              "x-served-by": {
+                "value_length": 4
+              },
+              "x-transaction-id": {
+                "value_length": 16
+              }
+            }
+          },
+          "status": 200,
+          "type": "Image",
+          "url": "https://analytics.twitter.com/i/adsct?bci=4&cv=96%261&dv=America%2FBarbados%26en-US%2Cen%26Google%20Inc.%26Win32%26255%26800%26600%2624%2624%26800%26600%260%26na%261&eci=2&event_id=56a94373-4d9e-4eaa-88b9-3df7dbc55341&events=%5B%5B%22auto_long_site_dwell%22%2C%7B%7D%5D%5D&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=58d5b328-e321-47b7-8eb4-2b7c5fc62214&tw_ch_fvl=Not-A.Brand%2F99.0.0.0%2CGoogle%20Chrome%2F157.0.8103.51%2CChromium%2F157.0.8103.51&tw_ch_pv=19.0.0&tw_document_href=https%3A%2F%2Fwww.notion.com%2F&tw_engaged_ms=0&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1794444256350-440335588&twpid=tw.1794444256350.526050895351346672&txn_id=ofilm&type=javascript&version=2.4.12"
+        }
+      ]
+    },
+    "origin": "https://www.notion.com/",
+    "resources": [
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/163cb6mq2rawn.js"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://analytics.twitter.com/1/i/adsct?bci=4&dv=America%2FBarbados%26en-US%2Cen%26Google%20Inc.%26Win32%26255%26800%26600%2624%2624%26800%26600%260%26na%261&eci=3&event=%7B%7D&event_id=cdea028a-27be-4208-95ab-837b166618d0&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=58d5b328-e321-47b7-8eb4-2b7c5fc62214&tw_ch_fvl=Not-A.Brand%2F99.0.0.0%2CGoogle%20Chrome%2F157.0.8103.51%2CChromium%2F157.0.8103.51&tw_ch_pv=19.0.0&tw_document_href=https%3A%2F%2Fwww.notion.com%2F&tw_engaged_ms=0&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1794444256350-440335588&tw_session_start=1&twpid=tw.1794444256350.526050895351346672&txn_id=ofilm&type=javascript&version=2.4.12"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/5bqhI7eaPc7AeAtuuTvtuh/915d56f683fcd7edbd9f1e0434136b0d/pin_capture.png?w=1080&q=55&fm=webp"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/23lo74sdqhaih.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/75O9653Z83boVzSMBMSY2D/4b36e928296e00612213aff4bdd369f2/toyota-black.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/0h__50ie2ksx9.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/5PYK3Lg8UW2Pk5pjMSo0oo/386446de76c143e694ec9790807eff7e/david-zwirner-mono.svg"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://trkn.us/pixel/c?ppt=25579&g=sitewide&gid=65016&ord=737b80e3b8144a6bb95d2d3b2a8f2def"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fpages%2Fhome%2Fteams-agents-hero%2Fpile_5.webp&w=256&q=75"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/14p4-gbfz_p4d.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2yfm5cv595lyl.js"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://analytics.twitter.com/i/adsct?bci=4&cv=96%261&dv=America%2FBarbados%26en-US%2Cen%26Google%20Inc.%26Win32%26255%26800%26600%2624%2624%26800%26600%260%26na%261&eci=2&event_id=56a94373-4d9e-4eaa-88b9-3df7dbc55341&events=%5B%5B%22auto_long_site_dwell%22%2C%7B%7D%5D%5D&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=58d5b328-e321-47b7-8eb4-2b7c5fc62214&tw_ch_fvl=Not-A.Brand%2F99.0.0.0%2CGoogle%20Chrome%2F157.0.8103.51%2CChromium%2F157.0.8103.51&tw_ch_pv=19.0.0&tw_document_href=https%3A%2F%2Fwww.notion.com%2F&tw_engaged_ms=0&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1794444256350-440335588&twpid=tw.1794444256350.526050895351346672&txn_id=ofilm&type=javascript&version=2.4.12"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fnav%2FallFeaturesNav%2Ffind.png&w=256&q=75"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1u2fhpzx-y34k.js"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/18388395671/?random=1794444256306&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45je6ba1v876131458za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616986~115938465~115938468~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170883&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=4&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4daGxvU99bXD6Nj3vp1awh-28KEd9eAH2pTAJW3zw8b2peM4FvZ9Ba1T77V7w9uf_yEv7J6zeRpXmWuc-GZnxnOdKGaEF7Um9A_QrGKYL3BEYEZ0O7Ece_kJSSuw6Z1mk3djQ7cduzPu1TrKBszot7qsDPDuTHbHV7vWec_H47QC3fRP-E1psLqOafrCnKu5NjEeeM_16g6t1d6WB48i9bT2ELFd4tTl8AbWhPE4zJMNJzBv1nnXa1aPMzBTwf9dn6kHybjiC9AAKpbRhiuOZ-IlOOD9-cvYaIFTwg-24&random=4275324834&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/18009663456/?random=1794444256197&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4dUIFs9kuf7clku_dhecaGN2zf02iMLRuFO-D5qWpq1fvBRFbWE_2i-ASFKLtFZ83wI15HssDmJSXdrR7UAdKw-2BZWliW1E1hWc25ppcKGenoqY2XHYJMTV7WsvtloIFBz6HBurgpqmGiHHFTkI8Y1W2rnfXBvV70l-kURBIVCA7Tt7OahRXbfqbwrA0a0IlaB71AzwdFFjFdRTIWma7VD8V0yHFmookJPfFHzNi8l5LIDzVoooGAJRa6QsxrFFKbEwOKS4bCefLGORu8Nq-Zd1JTEdGsgW8YCtjQfdc&random=1454045192&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "font/woff2",
+        "type": "Font",
+        "url": "https://www.notion.com/front-static/fonts/NotionInter-Bold.woff2"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/695511889/?random=1794444256188&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4dZVWSx9aJ29XlsdNxFZqUYINXlXVBACtPRkdzkyuyMTfvlNObds30mrR_Okn81S9m9u_lm67H7_mtAIwLKBRcgfmDuB_chOKR6z9WQ0QauHwo86-S9mKmoZayk7QaMz6hHwq2kqqgNjSfXwoS65f0DXFeebudl-oJqLZ6K195CAvaZ9Uq0IDzXKAR7_I2agoD-UhLvld7dalH_aRG11VsbWXYeymV58W6aIWBcMPIxWzWo9M7ZYFp_JoHO_yc1q5HGzt-ckPy6gIqZ0xQ96hCgRlEK7nJ7DmosRaGzP7&random=1578559836&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/2lvHXS3UJ5sJscJTW8GTpc/c22ac415979069ab3be881b2749e0d77/Faire_logo_-_black.svg"
+      },
+      {
+        "mime_type": "font/woff2",
+        "type": "Font",
+        "url": "https://www.notion.com/_next/static/media/LyonText-Regular-Web.0v5-4d-mnyixl.woff2"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/74S6scH4Wyb7HIj8vAQwcT/37fb4a6eaa694d43a684592c48f252da/automate_front_mobile.jpg?w=384&q=55&fm=webp"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/kelAN094ZCNSM1hzESs2C/71fdfc39756f757c95f984aa78fc1e82/1Password.svg"
+      },
+      {
+        "mime_type": "font/woff2",
+        "type": "Font",
+        "url": "https://www.notion.com/front-static/fonts/NotionInter-SemiBold.woff2"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/9f2239a6c9d84688f968be4f94daf0c44d17d630/_clientMiddlewareManifest.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1m9ndph5lsf3u.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Image",
+        "url": "https://px.ads.linkedin.com/collect?v=2&fmt=js&pid=2368700&time=1794444256237&li_adsId=a09aafac-e145-429b-beaf-d5be8066eda7&pageLoadId=b1105139-43a8-45cb-8794-75f51535b553&url=https%3A%2F%2Fwww.notion.com%2F"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/6ZbZcPA6g5hFrPMbOPfraR/ef4bc2c92ed55a60c9609900717d3755/substack-wordmark-mono.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1phy5t3fgvrhx.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/3g3kd85z47r78.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/0g55hnozfpmrm.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/nyxHXSMqMnFKE3RD3tteN/fa4e6ab45c999ace2a528a45c5bfb812/Loreal-k.svg"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/69ZGgVfnKktXcsoatPFe10/bb284c982b9a95f943eef6bbda821104/ramp.png?w=384&q=55&fm=webp"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/9f2239a6c9d84688f968be4f94daf0c44d17d630/_ssgManifest.js"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/3M9ceMRlhgl2rIRgqs6nSq/8a641169512d0053ac357d97ba527758/cursor.png?w=384&q=55&fm=webp"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/4aacFfCek6OBBghMJHaBSk/9cb5eb86db70a11dbb6bc62b6535293b/a24-mono.svg"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/10930095205/?random=1794444256174&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4ddUKHeTNHRj-fWweK5aLn61yarj1-VorRj8R-mzarjD9IGDjjQyAjyR0ezaCpVkS4A1P9mPCjQl0IRQm-ssr29Vo6B0ahcftoTMO_enXZjfcp3q48pzDd8B_s61mj4mclHyNDlqBVdkyX9kj-UPOCWsnjV9niAj8eq4BVjZuONXGjwUF3aW5-s8MPR3XuvgikmUyfYQ-Bem3isAMnuhl5W3zMtZIZ7Z6zTJYd0g6-jEez9tVKrF0FOdqEMNHFso7FKdwXg5PJh9YuSSghrF0Mu2N77MuiRIi20xZjt5P&random=1703094373&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/18395639838/?random=1794444256310&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45je6ba1v876131458za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616986~115938465~115938468~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170883&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=4&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4dWKuiSBiVS3Z6n_LRtNK-gNUb9WJ-az1L_FotV8u5lVHMFGe8-36msATk8eJf0_lZkG-zi_cBQM0xDeOX7TQxfxfBATKLIWstBPylWMah_L3kBcBPQo8Yqc2DDjLv4aqi9vD8hesGNI2JTHIMR32khKsS31ZmZkyy6QBF6KlWUnxEU4Vk7lDI4tv6jJxZkgEpmEBbUq-hnnwnGxuUHVQWUtDNHIVfCk9St4P0q92EERXMhrgK0LprSLicpRv4dMncOk-5DQJJNEy5ZTbeLED1q9rQlhJXr_BlaVcearW&random=3752068641&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fnav%2FallFeaturesNav%2Fcapture.png&w=256&q=75"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2j4s6jjv761tp.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/27zUO0UMDpEBMwPKUUilFH/daba398de4e970fcda7a138ff09d480a/Nvidia.svg"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fpages%2Fhome%2Fteams-agents-hero%2Fpile_4.webp&w=256&q=75"
+      },
+      {
+        "mime_type": "image/png",
+        "type": "Image",
+        "url": "https://verifi.pdscrb.com/tag?action=view&user_id=3488f428-90e1-7044-33f0-052cafff1a22&advertiser=notion&referrer=_&session_referrer=_&session_landing_url=https%3A%2F%2Fwww.notion.com%2F&device_id=pscrb_df3da8f6-bb6c-4495-90ea-af9b4cda935b&first_visited_at=1794444256239&stid=&ipv4=69.73.234.91&ipv6=&url=https%3A%2F%2Fwww.notion.com%2F&event_url=https%3A%2F%2Fwww.notion.com%2F&source=js-tag+v1.2.3&cachebust=1794444256348"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2bsodvme4i4h3.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/1WOBygtnWVcfsk5EfcSJVM/99b994e046e92fee4878075877a9441c/FedEx.svg"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/6NEhbP27yAbhvWdLKPHTFV/6978b1603c567d69f5fe7b4895b1d30f/Vercel.svg"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/18195368920/?random=1794444256193&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4dWsFGNI_IEqgNOK7y-a07bojapOrTo0fF9ySfVhMBfhrSrTNttOixa9ora0Ua5wdCGP96WJLKfWSj7R5wkX8tBiEpAGA0TQIAFO-f1OLSkTf1WgRbyg1fL1Kjj1zTt9EZw8ZmHXF3p3VbmN_9y0yLYJaUsGZhS0NqoU2YJ2AjbqwxDnS8N9noZkrF5oXAP04j1NGu_-JHdE8yLY-KM_e6mQ0UAo08OzCEVs3NdwluTunLOe34BmaURRo0vXwBEJaSCwjSgTnD3ysU1_nV6V6EeT34u-Pe7xebwfMFQs1&random=1096240689&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/23o6yvwgjzn6z.js"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/3PH2HDqwPQKa0Xtq1EzIHs/df192356392843cf5999e8691221fae1/image.png?w=1080&q=55&fm=webp"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/3tqrLCOFenEuNxyEi4qDGG/43e86f7698290dae928aad37f0a3c7c3/find_mobile.png?w=1080&q=55&fm=webp"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1elgmpwklw_ni.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/0lmne_419ipvg.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/1TZBxOqNgDNBTJUEkD9Rn2/95219318a8bc7198d69e3fe0190ea94c/Volvo_Spread_Word_Mark_2025_bl.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2ohg5ykqh5j08.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/26f1k3lnaxfdu.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/6T4QxYfpIzIbZgWUSa5Rb1/8c6cb40bbf2304f8486222d777314b83/Figma_Wordmark__Black_.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/3t0sm-ytv5m7s.js"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fpages%2Fhome%2Fteams-agents-hero%2Fpile_7.webp&w=256&q=75"
+      },
+      {
+        "mime_type": "font/woff2",
+        "type": "Font",
+        "url": "https://www.notion.com/front-static/fonts/NotionInter-Medium.woff2"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/5zvQQUAMUwmWaGbC9qhXpK/633c8d40bbbb2b42faec7ea3339788ff/cursor-logo-mono.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/turbopack-3yv6cmuran_d1.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2008wtel1mz7u.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/2Srehy5L0uv68kHfd341sB/b486900e403e6bd0b4cd29bca21d79b4/lamborghini-script-mono.svg"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fpages%2Fhome%2Fteams-agents-hero%2Fpile_6.webp&w=256&q=75"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fnav%2FallFeaturesNav%2Fautomate.png&w=256&q=75"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2-knrr0peisbv.js"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://t.co/i/adsct?bci=4&cv=96%261&dv=America%2FBarbados%26en-US%2Cen%26Google%20Inc.%26Win32%26255%26800%26600%2624%2624%26800%26600%260%26na%261&eci=2&event_id=56a94373-4d9e-4eaa-88b9-3df7dbc55341&events=%5B%5B%22auto_long_site_dwell%22%2C%7B%7D%5D%5D&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=58d5b328-e321-47b7-8eb4-2b7c5fc62214&tw_ch_fvl=Not-A.Brand%2F99.0.0.0%2CGoogle%20Chrome%2F157.0.8103.51%2CChromium%2F157.0.8103.51&tw_ch_pv=19.0.0&tw_document_href=https%3A%2F%2Fwww.notion.com%2F&tw_engaged_ms=0&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1794444256350-440335588&twpid=tw.1794444256350.526050895351346672&txn_id=ofilm&type=javascript&version=2.4.12"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/4mw82WFsPwlqM8p3SFChGp/0f24425d9c398b7231eb089e4677e069/chat_input.png?w=1080&q=55&fm=webp"
+      },
+      {
+        "mime_type": "font/woff2",
+        "type": "Font",
+        "url": "https://www.notion.com/front-static/fonts/NotionInter-Regular.woff2"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/14SNuPmXDPWdGE0I8TMeNL/f0daf60f7c4fd8cf3a8c3587e776125f/Remote_Logo_Black.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1_q9icg436c9v.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/18vyw0q29t1nb.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/24spgmvrrlnc5.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/09dav-srza2xt.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/9f2239a6c9d84688f968be4f94daf0c44d17d630/_buildManifest.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2g3acuwxpld7w.js"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fpages%2Fhome%2Fteams-agents-hero%2Fpile_2.webp&w=256&q=75"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/2bpo8cxex6idd.js"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/10930095205/?random=1794444256201&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&gtm=45be6ba1v9242956174z8840392510za20gzb840392510zd840392510xeaxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&_tu=CA&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4dYmtCZSkchAddTjWpLCfrRmO3NAFJkZLnHUwEKDJbN1YGTIZjjPGOwz263Awkzrl8SbFZwkQ7zWeUw2gQicsfH4jBzb4ZSE9X-udkUbafQNm4cfMgsqPVZGHfa6CP8tXbSRBHD-oKM3mFC9lLuXJ6Orz4cxxrJemxYacagHuohOuZ4lsp2JQnvYO--8q-O0GHiTcoD7pTH2UXQCDQQgKmb-BZLn88GlCd2M9zHaT2tpCTDDmcSJ_eNiXMtJPXELQEDMBuWelwDIzTtRjkeK7xY1oo2OMUmpQkey6XZaB&random=1097482290&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/0d0zi-h_ie2er.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/29FPcEW8k9owCOzkg5toXL/2e9fb3201f80820a7779e7675d4e927e/patreon-wordmark-mono.svg"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fpages%2Fhome%2Fteams-agents-hero%2Fpile_3.webp&w=256&q=75"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1j3mrzkw-mec8.js"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/3w9ci4w-syaxo.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/28h89MWosNZz4BozEZgayf/92843d67b2b141281b53f4ec1ab6bc0f/dolby-wordmark-mono.svg"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://t.co/1/i/adsct?bci=4&dv=America%2FBarbados%26en-US%2Cen%26Google%20Inc.%26Win32%26255%26800%26600%2624%2624%26800%26600%260%26na%261&eci=3&event=%7B%7D&event_id=cdea028a-27be-4208-95ab-837b166618d0&integration=gtm&p_id=Twitter&p_user_id=0&pl_id=58d5b328-e321-47b7-8eb4-2b7c5fc62214&tw_ch_fvl=Not-A.Brand%2F99.0.0.0%2CGoogle%20Chrome%2F157.0.8103.51%2CChromium%2F157.0.8103.51&tw_ch_pv=19.0.0&tw_document_href=https%3A%2F%2Fwww.notion.com%2F&tw_engaged_ms=0&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1794444256350-440335588&tw_session_start=1&twpid=tw.1794444256350.526050895351346672&txn_id=ofilm&type=javascript&version=2.4.12"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/7hER3ka9QgDiTjLh5Fh3ZZ/acda79bc2449edf5d964a3fc89e19623/Discord-Logo-Black.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1uq3oaifo4ojh.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/4KBpzIRuWO9Bkoho07RwHW/7e608b80b697431b92ffb144e545cf3c/Ramp.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/33__dau9cfmrw.js"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/6gu2Rybt4VdhS2GEEA99PO/da29ed051a3b0821f5dac4868dcb4403/OpenAI-homepage-cropped.svg"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/3pCHbRV7f5UjIssdK3CDpy/7b48cf81bad50d66e31caa5a3b80d5b5/faire.png?w=384&q=55&fm=webp"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/1jqcG8A8fT67XZAhwR1oVH/d07e98b94af5fc4f6ec4a9b7648f02a0/image.png?w=384&q=55&fm=webp"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/1dmtnifliowhs.js"
+      },
+      {
+        "mime_type": "text/plain",
+        "type": "Image",
+        "url": "https://bat.bing.com/action/0?ti=343272399&tm=gtm002&Ver=2&mid=a357465e-044f-4e6d-a591-f2c6a151c985&bo=2&sid=215d1d40de3211f1b70f2fa66378fe37&vid=215d1cd0de3211f183f967c4d62bec03&vids=0&msclkid=N&uach=pv%3D19.0.0&pi=918639831&lg=en-US&sw=800&sh=600&sc=24&nwd=1&tl=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&p=https%3A%2F%2Fwww.notion.com%2F&r=&lt=838&evt=pageLoad&sv=2&asc=G&cdb=AQAS&rn=455751"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://www.notion.com/_next/image?url=%2Ffront-static%2Fpages%2Fhome%2Fteams-agents-hero%2Fpile_1.webp&w=256&q=75"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/4ljglPuQFOp4jC8kIacMa1/73c44685b85c73a717baac0329633d59/clay-mono-black.svg"
+      },
+      {
+        "mime_type": "application/javascript",
+        "type": "Script",
+        "url": "https://www.notion.com/_next/static/chunks/28qsfi9d09hrh.js"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/18304253150/?random=1794444256299&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45je6ba1v876131458za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616986~115938465~115938468~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170883&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=4&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4dXkdzt8UV2s75aHfhAHyk3Lo6PfOpxvlRzjUjqxC3qf6Q9uXJVYWkFwBxIS53TVBRJxkwMX3gMpaOm99uvounKdXA1TC4255lyk5OmyW3NHVxVr-BrK6CVFD4B-raI-Kwfdg0Xg8Cjvylb9LzLiERcbuSd-dE_zGUsXpFmLLtixgvFvRxPT0ADipfsD2aEr1EQbhbFjHuKYLMK6DYUbJfNtTZ0u82IfpGQq2gm1JDu1OquVAObyOpbDXpCAXdi_qqnlhLgtzCcaJiykzIPgtKxzks6ouD1aaCPcMjc4p&random=2633215291&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/5noP5n1Gp9wULYfUEzujKv/49d56f55c09d72488606d57671e7d8c4/full-logo--black.svg"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/37B39r8J6IrO7wtJ1CrpXh/0bf4bcb1e873d5269bf306dff83c78dd/capture_mobile.jpg?w=1080&q=55&fm=webp"
+      },
+      {
+        "mime_type": "image/gif",
+        "type": "Image",
+        "url": "https://www.google.com/pagead/1p-user-list/16621958730/?random=1794444256264&cv=11&fst=1794441600000&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9216208397za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420416~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=6&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=3&is_vtc=1&cid=CAQS4gEAogo4dWi2-D888uZ_zkNSKzY63coghN5Zc48hDe4dSsIuu907JwlhFT8oM-X9zuNxGLMnLb2cyju-ICv1EFoPkmqeNJGg4vXsU0ewyy-FpVMoxSRJLpnb1Q9QUzXXsAj4yjeSHv0WAowk8_indeZYuzqLzck5Kue9Kf56-6hmWsZ17_76ckOadbDtJiYNFHTIrrpZxiRb0BaVHeunViFyUKTVggsyNQahSW4nYBsg9ldG8h5A5O0IlMbbaPaTW0H9u4jaFYQiyd2E2pCBcYMHIbaxTqfwUp5AXpoHM-IopRLk&random=3544452541&rmt_tld=0&ipr=y"
+      },
+      {
+        "mime_type": "image/svg+xml",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/6mSBovk8ZRupLUOZtSu9vp/2bc7912e143755ee406413ab0b9e0b68/goop-mono.svg"
+      },
+      {
+        "mime_type": "image/webp",
+        "type": "Image",
+        "url": "https://images.ctfassets.net/spoqsaf9291f/3wptjGyp47YX2bFx2LikSS/06eae544cf0d12dcd58a41e157031c9a/Mini_AIMN.png?w=1080&q=55&fm=webp"
+      }
+    ],
+    "scripts": [
+      {
+        "length": 1582,
+        "source_map_url": null,
+        "url": "https://www.notion.com/"
+      },
+      {
+        "length": 7193,
+        "source_map_url": "2xvnpvtb1hp4u.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2ohg5ykqh5j08.js"
+      },
+      {
+        "length": 2913,
+        "source_map_url": "020giggccrve-.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2yfm5cv595lyl.js"
+      },
+      {
+        "length": 2662,
+        "source_map_url": "3-eblk7gjm64t.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1u2fhpzx-y34k.js"
+      },
+      {
+        "length": 5718,
+        "source_map_url": "0phkdx461x7xu.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2008wtel1mz7u.js"
+      },
+      {
+        "length": 32999,
+        "source_map_url": "2de5aduhl4jh9.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2g3acuwxpld7w.js"
+      },
+      {
+        "length": 29328,
+        "source_map_url": "3tdynxof1x0-s.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/0d0zi-h_ie2er.js"
+      },
+      {
+        "length": 24336,
+        "source_map_url": "2pu2xaoksxivb.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/14p4-gbfz_p4d.js"
+      },
+      {
+        "length": 27588,
+        "source_map_url": "2mwq64jidxoql.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2bpo8cxex6idd.js"
+      },
+      {
+        "length": 35496,
+        "source_map_url": "21517a0912ky-.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/0g55hnozfpmrm.js"
+      },
+      {
+        "length": 30918,
+        "source_map_url": "166nurr1h9bft.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/3w9ci4w-syaxo.js"
+      },
+      {
+        "length": 37634,
+        "source_map_url": "1llhblu5k4y-t.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2bsodvme4i4h3.js"
+      },
+      {
+        "length": 22009,
+        "source_map_url": "2kjubkj26qrmn.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/09dav-srza2xt.js"
+      },
+      {
+        "length": 27311,
+        "source_map_url": "1gbdg51mo_pnw.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/3t0sm-ytv5m7s.js"
+      },
+      {
+        "length": 49198,
+        "source_map_url": "1p88zsi81v26s.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/23o6yvwgjzn6z.js"
+      },
+      {
+        "length": 205090,
+        "source_map_url": "0k15x3is_jq0e.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/18vyw0q29t1nb.js"
+      },
+      {
+        "length": 93368,
+        "source_map_url": "3pbnf5kg31oa6.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2j4s6jjv761tp.js"
+      },
+      {
+        "length": 52512,
+        "source_map_url": "1-kz_7yxy8gqe.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/3g3kd85z47r78.js"
+      },
+      {
+        "length": 109748,
+        "source_map_url": "188on44mmq7vc.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1dmtnifliowhs.js"
+      },
+      {
+        "length": 21860,
+        "source_map_url": "0p_j7e72cq30q.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/0h__50ie2ksx9.js"
+      },
+      {
+        "length": 114487,
+        "source_map_url": "2gkrh_ya5j56_.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/0lmne_419ipvg.js"
+      },
+      {
+        "length": 36424,
+        "source_map_url": "00f0fwo8kf6xv.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1j3mrzkw-mec8.js"
+      },
+      {
+        "length": 44772,
+        "source_map_url": "3tk2nxkdgyc8_.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1uq3oaifo4ojh.js"
+      },
+      {
+        "length": 40555,
+        "source_map_url": "2cx54sv1h656e.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/26f1k3lnaxfdu.js"
+      },
+      {
+        "length": 22352,
+        "source_map_url": "307fgosacj1lj.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1elgmpwklw_ni.js"
+      },
+      {
+        "length": 11632,
+        "source_map_url": "0as0_9sbgxi6q.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/turbopack-3yv6cmuran_d1.js"
+      },
+      {
+        "length": 1616,
+        "source_map_url": "0a7mjc2ighj57.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/23lo74sdqhaih.js"
+      },
+      {
+        "length": 27922,
+        "source_map_url": "2niozgp3cune8.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/28qsfi9d09hrh.js"
+      },
+      {
+        "length": 44143,
+        "source_map_url": "435l9vjxehb1c.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2-knrr0peisbv.js"
+      },
+      {
+        "length": 26604,
+        "source_map_url": "1yp47iktcp6wu.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1phy5t3fgvrhx.js"
+      },
+      {
+        "length": 34136,
+        "source_map_url": "2xyy35ib6vto8.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1m9ndph5lsf3u.js"
+      },
+      {
+        "length": 135220,
+        "source_map_url": "2yjb1j49apkj8.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1_q9icg436c9v.js"
+      },
+      {
+        "length": 69620,
+        "source_map_url": "13qk4ws1ut71w.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/163cb6mq2rawn.js"
+      },
+      {
+        "length": 48772,
+        "source_map_url": "2uw_o6coshyu1.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/24spgmvrrlnc5.js"
+      },
+      {
+        "length": 38748,
+        "source_map_url": "1u28fyme7cawp.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/33__dau9cfmrw.js"
+      },
+      {
+        "length": 3341,
+        "source_map_url": "3srmuowkbw6vl.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/0atd71rdtnzq7.js"
+      },
+      {
+        "length": 530,
+        "source_map_url": "2mfyc3g58iux7.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2s7hnfu6zv0au.js"
+      },
+      {
+        "length": 97174,
+        "source_map_url": "1l3erjzj-xt5e.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2oeqgtlax06o4.js"
+      },
+      {
+        "length": 49642,
+        "source_map_url": "3oss5k_qmbfnc.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2yw5kdk4lcm_9.js"
+      },
+      {
+        "length": 2656,
+        "source_map_url": "33hbqm4etin2w.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/1xyo73pu0u5mv.js"
+      },
+      {
+        "length": 112558,
+        "source_map_url": "2qy7a1sw_cub2.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/3gtvu2f9-uwu7.js"
+      },
+      {
+        "length": 4456,
+        "source_map_url": "14bxh2qjf491d.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/06silq2f_scbz.js"
+      },
+      {
+        "length": 53907,
+        "source_map_url": "0ykik0uwvpt6m.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2ue_jxx50l23c.js"
+      },
+      {
+        "length": 16433,
+        "source_map_url": "3ikas_8yagnjy.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/2k3gr-5v595cw.js"
+      },
+      {
+        "length": 20724,
+        "source_map_url": "3v-5c70wv5wvi.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/01yw_cl2uj8xf.js"
+      },
+      {
+        "length": 266899,
+        "source_map_url": "0r45m4dfltu12.js.map",
+        "url": "https://www.notion.com/_next/static/chunks/20aj1lk10xx4d.js"
+      },
+      {
+        "length": 149575,
+        "source_map_url": null,
+        "url": "https://transcend-cdn.com/cm/a36a42ad-3a71-444f-9e8a-b19950129dc6/airgap.js"
+      },
+      {
+        "length": 279870,
+        "source_map_url": null,
+        "url": "https://accounts.google.com/gsi/client"
+      },
+      {
+        "length": 392497,
+        "source_map_url": null,
+        "url": "https://transcend-cdn.com/cm/a36a42ad-3a71-444f-9e8a-b19950129dc6/ui.js"
+      },
+      {
+        "length": 604707,
+        "source_map_url": null,
+        "url": "https://www.googletagmanager.com/gtm.js?id=GTM-MTWKTL4"
+      },
+      {
+        "length": 8208,
+        "source_map_url": null,
+        "url": "https://www.notion.com/front-static/scripts/gtm/metadata-io-site-script.js"
+      },
+      {
+        "length": 509684,
+        "source_map_url": null,
+        "url": "https://www.googletagmanager.com/gtag/js?id=AW-10930095205&cx=c&gtm=4e6ba1"
+      },
+      {
+        "length": 25430,
+        "source_map_url": null,
+        "url": "https://wcs.naver.net/wcslog.js"
+      },
+      {
+        "length": 496656,
+        "source_map_url": null,
+        "url": "https://www.googletagmanager.com/gtag/js?id=AW-16621958730&cx=c&gtm=4e6ba1"
+      },
+      {
+        "length": 509676,
+        "source_map_url": null,
+        "url": "https://www.googletagmanager.com/gtag/js?id=AW-695511889&cx=c&gtm=4e6ba1"
+      },
+      {
+        "length": 634186,
+        "source_map_url": null,
+        "url": "https://www.googletagmanager.com/gtag/js?id=G-9ZJ8CB186L&cx=c&gtm=4e6ba1"
+      },
+      {
+        "length": 117731,
+        "source_map_url": null,
+        "url": "https://bzrcdn.openai.com/sdk/oaiq.min.js"
+      },
+      {
+        "length": 14442,
+        "source_map_url": null,
+        "url": "https://d34r8q7sht0t9k.cloudfront.net/tag.js"
+      },
+      {
+        "length": 62052,
+        "source_map_url": null,
+        "url": "https://static.ads-twitter.com/uwt.js"
+      },
+      {
+        "length": 62283,
+        "source_map_url": null,
+        "url": "https://snap.licdn.com/li.lms-analytics/insight.min.js"
+      },
+      {
+        "length": 6785,
+        "source_map_url": null,
+        "url": "https://cdn.metadata.io/site-insights.js"
+      },
+      {
+        "length": 1251,
+        "source_map_url": null,
+        "url": "https://munchkin.marketo.net/munchkin.js"
+      },
+      {
+        "length": 58484,
+        "source_map_url": null,
+        "url": "https://bat.bing.com/bat.js"
+      },
+      {
+        "length": 520799,
+        "source_map_url": null,
+        "url": "https://app.tailorhq.ai/script/hEJ9QrOcTqmEEU2X2W8Ycw.js"
+      },
+      {
+        "length": 432263,
+        "source_map_url": null,
+        "url": "https://connect.facebook.net/en_US/fbevents.js"
+      },
+      {
+        "length": 5242,
+        "source_map_url": null,
+        "url": "https://bat.bing.com/p/action/343272399.js"
+      },
+      {
+        "length": 12913,
+        "source_map_url": null,
+        "url": "https://munchkin.marketo.net/165/munchkin.js"
+      },
+      {
+        "length": 45815,
+        "source_map_url": null,
+        "url": "https://ssl.pstatic.net/melona/libs/gfp-nac-module/synchronizer.js"
+      },
+      {
+        "length": 384338,
+        "source_map_url": null,
+        "url": "https://connect.facebook.net/signals/config/499229960464487?v=2.9.439&r=stable&domain=www.notion.com&hme=1f127d11ce7bba675ee077e129c6ec7e07038113ad3e920301e60f2f865dc776&ex_m=119%2C243%2C172%2C27%2C82%2C83%2C163%2C78%2C77%2C11%2C182%2C102%2C20%2C154%2C142%2C46%2C85%2C90%2C184%2C111%2C150%2C177%2C8%2C4%2C5%2C7%2C6%2C3%2C103%2C116%2C162%2C72%2C186%2C110%2C185%2C212%2C264%2C37%2C84%2C284%2C283%2C282%2C14%2C25%2C28%2C40%2C62%2C118%2C68%2C10%2C73%2C112%2C113%2C114%2C120%2C145%2C38%2C36%2C147%2C148%2C149%2C144%2C143%2C173%2C86%2C176%2C174%2C175%2C57%2C69%2C67%2C138%2C19%2C180%2C52%2C334%2C335%2C336%2C333%2C32%2C17%2C31%2C18%2C33%2C34%2C35%2C55%2C164%2C87%2C127%2C22%2C24%2C51%2C47%2C49%2C48%2C95%2C104%2C108%2C125%2C161%2C165%2C53%2C126%2C29%2C26%2C134%2C79%2C43%2C167%2C166%2C168%2C158%2C156%2C30%2C42%2C66%2C124%2C179%2C80%2C21%2C129%2C93%2C76%2C23%2C97%2C98%2C131%2C96%2C152%2C151%2C155%2C109%2C178%2C181%2C41%2C350%2C372%2C257%2C239%2C70%2C240%2C238%2C375%2C366%2C59%2C258%2C122%2C146%2C92%2C136%2C61%2C54%2C56%2C128%2C135%2C141%2C140%2C65%2C74%2C169%2C88%2C89%2C130%2C44%2C39%2C60%2C63%2C115%2C183%2C1%2C139%2C16%2C137%2C12%2C2%2C64%2C105%2C15%2C75%2C71%2C133%2C101%2C100%2C188%2C189%2C106%2C107%2C9%2C117%2C187%2C58%2C159%2C99%2C91%2C81%2C132%2C121%2C170%2C50%2C160%2C0%2C94%2C153%2C157%2C171%2C45%2C123%2C13%2C190"
+      },
+      {
+        "length": 6704,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10930095205/?random=1794444256174&cv=11&fst=1794444256174&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6704,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/18195368920/?random=1794444256193&cv=11&fst=1794444256193&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6702,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/695511889/?random=1794444256188&cv=11&fst=1794444256188&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6676,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10930095205/?random=1794444256201&cv=11&fst=1794444256201&bg=ffffff&guid=ON&async=1&gtm=45be6ba1v9242956174z8840392510za20gzb840392510zd840392510xeaxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&_tu=CA&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6704,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/18009663456/?random=1794444256197&cv=11&fst=1794444256197&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9242956174za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=13&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6693,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/16621958730/?random=1794444256264&cv=11&fst=1794444256264&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45be6ba1v9216208397za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115938465~115938469~118897920~118897930~119317811~120213116~120385423~120412528~120420416~120469145~120469153~121191153~121246026~121246034~123329125~124170881&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=6&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6702,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/18304253150/?random=1794444256299&cv=11&fst=1794444256299&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45je6ba1v876131458za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616986~115938465~115938468~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170883&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=4&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6702,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/18395639838/?random=1794444256310&cv=11&fst=1794444256310&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45je6ba1v876131458za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616986~115938465~115938468~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170883&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=4&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      },
+      {
+        "length": 6702,
+        "source_map_url": null,
+        "url": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/18388395671/?random=1794444256306&cv=11&fst=1794444256306&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45je6ba1v876131458za20ozb840392510zd840392510xecxf1&gcd=13t3t3t3t5l1&dma=0&tcfd=10000&tag_exp=115616986~115938465~115938468~118897920~118897930~119317811~120213116~120385423~120412528~120420414~120469145~120469153~121191153~121246026~121246034~123329125~124170883&u_w=800&u_h=600&url=https%3A%2F%2Fwww.notion.com%2F&rcb=4&frm=0&tiba=The%20AI%20workspace%20that%20works%20for%20you.%20%7C%20Notion&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=692884268.1794444231&uaa=x86&uab=64&uafvl=Not-A.Brand%3B99.0.0.0%7CGoogle%2520Chrome%3B157.0.8103.51%7CChromium%3B157.0.8103.51&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&data=event%3Dgtag.config&ept=9&rfmt=3&fmt=4"
+      }
+    ],
+    "scripts_truncated": false,
+    "secret_redactions": 0,
+    "storage_keys": null,
+    "watch_ms": 10000,
+    "websockets": {
+      "connections": [],
+      "frames": []
+    }
+  },
+  "summary": "Watched https://www.notion.com/ for 10000ms: 3 request outline(s), 12 console entr(y/ies).",
+  "confidence": "observed",
+  "authority": "earlier-record",
+  "environment": {
+    "clean_room": false,
+    "engine": "cdp",
+    "engine_version": "1.3",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "passive_snapshot",
+      "message": "A passive observation of one moment in a live page; it shows what happened during the window, not everything the page can do."
+    },
+    {
+      "code": "values_not_kept",
+      "message": "Cookies, authorization headers and storage values are never kept; JSON bodies are reduced to outlines and declared secrets are redacted."
+    }
+  ],
+  "coverage": {
+    "status": "partial"
+  },
+  "locations": [
+    {
+      "kind": "url",
+      "value": "https://www.notion.com/"
+    }
+  ],
+  "links": []
+}

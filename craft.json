@@ -1,0 +1,252 @@
+{
+  "version": 5,
+  "name": "notion.com",
+  "request": "recreate the notion internal interface fo my atlas app in this repo on a featrue branch.",
+  "target": {
+    "kind": "website",
+    "url": "https://notion.com"
+  },
+  "stack": "React + TypeScript (Vite)",
+  "status": "needs_you",
+  "note": "The build stopped after two builder turns changed no files in the project folder. Send a new request with a concrete correction, or edit the app's files before trying again.",
+  "created_ms": 1794444225307,
+  "updated_ms": 1794450674254,
+  "checks": [
+    {
+      "round": 1,
+      "check": "web-visual",
+      "passed": true,
+      "similarity": 32.88549318544702,
+      "note": "1440 px: 45% alike (layout 53%, detail 36%; page height 4668 vs 8773 px); 768 px: 35% alike (layout 47%, detail 23%; page height 4881 vs 12000 px); 390 px: 19% alike (layout 24%, detail 14%; page height 4003 vs 12000 px); text 12% alike; missing headings: \"Where teams and agents Ship together.\", \"AI where your team works.\", \"Bring everything into one system of record.\", \"Get answers, instantly—with citations.\", \"Keep work moving 24/7 with agents.\", \"See what Notion can do\", \"Triage product feedback→\", \"Resolve support tickets in Slack→\"; missing words: notion, ai, over, community, companies, demo, product, 100, 100m, 4m, 62, agents; structure 29% alike; missing parts: 54 images, 3 headers, a video; colours the original uses that the build doesn't: #ffffff00 (background), #000000bf (background), #f9f9f8 (background), #0075de (background), #000000 (background), #000000e5 (text), #ffffff (text), #615d59 (text), #000000 (text), #0000008a (text), #000000f2 (text); main font: NotionInter in the original, Plus Jakarta Sans in the build; text sizes the original uses that the build doesn't: 22px, 54px, 96px; spacing the original uses that the build doesn't: 15px, 5px; at 1440 px: top heading 60 px, the original's 96 px; subheadings 30 px, the original's 54 px; body text 14 px, the original's 20 px; the \"Where teams and agents Ship together.\" main: 4 per row vs 10, content column 1400 px vs 280 px; the \"Where teams and agents Ship together.\" header: content column 1400 px vs 280 px; the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; at 768 px: body text 14 px, the original's 20 px; the \"Where teams and agents Build together.\" main: 4 per row vs 23, content column 1500 px vs 280 px; the \"Where teams and agents Build together.\" header: no content column (the original's is 280 px); the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; at 390 px: top heading 32 px, the original's 42 px; the \"Where teams and agents Think together.\" main: 2 per row vs 23, content column 1500 px vs 280 px; the \"Where teams and agents Think together.\" header: no content column (the original's is 280 px); the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2 | opened menus and pop-ups at 1440 px: the \"Product\" menu doesn't open in the build, the \"Resources\" menu doesn't open in the build, the \"English (US)\" dialog doesn't open in the build | opened menus and pop-ups at 390 px: the \"English (US)\" dialog doesn't open in the build | 4 of 10 claims don't hold yet: the \"Product\" menu opens in the build at 1440 px (no such control opens); the \"Resources\" menu opens in the build at 1440 px (no such control opens); the \"English (US)\" dialog opens in the build at 1440 px (no such control opens); the \"English (US)\" dialog opens in the build at 390 px (no such control opens)",
+      "artifacts": [
+        "checks\\round-1\\screenshot-1440.png",
+        "checks\\round-1\\screenshot-768.png",
+        "checks\\round-1\\screenshot-390.png"
+      ],
+      "at_ms": 1794450548888,
+      "claims": [
+        {
+          "title": "The start page doesn't scroll sideways at 1440 px",
+          "passed": true
+        },
+        {
+          "title": "The start page doesn't scroll sideways at 768 px",
+          "passed": true
+        },
+        {
+          "title": "The start page doesn't scroll sideways at 390 px",
+          "passed": true
+        },
+        {
+          "title": "The start page logs no errors the original doesn't",
+          "passed": true
+        },
+        {
+          "title": "The start page loads every file it asks for",
+          "passed": true
+        },
+        {
+          "title": "The start page has the original's landmarks",
+          "passed": true
+        },
+        {
+          "title": "the \"Product\" menu opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"Resources\" menu opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"English (US)\" dialog opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"English (US)\" dialog opens in the build at 390 px",
+          "passed": false,
+          "detail": "no such control opens"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "check": "web-visual",
+      "passed": true,
+      "similarity": 32.88549318544702,
+      "note": "1440 px: 45% alike (layout 53%, detail 36%; page height 4668 vs 8773 px); 768 px: 35% alike (layout 47%, detail 23%; page height 4881 vs 12000 px); 390 px: 19% alike (layout 24%, detail 14%; page height 4003 vs 12000 px); text 12% alike; missing headings: \"Where teams and agents Ship together.\", \"AI where your team works.\", \"Bring everything into one system of record.\", \"Get answers, instantly—with citations.\", \"Keep work moving 24/7 with agents.\", \"See what Notion can do\", \"Triage product feedback→\", \"Resolve support tickets in Slack→\"; missing words: notion, ai, over, community, companies, demo, product, 100, 100m, 4m, 62, agents; structure 29% alike; missing parts: 54 images, 3 headers, a video; colours the original uses that the build doesn't: #ffffff00 (background), #000000bf (background), #f9f9f8 (background), #0075de (background), #000000 (background), #000000e5 (text), #ffffff (text), #615d59 (text), #000000 (text), #0000008a (text), #000000f2 (text); main font: NotionInter in the original, Plus Jakarta Sans in the build; text sizes the original uses that the build doesn't: 22px, 54px, 96px; spacing the original uses that the build doesn't: 15px, 5px; at 1440 px: top heading 60 px, the original's 96 px; subheadings 30 px, the original's 54 px; body text 14 px, the original's 20 px; the \"Where teams and agents Ship together.\" main: 4 per row vs 10, content column 1400 px vs 280 px; the \"Where teams and agents Ship together.\" header: content column 1400 px vs 280 px; the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; at 768 px: body text 14 px, the original's 20 px; the \"Where teams and agents Build together.\" main: 4 per row vs 23, content column 1500 px vs 280 px; the \"Where teams and agents Build together.\" header: no content column (the original's is 280 px); the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; at 390 px: top heading 32 px, the original's 42 px; the \"Where teams and agents Think together.\" main: 2 per row vs 23, content column 1500 px vs 280 px; the \"Where teams and agents Think together.\" header: no content column (the original's is 280 px); the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2 | opened menus and pop-ups at 1440 px: the \"Product\" menu doesn't open in the build, the \"Resources\" menu doesn't open in the build, the \"English (US)\" dialog doesn't open in the build | opened menus and pop-ups at 390 px: the \"English (US)\" dialog doesn't open in the build | 4 of 10 claims don't hold yet: the \"Product\" menu opens in the build at 1440 px (no such control opens); the \"Resources\" menu opens in the build at 1440 px (no such control opens); the \"English (US)\" dialog opens in the build at 1440 px (no such control opens); the \"English (US)\" dialog opens in the build at 390 px (no such control opens)",
+      "artifacts": [
+        "checks\\round-1\\screenshot-1440.png",
+        "checks\\round-1\\screenshot-768.png",
+        "checks\\round-1\\screenshot-390.png"
+      ],
+      "at_ms": 1794450548888,
+      "claims": [
+        {
+          "title": "The start page doesn't scroll sideways at 1440 px",
+          "passed": true
+        },
+        {
+          "title": "The start page doesn't scroll sideways at 768 px",
+          "passed": true
+        },
+        {
+          "title": "The start page doesn't scroll sideways at 390 px",
+          "passed": true
+        },
+        {
+          "title": "The start page logs no errors the original doesn't",
+          "passed": true
+        },
+        {
+          "title": "The start page loads every file it asks for",
+          "passed": true
+        },
+        {
+          "title": "The start page has the original's landmarks",
+          "passed": true
+        },
+        {
+          "title": "the \"Product\" menu opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"Resources\" menu opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"English (US)\" dialog opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"English (US)\" dialog opens in the build at 390 px",
+          "passed": false,
+          "detail": "no such control opens"
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "check": "web-visual",
+      "passed": true,
+      "similarity": 32.88549318544702,
+      "note": "1440 px: 45% alike (layout 53%, detail 36%; page height 4668 vs 8773 px); 768 px: 35% alike (layout 47%, detail 23%; page height 4881 vs 12000 px); 390 px: 19% alike (layout 24%, detail 14%; page height 4003 vs 12000 px); text 12% alike; missing headings: \"Where teams and agents Ship together.\", \"AI where your team works.\", \"Bring everything into one system of record.\", \"Get answers, instantly—with citations.\", \"Keep work moving 24/7 with agents.\", \"See what Notion can do\", \"Triage product feedback→\", \"Resolve support tickets in Slack→\"; missing words: notion, ai, over, community, companies, demo, product, 100, 100m, 4m, 62, agents; structure 29% alike; missing parts: 54 images, 3 headers, a video; colours the original uses that the build doesn't: #ffffff00 (background), #000000bf (background), #f9f9f8 (background), #0075de (background), #000000 (background), #000000e5 (text), #ffffff (text), #615d59 (text), #000000 (text), #0000008a (text), #000000f2 (text); main font: NotionInter in the original, Plus Jakarta Sans in the build; text sizes the original uses that the build doesn't: 22px, 54px, 96px; spacing the original uses that the build doesn't: 15px, 5px; at 1440 px: top heading 60 px, the original's 96 px; subheadings 30 px, the original's 54 px; body text 14 px, the original's 20 px; the \"Where teams and agents Ship together.\" main: 4 per row vs 10, content column 1400 px vs 280 px; the \"Where teams and agents Ship together.\" header: content column 1400 px vs 280 px; the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; at 768 px: body text 14 px, the original's 20 px; the \"Where teams and agents Build together.\" main: 4 per row vs 23, content column 1500 px vs 280 px; the \"Where teams and agents Build together.\" header: no content column (the original's is 280 px); the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; at 390 px: top heading 32 px, the original's 42 px; the \"Where teams and agents Think together.\" main: 2 per row vs 23, content column 1500 px vs 280 px; the \"Where teams and agents Think together.\" header: no content column (the original's is 280 px); the \"Bring everything into one system of record.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2; the \"Get answers, instantly—with citations.\" article: padding 28 28 28 28 vs the original's 0 0 0 0, 1 per row vs 2 | opened menus and pop-ups at 1440 px: the \"Product\" menu doesn't open in the build, the \"Resources\" menu doesn't open in the build, the \"English (US)\" dialog doesn't open in the build | opened menus and pop-ups at 390 px: the \"English (US)\" dialog doesn't open in the build | 4 of 10 claims don't hold yet: the \"Product\" menu opens in the build at 1440 px (no such control opens); the \"Resources\" menu opens in the build at 1440 px (no such control opens); the \"English (US)\" dialog opens in the build at 1440 px (no such control opens); the \"English (US)\" dialog opens in the build at 390 px (no such control opens)",
+      "artifacts": [
+        "checks\\round-1\\screenshot-1440.png",
+        "checks\\round-1\\screenshot-768.png",
+        "checks\\round-1\\screenshot-390.png"
+      ],
+      "at_ms": 1794450548888,
+      "claims": [
+        {
+          "title": "The start page doesn't scroll sideways at 1440 px",
+          "passed": true
+        },
+        {
+          "title": "The start page doesn't scroll sideways at 768 px",
+          "passed": true
+        },
+        {
+          "title": "The start page doesn't scroll sideways at 390 px",
+          "passed": true
+        },
+        {
+          "title": "The start page logs no errors the original doesn't",
+          "passed": true
+        },
+        {
+          "title": "The start page loads every file it asks for",
+          "passed": true
+        },
+        {
+          "title": "The start page has the original's landmarks",
+          "passed": true
+        },
+        {
+          "title": "the \"Product\" menu opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"Resources\" menu opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"English (US)\" dialog opens in the build at 1440 px",
+          "passed": false,
+          "detail": "no such control opens"
+        },
+        {
+          "title": "the \"English (US)\" dialog opens in the build at 390 px",
+          "passed": false,
+          "detail": "no such control opens"
+        }
+      ]
+    }
+  ],
+  "agent_session": "9eddbe24-487b-4ca2-b003-960772df7e62",
+  "agent_session_by": "claude-code",
+  "agent_session_deep": true,
+  "capture_deep": true,
+  "allowed_actions": [
+    "tool:build_command_run"
+  ],
+  "last_reply": "You confirmed I should leave your homepage alone, so I changed nothing this round, and the check still fails at 33% for the same reason as before. It compares your public homepage with Notion's homepage, and it can't sign in, so it never sees Atlas. Nothing in Atlas has been checked against your Notion screenshots or tried signed in, and the light-mode colours are still my estimate.",
+  "asset_budget_usd": 5.0,
+  "generate_assets": false,
+  "app_in_root": true,
+  "start_files": [
+    ".agents",
+    ".claude",
+    ".codex",
+    ".codex-alert-bell.log",
+    ".codex-alert-build.log",
+    ".codex-alert-final-lint.log",
+    ".codex-alert-focused.log",
+    ".codex-alert-lint.log",
+    ".codex-alert-pr.log",
+    ".codex-alert-scoped-lint.log",
+    ".codex-alert-tests.log",
+    ".codex-alert-types.log",
+    ".codex-build-lint.log",
+    ".codex-build-pr-checks.log",
+    ".codex-build-recovery.log",
+    ".codex-build-tests.log",
+    ".codex-store-polish-build.log",
+    ".codex-store-polish-focused.log",
+    ".codex-store-polish-lint.log",
+    ".codex-store-polish-scoped-lint.log",
+    ".codex-store-polish-tests.log",
+    ".codex-store-polish-types.log",
+    ".env",
+    ".git",
+    ".github",
+    ".gitignore",
+    ".husky",
+    ".lovable",
+    ".mcp.json",
+    ".nvmrc",
+    ".openai",
+    ".sites-archive",
+    ".sites-preview",
+    ".tools",
+    ".trigger-ci",
+    "AGENTS.md",
+    "AGENTS.override.md",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "Classic Visions - Design System (README).html"
+  ],
+  "questions": "ask",
+  "approvals": {
+    "commands": "allow",
+    "system": "allow",
+    "other_tools": "allow"
+  }
+}

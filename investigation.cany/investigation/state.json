@@ -1,0 +1,22 @@
+{
+  "revision": 4,
+  "brief": {
+    "question": "Make the Atlas workspace (the app's /atlas knowledge-and-content area) look and behave like Notion's signed-in app, on a feature branch.",
+    "purpose": "Owner wants Atlas to feel like the Notion app they know.",
+    "targets": [
+      "C:\\DEV\\optilens-1c39be6c\\src\\features\\atlas",
+      "https://notion.com"
+    ],
+    "constraints": [
+      "Capture is of the marketing landing page, not the app; person said the app is what they want",
+      "Edit in place on a feature branch; keep Atlas rules (no business vocabulary, AtlasSource, single editor path)",
+      "No Notion logos or brand assets"
+    ],
+    "done_when": "Atlas shell, sidebar, page header, editor and database views match Notion's app look; tests, lint and build pass."
+  },
+  "plan": [],
+  "hypotheses": [],
+  "findings": [],
+  "handoff": "Round 2 (Atlas, branch Notion, uncommitted): leaf pages no arrow / no \"No pages inside\"; Notion-style page menu in tree (favorites, copy link, duplicate, rename, move to, trash, open in new tab, last edited); section click and space home show numbered table of contents (SpaceContents, ?section=); TableHandles row/column grips + Merge/Unmerge bar; Doc/Wiki/SOP type (docType prop, help_articles.doc_type, migration 20261111200000_atlas_doc_type.sql NOT applied — needs person's OK via Lovable; SOPs space uses scope.whereStored so nothing changes until applied). My pages already owner-only by RLS (20261029120000). tsc clean, lint 0 errors, 139 Atlas tests pass, build passes. rebuild_check fails by design: it compares the site homepage with notion.com's marketing page, not Atlas. Not checked in a signed-in browser.",
+  "updated": "2026-11-12T02:28:33Z"
+}

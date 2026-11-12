@@ -1,0 +1,106 @@
+{
+  "id": "ev_045ebbb7597e2437fc119f86d49d7ce399f664276b66500352ef0a52125d434a",
+  "subject": {
+    "kind": "website",
+    "name": "http://127.0.0.1:58581/"
+  },
+  "operation": "web_page_states_capture",
+  "params": {
+    "max_states": 8,
+    "width": 1440
+  },
+  "result": {
+    "folder": "C:\\DEV\\optilens-1c39be6c\\checks\\round-1\\states",
+    "found": 6,
+    "states": [
+      {
+        "changed": [
+          "expanded"
+        ],
+        "file": "state-1.png",
+        "index": 0,
+        "kind": "menu",
+        "label": "Lenses",
+        "sha256": "e012b3742ee0ed6a422c4f55972191a7955b2ff3ca80ea2fda393d83470f80cc"
+      },
+      {
+        "changed": [
+          "expanded"
+        ],
+        "file": "state-2.png",
+        "index": 1,
+        "kind": "menu",
+        "label": "Coatings",
+        "sha256": "e96c16ded351dcdc3b8ca563db47b2e2f1af6c1a161207d4dfc334afdf3df898"
+      },
+      {
+        "changed": [
+          "expanded"
+        ],
+        "file": "state-3.png",
+        "index": 2,
+        "kind": "menu",
+        "label": "Professionals",
+        "sha256": "65c1b90a6fdbcdc922158ded98e1ee36ce16d194853603dad8bafb9551d1e27d"
+      },
+      {
+        "changed": [
+          "expanded"
+        ],
+        "file": "state-4.png",
+        "index": 3,
+        "kind": "menu",
+        "label": "Patients",
+        "sha256": "f0b7cd9729ab94cd7353273d5bd2f367caafbc2f088fbeb21c3fc08610879cbe"
+      },
+      {
+        "changed": [
+          "expanded"
+        ],
+        "file": "state-5.png",
+        "index": 4,
+        "kind": "menu",
+        "label": "About",
+        "sha256": "055a208912fd41695f5c516bf6e337b54fe8b66af0d8d262b98a735fe945a645"
+      },
+      {
+        "changed": [
+          "expanded"
+        ],
+        "file": "state-6.png",
+        "index": 5,
+        "kind": "menu",
+        "label": "What do you need today?",
+        "sha256": "6fc742d77e8e7513962ea7884a587cb0ffd20040bdbc7b251971d547c71064f7"
+      }
+    ],
+    "url": "http://127.0.0.1:58581/"
+  },
+  "summary": "Opened 6 of 6 control(s) on http://127.0.0.1:58581/; 6 pictured in C:\\DEV\\optilens-1c39be6c\\checks\\round-1\\states.",
+  "confidence": "observed",
+  "authority": "our-run",
+  "environment": {
+    "clean_room": false,
+    "engine": "cdp",
+    "engine_version": "1.3",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "first_controls",
+      "message": "Only the first controls found are opened, one at a time; menus inside menus and hover-only menus are not."
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 6,
+    "total": 6
+  },
+  "locations": [
+    {
+      "kind": "url",
+      "value": "http://127.0.0.1:58581/"
+    }
+  ],
+  "links": []
+}
