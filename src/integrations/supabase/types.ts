@@ -5993,6 +5993,7 @@ export type Database = {
           content_type: string
           created_at: string
           description: string
+          doc_type: string | null
           draft_body_json: Json | null
           draft_saved_at: string | null
           draft_title: string | null
@@ -6025,6 +6026,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           description?: string
+          doc_type?: string | null
           draft_body_json?: Json | null
           draft_saved_at?: string | null
           draft_title?: string | null
@@ -6057,6 +6059,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           description?: string
+          doc_type?: string | null
           draft_body_json?: Json | null
           draft_saved_at?: string | null
           draft_title?: string | null
