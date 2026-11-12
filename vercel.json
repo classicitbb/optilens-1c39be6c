@@ -13,6 +13,10 @@
       "destination": "/api/qbo/handoff-claim"
     },
     {
+      "source": "/qbo/handoff/next",
+      "destination": "/api/qbo/handoff-next"
+    },
+    {
       "source": "/qbo/handoff/result",
       "destination": "/api/qbo/handoff-result"
     },
