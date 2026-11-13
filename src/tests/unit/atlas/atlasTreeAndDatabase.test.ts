@@ -23,6 +23,32 @@ describe("atlas page tree", () => {
     expect([...tree.nodeBySlug.keys()]).toEqual(["abcdef1234-xyz"]);
   });
 
+  it("nests subsections, lists them before the section's pages, and keeps orphans at the top level", () => {
+    const sections = [
+      { id: "s1", slug: "ops", title: "Operations", sortOrder: 0 },
+      { id: "s2", slug: "lab", title: "Lab", sortOrder: 5, parentId: "s1" },
+      { id: "s3", slug: "old", title: "Orphan", sortOrder: 1, parentId: "deleted" },
+    ];
+    const tree = buildTree(sections, [makePage({ id: "p1", sectionId: "s1", sortOrder: 0 }), makePage({ id: "p2", sectionId: "s2" })]);
+
+    expect(tree.roots.map((node) => node.id)).toEqual(["heading:s1", "heading:s3"]);
+    expect(tree.roots[0].children.map((node) => node.id)).toEqual(["heading:s2", "p1"]);
+    expect(tree.nodeById.get("heading:s2")?.parentId).toBe("heading:s1");
+    expect(tree.nodeById.get("heading:s2")?.children.map((node) => node.id)).toEqual(["p2"]);
+  });
+
+  it("does not lose sections that point at each other", () => {
+    const tree = buildTree(
+      [
+        { id: "a", slug: "a", title: "A", sortOrder: 0, parentId: "b" },
+        { id: "b", slug: "b", title: "B", sortOrder: 1, parentId: "a" },
+      ],
+      [],
+    );
+    const count = (nodes: typeof tree.roots): number => nodes.reduce((sum, node) => sum + 1 + count(node.children), 0);
+    expect(count(tree.roots)).toBe(2);
+  });
+
   it("puts pages without a section after the sections", () => {
     const tree = buildTree([{ id: "s1", slug: "a", title: "A", sortOrder: 0 }], [makePage({ id: "loose", sectionId: null })]);
     expect(tree.roots.map((node) => node.id)).toEqual(["heading:s1", "loose"]);

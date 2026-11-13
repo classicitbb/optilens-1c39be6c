@@ -218,21 +218,31 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
     async listSections(): Promise<AtlasSection[]> {
       const { data, error } = await (supabase as any).from("wiki_headings").select("*").eq("is_active", true).order("sort_order").order("title");
       if (error) throw error;
-      return ((data ?? []) as Row[]).map((row) => ({ id: row.id, slug: row.slug, title: row.title, sortOrder: row.sort_order ?? 0 }));
+      return ((data ?? []) as Row[]).map((row) => ({ id: row.id, slug: row.slug, title: row.title, sortOrder: row.sort_order ?? 0, parentId: row.parent_id ?? null }));
     },
 
-    async createSection(title: string) {
+    async createSection(title: string, parentId: string | null = null) {
       const trimmed = title.trim();
       const slug = trimmed
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
       if (!slug) throw new Error("Section title is required");
-      const { data: existing, error: existingError } = await (supabase as any).from("wiki_headings").select("id").eq("slug", slug).maybeSingle();
-      if (existingError) throw existingError;
-      if (existing) return;
-      const { error } = await (supabase as any).from("wiki_headings").insert({ title: trimmed, slug });
+      const { data: taken, error: takenError } = await (supabase as any).from("wiki_headings").select("slug").like("slug", `${slug}%`);
+      if (takenError) throw takenError;
+      const slugs = new Set(((taken ?? []) as Row[]).map((row) => row.slug as string));
+      if (slugs.has(slug) && !parentId) return;
+      // Slugs are unique across all sections, so a subsection that shares a name gets a numbered slug.
+      let unique = slug;
+      for (let n = 2; slugs.has(unique); n += 1) unique = `${slug}-${n}`;
+      const { error } = await (supabase as any).from("wiki_headings").insert({ title: trimmed, slug: unique, ...(parentId ? { parent_id: parentId } : {}) });
       if (error) throw error;
+    },
+
+    async moveSections(updates) {
+      const results = await Promise.all(updates.map(({ id, ...placement }) => (supabase as any).from("wiki_headings").update(placement).eq("id", id)));
+      const failed = results.find((result: { error: unknown }) => result.error);
+      if (failed) throw failed.error;
     },
 
     async renameSection(id, title) {

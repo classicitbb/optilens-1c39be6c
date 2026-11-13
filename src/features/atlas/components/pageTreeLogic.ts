@@ -166,3 +166,77 @@ export const ancestorsOf = (pages: TreePage[], id: string): TreePage[] => {
   }
   return chain;
 };
+
+/** A section as the move planner sees it (raw ids, no `heading:` prefix). */
+export interface TreeSection {
+  id: string;
+  title: string;
+  parent_id: string | null;
+  sort_order: number;
+}
+
+export interface SectionMoveUpdate {
+  id: string;
+  parent_id: string | null;
+  sort_order: number;
+}
+
+/** A section's parent, treating a parent that no longer exists (deleted) as the top level. */
+const liveParent = (sections: TreeSection[], section: TreeSection): string | null =>
+  section.parent_id && sections.some((item) => item.id === section.parent_id) ? section.parent_id : null;
+
+/** Sections above `id`, outermost first. */
+export const sectionAncestorsOf = (sections: TreeSection[], id: string): TreeSection[] => {
+  const byId = new Map(sections.map((section) => [section.id, section]));
+  const chain: TreeSection[] = [];
+  const seen = new Set<string>([id]);
+  let current = byId.get(id)?.parent_id ?? null;
+  while (current && !seen.has(current)) {
+    const section = byId.get(current);
+    if (!section) break;
+    chain.unshift(section);
+    seen.add(current);
+    current = section.parent_id;
+  }
+  return chain;
+};
+
+/**
+ * Plan dragging a section. "inside" nests it under the target section (last); "before" / "after"
+ * makes it a sibling of the target, which is also how a subsection is moved back out. Ids are raw
+ * section ids. Returns the rows whose parent or order change, or `null` when the drop is not
+ * allowed (onto itself or into one of its own subsections).
+ */
+export const planSectionMove = (
+  sections: TreeSection[],
+  dragId: string,
+  targetId: string,
+  position: DropPosition,
+): SectionMoveUpdate[] | null => {
+  const dragged = sections.find((section) => section.id === dragId);
+  const target = sections.find((section) => section.id === targetId);
+  if (!dragged || !target || dragId === targetId) return null;
+
+  const parentId = position === "inside" ? target.id : liveParent(sections, target);
+  if (parentId && (parentId === dragId || sectionAncestorsOf(sections, parentId).some((section) => section.id === dragId))) return null;
+
+  const siblings = sections
+    .filter((section) => section.id !== dragId && liveParent(sections, section) === parentId)
+    .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title));
+
+  let index = siblings.length;
+  if (position !== "inside") {
+    const anchor = siblings.findIndex((section) => section.id === targetId);
+    index = anchor < 0 ? siblings.length : anchor + (position === "after" ? 1 : 0);
+  }
+
+  const ordered = [...siblings.slice(0, index), dragged, ...siblings.slice(index)];
+  const updates: SectionMoveUpdate[] = [];
+  ordered.forEach((section, order) => {
+    const nextParent = section.id === dragId ? parentId : section.parent_id;
+    if (section.sort_order !== order || section.parent_id !== nextParent) {
+      updates.push({ id: section.id, parent_id: nextParent, sort_order: order });
+    }
+  });
+  return updates;
+};

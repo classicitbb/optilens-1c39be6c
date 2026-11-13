@@ -2,6 +2,10 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-13 — Atlas subsections, homepage clean-up, launch plan (local, not deployed)
+
+### Release Notes
+
 ## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
 
 ### Release Notes

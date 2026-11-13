@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-11-13 — Atlas subsections and homepage clean-up (no defect)
+
+New feature and a presentation change; no bug fixed. Found while testing: a menu action that opens a text field lost keyboard focus to the menu button; the section menu now hands focus to the field. Known limits: the public Knowledge page still lists sections flat, and creating a top-level section named like a deleted one still does nothing.
+
 ## 2026-11-06 — Fragmented CRM outreach and premature sent status (local fix)
 
 Contacts, leads, pipeline, tasks and Outbox lacked one guided handoff. The old Outbox marked a message sent after opening mailto/WhatsApp. Added a shared guided workspace and separated opening a composer from confirming sending. Company-send success and CRM recording failures are distinct; recording-only recovery prevents another send in the current wizard. Mocked workflow tests cover approval, delegation, outcomes, read-only behavior and partial send-recording failure. Real delivery and production writes are untested. See docs/crm-outreach-workspace.md.

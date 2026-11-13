@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.35.0",
-  "sourceEntry": "2026-11-09 — PBX agent runs beside the PBX over AMI (local source)",
-  "releaseDateTimeUtc": "2026-11-09T00:00:00.000Z",
+  "semanticVersion": "0.36.0",
+  "sourceEntry": "2026-11-13 — Atlas subsections, homepage clean-up, launch plan (local, not deployed)",
+  "releaseDateTimeUtc": "2026-11-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "PBX agent runs beside the PBX over AMI (local source)"
+    "Atlas subsections, homepage clean-up, launch plan (local, not deployed)"
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of PBX agent runs beside the PBX over AMI (local source)."
+      "notes": "Updated as part of Atlas subsections, homepage clean-up, launch plan (local, not deployed)."
     }
   ],
   "migrationNotes": [

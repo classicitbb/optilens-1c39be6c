@@ -41,29 +41,11 @@ import { customerHeroPath } from "./homeContent";
 /* -------------------------------------------------------------------------- */
 
 /**
- * Monospaced micro-label preceded by the gold structural rule.
- * Gold reads correctly on both the linen and the deep navy field, so one
- * variant covers every band on the page.
+ * Small label above a heading. Gold reads correctly on both the linen and the
+ * deep navy field, so one variant covers every band on the page.
  */
 const Eyebrow = ({ children }: { children: React.ReactNode }) => (
-  <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
-    <span className="h-3 w-px bg-accent" aria-hidden="true" />
-    {children}
-  </p>
-);
-
-/** Hairline optical rings used as the recurring structural motif. */
-const OpticalRings = ({ className }: { className?: string }) => (
-  <div className={cn("pointer-events-none absolute", className)} aria-hidden="true">
-    <div className="relative h-[520px] w-[520px]">
-      <div className="absolute inset-0 rounded-full border border-surface-deep-foreground/10" />
-      <div className="absolute inset-[12%] rounded-full border border-surface-deep-foreground/[0.07]" />
-      <div className="absolute inset-[26%] rounded-full border border-accent/20" />
-      <div className="absolute inset-[42%] rounded-full border border-secondary/25" />
-      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-surface-deep-foreground/[0.06]" />
-      <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-surface-deep-foreground/[0.06]" />
-    </div>
-  </div>
+  <p className="text-sm font-semibold text-accent">{children}</p>
 );
 
 const SectionHeading = ({
@@ -232,12 +214,6 @@ const HomePage = () => {
         {/* Hero                                                              */}
         {/* ---------------------------------------------------------------- */}
         <section data-sc-act="flow" className="relative isolate overflow-hidden bg-surface-deep text-surface-deep-foreground" aria-labelledby="hero-heading">
-          <div
-            className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,hsl(var(--secondary)/0.28),transparent_46%)]"
-            aria-hidden="true"
-          />
-          <OpticalRings className="-left-48 top-1/2 -translate-y-1/2 opacity-70" />
-
           <div className="container relative mx-auto grid max-w-[1500px] gap-0 px-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:px-0">
             <div className="flex min-w-0 flex-col justify-center pt-24 pb-10 sm:pt-28 sm:pb-14 lg:pb-16 lg:pl-12 lg:pr-10 lg:pt-28 xl:pl-16">
               <Eyebrow>
@@ -249,17 +225,17 @@ const HomePage = () => {
                 id="hero-heading"
                 className="mt-5 max-w-[15ch] hyphens-none break-normal font-serif text-[2rem] font-semibold leading-[1.06] tracking-[-0.02em] min-[400px]:text-[2.4rem] sm:text-6xl sm:leading-[1.04] lg:max-w-[18ch] lg:text-[3.25rem] xl:text-[3.75rem]"
               >
-                {copy.headline} <span className="text-accent">{copy.headlineAccent}</span>
+                {copy.headline} {copy.headlineAccent}
               </h1>
 
               {/* Answer-first definition sentence — the quotable line for AI answer engines. */}
-              <p className="mt-5 max-w-2xl border-l-2 border-accent/70 pl-5 text-base leading-7 text-surface-deep-foreground/85 sm:text-lg">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-surface-deep-foreground/85 sm:text-lg">
                 {copy.lede}
               </p>
 
               {/* Audience switch */}
-              <div className="mt-8 max-w-2xl rounded-2xl border border-surface-deep-foreground/15 bg-surface-deep-foreground/[0.06] p-2 backdrop-blur-sm sm:p-2.5">
-                <p className="px-3 pb-2 pt-1 font-mono text-[10px] uppercase tracking-[0.3em] text-surface-deep-foreground/60">
+              <div className="mt-8 max-w-2xl rounded-xl border border-surface-deep-foreground/15 p-2 sm:p-2.5">
+                <p className="px-3 pb-2 pt-1 text-sm text-surface-deep-foreground/70">
                   I'm here as…
                 </p>
                 <div className="grid grid-cols-2 gap-2" role="group" aria-label="Choose your path">
@@ -275,7 +251,7 @@ const HomePage = () => {
                       aria-pressed={audience === key}
                       onClick={() => setAudience(key)}
                       className={cn(
-                        "flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-center text-[0.8125rem] font-semibold leading-tight transition sm:gap-2 sm:px-3 sm:text-base",
+                        "flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-center text-[0.8125rem] font-semibold leading-tight transition sm:gap-2 sm:px-3 sm:text-base",
                         audience === key
                           ? "bg-background text-foreground shadow-medium"
                           : "text-surface-deep-foreground/85 hover:bg-surface-deep-foreground/10",
@@ -287,7 +263,7 @@ const HomePage = () => {
                   ))}
                 </div>
 
-                <div key={audience} className="mt-2 animate-fade-in rounded-xl bg-card p-5 text-card-foreground sm:p-6">
+                <div key={audience} className="mt-2 animate-fade-in rounded-lg bg-card p-5 text-card-foreground sm:p-6">
                   <Eyebrow>{path.eyebrow}</Eyebrow>
                   <h2 className="mt-3 font-serif text-2xl font-semibold tracking-[-0.015em] sm:text-[1.75rem]">
                     {path.title}
@@ -332,13 +308,9 @@ const HomePage = () => {
 
             {/* The team portrait keeps its native 16:9 frame at every width —
                 edge to edge on phones and a framed print on desktop. */}
-            <div className="relative -mx-5 sm:-mx-8 lg:mx-0 lg:flex lg:items-center lg:pb-16 lg:pr-12 lg:pt-28 xl:pr-16">
+            <div className="relative -mx-5 sm:-mx-8 lg:mx-0 lg:flex lg:items-start lg:pb-16 lg:pr-12 lg:pt-28 xl:pr-16">
               <figure className="relative w-full">
-                <div
-                  className="absolute -inset-3 hidden rounded-[1.4rem] border border-accent/25 lg:block"
-                  aria-hidden="true"
-                />
-                <div className="relative aspect-[16/9] w-full overflow-hidden lg:rounded-2xl lg:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.65)] lg:ring-1 lg:ring-surface-deep-foreground/15">
+                <div className="relative aspect-[16/9] w-full overflow-hidden lg:rounded-lg">
                   <div data-sc-parallax="0.4" className="absolute -inset-y-5 inset-x-0">
                     <img
                       src={caribbeanHero}
@@ -350,12 +322,7 @@ const HomePage = () => {
                       height={941}
                     />
                   </div>
-                  <div
-                    className="absolute inset-0 bg-gradient-to-t from-surface-deep/70 via-transparent to-transparent lg:from-surface-deep/55"
-                    aria-hidden="true"
-                  />
-                  <figcaption className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full border border-surface-deep-foreground/20 bg-surface-deep/70 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-surface-deep-foreground backdrop-blur-md sm:bottom-4 sm:left-4">
-                    <MapPin className="h-3 w-3 text-accent" aria-hidden="true" />
+                  <figcaption className="absolute bottom-3 left-3 rounded bg-surface-deep/85 px-2.5 py-1 text-xs font-medium text-surface-deep-foreground sm:bottom-4 sm:left-4">
                     Made in Barbados
                   </figcaption>
                 </div>
@@ -364,14 +331,14 @@ const HomePage = () => {
           </div>
 
           {/* Proof rail — published claims only */}
-          <div className="relative border-t border-surface-deep-foreground/10 bg-surface-deep/60 backdrop-blur-sm">
+          <div className="relative border-t border-surface-deep-foreground/10">
             <div className="container mx-auto max-w-[1500px] px-5 sm:px-8">
               <dl className="grid divide-y divide-surface-deep-foreground/10 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x lg:divide-surface-deep-foreground/10">
                 {heroProofPoints[audience].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="flex items-center gap-3.5 py-5 lg:px-7 lg:first:pl-0">
                     <Icon className="h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-[0.24em] text-surface-deep-foreground/55">
+                      <dt className="text-xs text-surface-deep-foreground/60">
                         {label}
                       </dt>
                       <dd className="mt-1 text-sm font-semibold text-surface-deep-foreground">{value}</dd>
@@ -410,16 +377,14 @@ const HomePage = () => {
               id="capabilities-heading"
               eyebrow="What we supply"
               title="One trade account. Your optical's needs - covered."
-              lede="Lenses, coatings, consumables, and the digital tools around them — so your practice isn't stitching together four suppliers to finish one job."
+              lede="Lenses, coatings, consumables and online ordering, all from one supplier."
             />
 
-            <div data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
+            <div data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
               {capabilityPillars.map(({ icon: Icon, title, description, href, links }) => (
                 <article key={title} className="group relative flex flex-col bg-card p-7 transition-colors hover:bg-muted/40">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-secondary/30 bg-secondary/10">
-                    <Icon className="h-5 w-5 text-secondary" aria-hidden="true" />
-                  </div>
-                  <h3 className="mt-6 font-serif text-xl font-semibold tracking-[-0.01em] text-foreground">
+                  <Icon className="h-6 w-6 text-secondary" aria-hidden="true" />
+                  <h3 className="mt-5 font-serif text-xl font-semibold tracking-[-0.01em] text-foreground">
                     <Link to={href} className="after:absolute after:inset-0 hover:text-secondary">
                       {title}
                     </Link>
@@ -432,7 +397,6 @@ const HomePage = () => {
                           to={link.href}
                           className="relative z-10 inline-flex items-center gap-1.5 text-sm font-medium text-foreground/75 underline-offset-4 transition hover:text-secondary hover:underline"
                         >
-                          <span className="h-px w-3 bg-accent" aria-hidden="true" />
                           {link.label}
                         </Link>
                       </li>
@@ -453,7 +417,7 @@ const HomePage = () => {
               id="explorer-heading"
               eyebrow="Lens & coating index"
               title="Find the right lenses and coatings for your customers."
-              lede="Every design, material, and coating we supply, with the technical page behind it — for you, and for the search engines and assistants your patients ask first."
+              lede="Every design, material and coating we supply, each with its own technical page."
             />
 
             <div data-sc-in data-sc-stagger="70" className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -461,7 +425,7 @@ const HomePage = () => {
                 <div key={title}>
                   <div className="flex items-center gap-2.5 border-b border-border pb-3">
                     <Icon className="h-4 w-4 text-secondary" aria-hidden="true" />
-                    <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground">{title}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
                   </div>
                   <ul className="mt-4 space-y-0.5">
                     {items.map((item) => (
@@ -493,21 +457,21 @@ const HomePage = () => {
             <SectionHeading
               id="onboarding-heading"
               eyebrow="Becoming a customer"
-              title="From first enquiry to first delivery, without the runaround."
-              lede="Four steps, each with a named next action. No forms that go nowhere, no pricing you have to chase."
+              title="From first enquiry to first delivery."
+              lede="Four steps, and each one tells you what happens next."
             />
 
-            <ol data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border lg:grid-cols-4">
+            <ol data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-4">
               {onboardingSteps.map(({ number, title, text, meta, href, linkLabel, icon: Icon }) => (
                 <li key={number} className="flex flex-col bg-card p-7">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-accent">Step {number}</span>
+                    <span className="text-sm font-semibold text-accent">Step {number}</span>
                     <Icon className="h-5 w-5 text-secondary" aria-hidden="true" />
                   </div>
                   <div className="mt-5 h-px w-full bg-border" aria-hidden="true" />
                   <h3 className="mt-5 font-serif text-lg font-semibold tracking-[-0.01em] text-foreground">{title}</h3>
                   <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">{text}</p>
-                  <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80">
+                  <p className="mt-4 text-xs text-muted-foreground">
                     {meta}
                   </p>
                   <Link
@@ -538,8 +502,8 @@ const HomePage = () => {
                   Everything that happens after the order.
                 </h2>
                 <p className="mt-4 max-w-lg text-base leading-7 text-surface-deep-foreground/80">
-                  Freight, remakes, repairs, and customer-supplied frames are all covered by written policy you can read
-                  before you commit — not discovered when something goes wrong.
+                  Freight, remakes, repairs and customer-supplied frames are each covered by a written policy you can read
+                  before you order.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Button variant="hero" size="lg" onClick={() => openAssistant({ formKind: "customer_support" })}>
@@ -559,7 +523,7 @@ const HomePage = () => {
                 </div>
               </div>
 
-              <div className="grid gap-px overflow-hidden rounded-2xl border border-surface-deep-foreground/15 bg-surface-deep-foreground/15 sm:grid-cols-2">
+              <div className="grid gap-px overflow-hidden rounded-lg border border-surface-deep-foreground/15 bg-surface-deep-foreground/15 sm:grid-cols-2">
                 {supportPromises.map(({ icon: Icon, title, text, href, linkLabel }) => (
                   <div key={title} className="bg-surface-deep p-6">
                     <Icon className="h-5 w-5 text-secondary" aria-hidden="true" />
@@ -567,10 +531,10 @@ const HomePage = () => {
                     <p className="mt-2 text-sm leading-6 text-surface-deep-foreground/70">{text}</p>
                     <Link
                       to={href}
-                      className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-accent underline-offset-4 hover:underline"
+                      className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-accent underline-offset-4 hover:underline"
                     >
                       {linkLabel}
-                      <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                      <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                     </Link>
                   </div>
                 ))}
@@ -593,11 +557,11 @@ const HomePage = () => {
               lede="We make the lenses; your optician is the person you should deal with. Here's how that fits together."
             />
 
-            <ol data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+            <ol data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-3">
               {patientJourney.map(({ number, title, text, href, linkLabel, icon: Icon }) => (
                 <li key={number} className="flex flex-col bg-card p-7">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-accent">Step {number}</span>
+                    <span className="text-sm font-semibold text-accent">Step {number}</span>
                     <Icon className="h-5 w-5 text-secondary" aria-hidden="true" />
                   </div>
                   <div className="mt-5 h-px w-full bg-border" aria-hidden="true" />
@@ -628,7 +592,7 @@ const HomePage = () => {
               lede="Short, jargon-free guides to the choices you'll be offered at the counter."
             />
 
-            <ul data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+            <ul data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
               {patientGuides.map((guide) => (
                 <li key={guide.href}>
                   <Link
@@ -666,7 +630,7 @@ const HomePage = () => {
                 <div key={title}>
                   <div className="flex items-center gap-2.5 border-b border-border pb-3">
                     <Icon className="h-4 w-4 text-secondary" aria-hidden="true" />
-                    <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground">{title}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
                   </div>
                   <ul className="mt-4 grid gap-0.5 sm:grid-cols-2">
                     {items.map((item) => (
@@ -708,12 +672,11 @@ const HomePage = () => {
 
               <div data-sc-in data-sc-stagger="70" className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-3">
                 {PLACEHOLDERS.testimonials.map((item) => (
-                  <figure key={item.name} className="rounded-2xl border border-border bg-card p-7 shadow-soft">
-                    <div className="h-px w-10 bg-accent" aria-hidden="true" />
-                    <blockquote className="mt-5 text-base leading-7 text-foreground">"{item.quote}"</blockquote>
+                  <figure key={item.name} className="rounded-lg border border-border bg-card p-7 shadow-soft">
+                    <blockquote className="text-base leading-7 text-foreground">"{item.quote}"</blockquote>
                     <figcaption className="mt-6 border-t border-border pt-4">
                       <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         {item.role} · {item.practice}
                       </p>
                     </figcaption>
@@ -732,20 +695,19 @@ const HomePage = () => {
           <div className="container mx-auto px-5 sm:px-8">
             <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-16">
               <div className="lg:sticky lg:top-28 lg:self-start">
-                <Eyebrow>Common questions</Eyebrow>
                 <h2
                   id="faq-heading"
-                  className="mt-4 font-serif text-3xl font-semibold leading-[1.12] tracking-[-0.015em] text-foreground sm:text-4xl"
+                  className="font-serif text-3xl font-semibold leading-[1.12] tracking-[-0.015em] text-foreground sm:text-4xl"
                 >
-                  Straight answers, first time.
+                  Common questions
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground">
                   {isProfessional
                     ? "Practical answers about ordering, delivery and working with our team. Need a hand? Call us and we can walk through the same page together."
                     : "What you usually want to know before you visit your optician — answered in plain English."}
                 </p>
-                <div className="mt-8 rounded-2xl border border-border bg-card p-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent">Still stuck?</p>
+                <div className="mt-8 rounded-lg border border-border bg-card p-5">
+                  <p className="text-sm font-semibold text-foreground">Still stuck?</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     Ask in your own words. We answer first, then point you to the right page.
                   </p>
@@ -759,14 +721,8 @@ const HomePage = () => {
                   weaker for both crawlers and AI answer engines, and this is the page's
                   primary AEO surface — so it stays readable without a click. */}
               <dl className="divide-y divide-border border-t border-border">
-                {faqs.map((faq, index) => (
-                  <div key={faq.question} className="grid gap-x-5 py-7 sm:grid-cols-[2.5rem_1fr]">
-                    <span
-                      className="hidden pt-1 font-mono text-[11px] tracking-[0.14em] text-accent sm:block"
-                      aria-hidden="true"
-                    >
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
+                {faqs.map((faq) => (
+                  <div key={faq.question} className="py-7">
                     <div>
                       <dt className="text-base font-semibold leading-6 text-foreground sm:text-lg">{faq.question}</dt>
                       <dd className="mt-3 text-sm leading-7 text-muted-foreground sm:text-base">
@@ -798,12 +754,10 @@ const HomePage = () => {
         {/* Closing CTA — one per audience                                     */}
         {/* ---------------------------------------------------------------- */}
         <section className="relative isolate overflow-hidden bg-surface-deep py-20 text-surface-deep-foreground sm:py-24" aria-labelledby="cta-heading">
-          <OpticalRings className="-right-40 top-1/2 -translate-y-1/2 opacity-60" />
           <div className="container relative mx-auto max-w-4xl px-5 text-center sm:px-8">
-            <div className="mx-auto h-px w-14 bg-accent" aria-hidden="true" />
             <h2
               id="cta-heading"
-              className="mt-8 font-serif text-3xl font-semibold leading-[1.1] tracking-[-0.015em] sm:text-4xl md:text-5xl"
+              className="font-serif text-3xl font-semibold leading-[1.1] tracking-[-0.015em] sm:text-4xl md:text-5xl"
             >
               {isProfessional ? portalAccess ? "Ready for your next order?" : "Let's get your account open." : "Ready when you are."}
             </h2>
@@ -854,7 +808,7 @@ const HomePage = () => {
             {isProfessional ? (
               <a
                 href={BUSINESS.phoneHref}
-                className="mt-7 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-surface-deep-foreground/70 underline-offset-4 transition hover:text-surface-deep-foreground hover:underline"
+                className="mt-7 inline-flex items-center gap-2 text-sm text-surface-deep-foreground/75 underline-offset-4 transition hover:text-surface-deep-foreground hover:underline"
               >
                 <Phone className="h-3.5 w-3.5" aria-hidden="true" />
                 Or call {BUSINESS.phoneDisplay}

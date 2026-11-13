@@ -2,6 +2,11 @@
 
 Runbook snippets for security operations and incident response.
 
+
+## Allowing a new host in the Content Security Policy
+
+Add the host to `security/http-header-policy.json` first, then run `node scripts/sync_vercel_security_headers.mjs` to write `vercel.json`, then `npm run qa:vercel-headers` and `npm run test:headers`. Editing `vercel.json` alone works until the next sync, which removes the host again (this happened with the QuickBooks gateways, corrected 2026-11-13).
+
 ## Public view RLS enforcement
 
 - Apply `20260822202731_enforce_store_product_variants_public_invoker.sql` to every environment that ran the earlier store-variant view migration.

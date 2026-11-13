@@ -14,7 +14,7 @@ export interface TreeNode {
 }
 
 export interface TreeModel {
-  /** Section nodes (with their pages) followed by pages that sit outside any section. */
+  /** Top-level section nodes (with their subsections and pages) followed by pages that sit outside any section. */
   roots: TreeNode[];
   nodeById: Map<string, TreeNode>;
   nodeBySlug: Map<string, TreeNode>;
@@ -23,9 +23,12 @@ export interface TreeModel {
 /** Existing stored URLs stay intact; legacy pages use their stable opaque database ID. */
 export const toPageSlug = (page: Pick<AtlasPage, "id" | "title" | "slug">): string => page.slug ? toWikiArticleSlug(page) : page.id;
 
-const bySort = (a: TreeNode, b: TreeNode) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
+/** Sidebar and contents order: sections first, then pages, each by position then title. */
+export const byTreeOrder = (a: TreeNode, b: TreeNode) =>
+  Number(b.kind === "section") - Number(a.kind === "section") || a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
 
 export const buildTree = (sections: AtlasSection[], pages: AtlasPage[]): TreeModel => {
+  const sectionIds = new Set(sections.map((section) => section.id));
   const sectionNodes: TreeNode[] = sections.map((section) => ({
     id: `${SECTION_PREFIX}${section.id}`,
     title: section.title,
@@ -33,7 +36,8 @@ export const buildTree = (sections: AtlasSection[], pages: AtlasPage[]): TreeMod
     kind: "section",
     status: "published",
     sortOrder: section.sortOrder,
-    parentId: null,
+    // A subsection whose parent was deleted shows at the top level.
+    parentId: section.parentId && section.parentId !== section.id && sectionIds.has(section.parentId) ? `${SECTION_PREFIX}${section.parentId}` : null,
     children: [],
   }));
   const pageNodes: TreeNode[] = pages.map((page) => ({
@@ -70,8 +74,23 @@ export const buildTree = (sections: AtlasSection[], pages: AtlasPage[]): TreeMod
     }
     loose.push(node);
   }
-  for (const section of sectionNodes) section.children.sort(bySort);
-  loose.sort(bySort);
+  // Nest subsections. A section that would sit inside its own subtree (bad data) stays at the top level.
+  const topSections: TreeNode[] = [];
+  for (const node of sectionNodes) {
+    let cursor = node.parentId;
+    const seen = new Set<string>([node.id]);
+    while (cursor && !seen.has(cursor)) {
+      seen.add(cursor);
+      cursor = nodeById.get(cursor)?.parentId ?? null;
+    }
+    if (node.parentId && !cursor) nodeById.get(node.parentId)!.children.push(node);
+    else {
+      node.parentId = null;
+      topSections.push(node);
+    }
+  }
+  for (const section of sectionNodes) section.children.sort(byTreeOrder);
+  loose.sort(byTreeOrder);
 
-  return { roots: [...sectionNodes, ...loose], nodeById, nodeBySlug };
+  return { roots: [...topSections.sort(byTreeOrder), ...loose], nodeById, nodeBySlug };
 };

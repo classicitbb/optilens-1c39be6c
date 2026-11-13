@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { ArrowUpRight, ChevronRight, Copy, CornerUpRight, FileText, Link2, MoreHorizontal, Pencil, Plus, Star, StarOff, Trash2 } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Copy, CornerLeftUp, CornerUpRight, FileText, FolderPlus, Link2, MoreHorizontal, Pencil, Plus, Star, StarOff, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -8,9 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { TreeNode } from "../pageTree";
+import { byTreeOrder as bySort, type TreeNode } from "../pageTree";
 import type { AtlasPageMeta } from "../hooks/useAtlasPrefs";
-import type { DropPosition } from "./pageTreeLogic";
+import { isSectionId, type DropPosition } from "./pageTreeLogic";
 
 export interface PageTreeProps {
   nodes: TreeNode[];
@@ -29,6 +29,11 @@ export interface PageTreeProps {
   onArchive: (id: string) => void;
   /** Sections can be renamed (through onRename) and deleted. */
   onDeleteSection: (id: string) => void;
+  /** Creates a section inside the given section. Without it, sections cannot be nested from the menu. */
+  onAddSubsection?: (sectionId: string, title: string) => void;
+  /** Moves a subsection back out to the top level. */
+  onUnnestSection?: (sectionId: string) => void;
+  /** Pages and sections both drag; a section id is `heading:<id>`. */
   onMove: (dragId: string, targetId: string, position: DropPosition) => void;
   canEdit: boolean;
   /** Clicking a section's name shows its contents; without this it only folds. */
@@ -39,13 +44,14 @@ export interface PageTreeProps {
   lastEdited?: (id: string) => string | undefined;
 }
 
-const bySort = (a: TreeNode, b: TreeNode) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
-
 const containsId = (node: TreeNode, id: string): boolean =>
   node.children.some((child) => child.id === id || containsId(child, id));
 
-const dropPositionFor = (event: DragEvent<HTMLElement>, isSection: boolean): DropPosition => {
-  if (isSection) return "inside";
+/** Where a drop on this row would land, or `null` when the row cannot take what is being dragged. */
+const dropPositionFor = (event: DragEvent<HTMLElement>, isSection: boolean, draggingSection: boolean): DropPosition | null => {
+  // A section only ever sits beside or inside another section; a page dropped on a section goes inside it.
+  if (draggingSection && !isSection) return null;
+  if (isSection && !draggingSection) return "inside";
   const rect = event.currentTarget.getBoundingClientRect();
   const offset = (event.clientY - rect.top) / rect.height;
   if (offset < 0.25) return "before";
@@ -104,6 +110,8 @@ const TreeRow = (props: RowProps) => {
     onMoveTo,
     onArchive,
     onDeleteSection,
+    onAddSubsection,
+    onUnnestSection,
     onMove,
     canEdit,
     onOpenSection,
@@ -122,7 +130,17 @@ const TreeRow = (props: RowProps) => {
   const open = isSection ? !toggled.has(node.id) || holdsActive : toggled.has(node.id) || holdsActive;
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState(node.title);
+  const [subsectionTitle, setSubsectionTitle] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const subsectionRef = useRef<HTMLInputElement>(null);
+  /** A menu hands focus back to its button when it closes; a field the menu just opened takes it instead. */
+  const focusOpenedField = (event: Event) => {
+    const field = subsectionRef.current ?? inputRef.current;
+    if (!field) return;
+    event.preventDefault();
+    field.focus();
+    field.select();
+  };
   const favorite = favoriteIds.includes(node.id);
   const icon = pageMeta[node.id]?.icon;
   const dropHere = drop?.id === node.id ? drop.position : null;
@@ -138,7 +156,14 @@ const TreeRow = (props: RowProps) => {
     else setTitle(node.title);
   };
 
-  const draggable = canEdit && !isSection && !renaming;
+  const draggable = canEdit && !renaming;
+  const commitSubsection = () => {
+    const next = subsectionTitle?.trim();
+    setSubsectionTitle(null);
+    if (!next) return;
+    if (!open) onToggle(node.id);
+    onAddSubsection?.(node.id, next);
+  };
   const pageIcon = (
     <span className="flex items-center justify-center text-[16px] leading-none text-[hsl(var(--ws-side-ink,var(--ws-ink-2)))] opacity-80">
       {icon ? icon : node.kind === "link" ? <Link2 className="h-[18px] w-[18px]" strokeWidth={1.75} /> : <FileText className="h-[18px] w-[18px]" strokeWidth={1.75} />}
@@ -166,7 +191,8 @@ const TreeRow = (props: RowProps) => {
         }}
         onDragOver={(event) => {
           if (!canEdit || !dragId || dragId === node.id) return;
-          const position = dropPositionFor(event, isSection);
+          const position = dropPositionFor(event, isSection, isSectionId(dragId));
+          if (!position) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
           if (drop?.id !== node.id || drop.position !== position) setDrop({ id: node.id, position });
@@ -177,10 +203,10 @@ const TreeRow = (props: RowProps) => {
         onDrop={(event) => {
           event.preventDefault();
           const dragged = dragId ?? event.dataTransfer.getData("text/plain");
-          const position = dropPositionFor(event, isSection);
+          const position = dragged ? dropPositionFor(event, isSection, isSectionId(dragged)) : null;
           setDrop(null);
           setDragId(null);
-          if (dragged && dragged !== node.id) onMove(dragged, node.id, position);
+          if (dragged && position && dragged !== node.id) onMove(dragged, node.id, position);
         }}
         style={{ paddingLeft: 4 + depth * 14 }}
         className={cn(
@@ -259,10 +285,20 @@ const TreeRow = (props: RowProps) => {
                     <MoreHorizontal className="h-3.5 w-3.5" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuContent align="start" className="w-48" onCloseAutoFocus={focusOpenedField}>
                   <DropdownMenuItem onSelect={() => setRenaming(true)}>
                     <Pencil className="mr-2 h-3.5 w-3.5" /> Rename section
                   </DropdownMenuItem>
+                  {onAddSubsection ? (
+                    <DropdownMenuItem onSelect={() => setSubsectionTitle("")}>
+                      <FolderPlus className="mr-2 h-3.5 w-3.5" /> Add subsection
+                    </DropdownMenuItem>
+                  ) : null}
+                  {onUnnestSection && node.parentId ? (
+                    <DropdownMenuItem onSelect={() => onUnnestSection(node.id)}>
+                      <CornerLeftUp className="mr-2 h-3.5 w-3.5" /> Move to top level
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => onDeleteSection(node.id)}>
                     <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete section
@@ -332,6 +368,24 @@ const TreeRow = (props: RowProps) => {
           </span>
         ) : null}
       </div>
+
+      {subsectionTitle !== null ? (
+        <div style={{ paddingLeft: 4 + (depth + 1) * 14 + 24 }} className="flex h-[30px] items-center pr-1">
+          <input
+            ref={subsectionRef}
+            value={subsectionTitle}
+            onChange={(event) => setSubsectionTitle(event.target.value)}
+            onBlur={commitSubsection}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") commitSubsection();
+              if (event.key === "Escape") setSubsectionTitle(null);
+            }}
+            placeholder="Subsection name"
+            aria-label={`New subsection in ${node.title}`}
+            className="h-6 min-w-0 flex-1 border border-ws-accent bg-ws-paper px-1 text-[14px] text-ws-ink outline-none"
+          />
+        </div>
+      ) : null}
 
       {hasChildren && open ? (
         <div role="group">

@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { resolveCapabilities, NO_CAPABILITIES, type AtlasCapabilities, type AtlasPermissionContext } from "../capabilities";
 import { getAtlasSpace, listAtlasSpaces, pageInSpace, type AtlasSpaceDef } from "../spaces";
 import { createHelpArticlesSource } from "../source/helpArticlesSource";
-import type { AtlasPage, AtlasSource, AtlasVersion, AutosaveInput, NewPageInput, PlacementMove, PublishInput } from "../source/types";
+import type { AtlasPage, AtlasSource, AtlasVersion, AutosaveInput, NewPageInput, PlacementMove, PublishInput, SectionMove } from "../source/types";
 
 const EMPTY_PAGES: AtlasPage[] = [];
 
@@ -74,7 +74,8 @@ export const useAtlasData = () => {
   const createPage = useMutation({ mutationFn: (input: NewPageInput) => source.createPage(input), onSuccess: refresh });
   const renameSection = useMutation({ mutationFn: ({ id, title }: { id: string; title: string }) => source.renameSection(id, title), onSuccess: refresh, onError: failure("Could not rename the section") });
   const deleteSection = useMutation({ mutationFn: (id: string) => source.deleteSection(id), onSuccess: refresh, onError: failure("Could not delete the section") });
-  const createSection = useMutation({ mutationFn: (title: string) => source.createSection(title), onSuccess: refresh });
+  const createSection = useMutation({ mutationFn: ({ title, parentId }: { title: string; parentId?: string | null }) => source.createSection(title, parentId), onSuccess: refresh });
+  const moveSections = useMutation({ mutationFn: (updates: SectionMove[]) => source.moveSections(updates), onSettled: refresh, onError: failure("Move failed") });
   const autosave = useMutation({ mutationFn: (input: AutosaveInput) => source.autosave(input), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["atlas", source.id, "pages"] }) });
   const saveVersion = useMutation({ mutationFn: (input: PublishInput) => source.saveVersion(input), onSuccess: refresh });
   const discardDraft = useMutation({ mutationFn: (id: string) => source.discardDraft(id), onSuccess: refresh });
@@ -109,6 +110,7 @@ export const useAtlasData = () => {
     saveVersion: saveVersion.mutateAsync,
     discardDraft: discardDraft.mutateAsync,
     movePages: movePages.mutateAsync,
+    moveSections: moveSections.mutateAsync,
     patchPage: patchPage.mutateAsync,
     setContexts: setContexts.mutateAsync,
     removePage: removePage.mutateAsync,

@@ -2,6 +2,11 @@
 
 Track security defects, mitigations, and verification status.
 
+
+## 2026-11-13 — Header policy file missing the QuickBooks gateways
+
+The QuickBooks gateway hosts were added to the `connect-src` list in `vercel.json` only. The header sync check failed, hidden behind an earlier failing check in the same CI job, and a sync would have dropped the hosts. Added both hosts to `security/http-header-policy.json`; `qa:vercel-headers` and `test:headers` pass. No served header changed.
+
 ## 2026-08-22 — Public store-variant view bypassed caller RLS
 
 - Impact: `store_product_variants_public` executed with its owner permissions, so access depended on the view owner instead of the querying `anon` or `authenticated` role.

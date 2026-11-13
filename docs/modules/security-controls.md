@@ -2,6 +2,11 @@
 
 Operational notes for code in `security/**`.
 
+
+## 2026-11-13 — QuickBooks gateways in the header policy
+
+`security/http-header-policy.json` now lists `https://qbo.classicvisions.net` and `https://qbo-sandbox.classicvisions.net` under `connect-src` (enforce and report-only). `vercel.json` already allowed them; the policy file is the source the sync script writes from, so without this entry the next sync would have removed them and blocked the Integrations page from reaching either gateway. No header served to visitors changed.
+
 ## 2026-08-22 — Public view caller permissions
 
 - Public Data API views must use `security_invoker=true` so underlying table RLS evaluates as the querying role.

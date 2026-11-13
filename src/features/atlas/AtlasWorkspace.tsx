@@ -40,11 +40,14 @@ import {
   ancestorsOf,
   descendantsOf,
   planPageMove,
+  planSectionMove,
+  sectionAncestorsOf,
   sectionIdOf,
   SECTION_PREFIX,
   isSectionId,
   type DropPosition,
   type TreePage,
+  type TreeSection,
 } from "./components/pageTreeLogic";
 import type { TreeNode } from "./pageTree";
 import type { AtlasHit, AtlasPage } from "./source/types";
@@ -118,12 +121,28 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     return prune(visibleTree.roots);
   }, [lockedIds, visibleTree.roots]);
   const openSection = useMemo(
-    () => (openSectionId ? sidebarNodes.find((node) => node.kind === "section" && sectionIdOf(node.id) === openSectionId) ?? null : null),
+    () => {
+      if (!openSectionId) return null;
+      const find = (nodes: TreeNode[]): TreeNode | null => {
+        for (const node of nodes) {
+          if (node.kind !== "section") continue;
+          if (sectionIdOf(node.id) === openSectionId) return node;
+          const inside = find(node.children);
+          if (inside) return inside;
+        }
+        return null;
+      };
+      return find(sidebarNodes);
+    },
     [openSectionId, sidebarNodes],
   );
   // Deep links must keep working for archived pages, so lookups use every page in the space.
   const fullTree = useMemo(() => buildTree(sections, spacePages), [sections, spacePages]);
   const treePages = useMemo(() => spacePages.map(toTreePage), [spacePages]);
+  const treeSections = useMemo<TreeSection[]>(
+    () => sections.map((section) => ({ id: section.id, title: section.title, parent_id: section.parentId ?? null, sort_order: section.sortOrder })),
+    [sections],
+  );
 
   // While a page's slug is being renamed, the URL and the page list briefly disagree about it. The
   // page stays pinned by id until they agree again, so it is never mistaken for an unknown page.
@@ -334,7 +353,12 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     if (!canEdit) return;
     const section = sections.find((item) => item.id === sectionIdOf(nodeId));
     const count = spacePages.filter((page) => page.sectionId === section?.id).length;
-    const detail = count > 0 ? `Its ${count} ${count === 1 ? "page stays" : "pages stay"} and move to the top level.` : undefined;
+    const inside = sections.filter((item) => item.parentId === section?.id).length;
+    const kept = [
+      count > 0 ? `${count} ${count === 1 ? "page" : "pages"}` : "",
+      inside > 0 ? `${inside} ${inside === 1 ? "subsection" : "subsections"}` : "",
+    ].filter(Boolean);
+    const detail = kept.length > 0 ? `Its ${kept.join(" and ")} ${count + inside === 1 ? "stays and moves" : "stay and move"} to the top level.` : undefined;
     if (!(await confirm({ title: `Delete the section “${section?.title ?? "section"}”?`, description: detail, confirmLabel: "Delete", destructive: true }))) return;
     try {
       await data.deleteSection(sectionIdOf(nodeId));
@@ -344,10 +368,10 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     }
   };
 
-  const handleCreateSection = async (title: string) => {
+  const handleCreateSection = async (title: string, parentId: string | null = null) => {
     try {
-      await data.createSection(title);
-      toast({ title: "Section created" });
+      await data.createSection({ title, parentId });
+      toast({ title: parentId ? "Subsection created" : "Section created" });
     } catch (error) {
       toast({ title: "Could not create section", description: error instanceof Error ? error.message : "Try again in a moment.", variant: "destructive" });
     }
@@ -381,8 +405,26 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     }
   };
 
+  const moveSection = async (dragId: string, targetId: string, position: DropPosition) => {
+    if (!canEdit) return;
+    const updates = planSectionMove(treeSections, sectionIdOf(dragId), sectionIdOf(targetId), position);
+    if (updates === null) {
+      toast({ title: "Can't move there", description: "A section can't be moved inside itself.", variant: "destructive" });
+      return;
+    }
+    if (updates.length === 0) return;
+    await data.moveSections(updates).catch(() => undefined);
+  };
+
+  /** Puts a subsection back at the top level, after the top-level section it was under. */
+  const unnestSection = (nodeId: string) => {
+    const top = sectionAncestorsOf(treeSections, sectionIdOf(nodeId))[0];
+    if (top) void moveSection(nodeId, `${SECTION_PREFIX}${top.id}`, "after");
+  };
+
   const movePage = async (dragId: string, targetId: string, position: DropPosition) => {
     if (!canEdit) return;
+    if (isSectionId(dragId)) return moveSection(dragId, targetId, position);
     if (position === "inside" && lockedIds.has(targetId)) {
       toast({ title: "Unlock the page first", description: "Enter its password before moving a page inside it.", variant: "destructive" });
       return;
@@ -457,22 +499,29 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     const list: Crumb[] = [{ label: space.label, to: base() }];
     if (!selectedPage) return list;
     const section = sections.find((item) => item.id === selectedPage.sectionId);
-    if (section) list.push({ label: section.title });
+    if (section) {
+      for (const above of sectionAncestorsOf(treeSections, section.id)) list.push({ label: above.title });
+      list.push({ label: section.title });
+    }
     for (const ancestor of ancestorsOf(treePages, selectedPage.id)) {
       list.push({ label: ancestor.title || "Untitled", to: base(toPageSlug(spacePages.find((page) => page.id === ancestor.id) ?? { id: ancestor.id, title: ancestor.title, slug: null })) });
     }
     list.push({ label: draft.title || "Untitled" });
     return list;
-  }, [draft.title, sections, selectedPage, space.id, space.label, spacePages, treePages]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draft.title, sections, selectedPage, space.id, space.label, spacePages, treePages, treeSections]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const moveTargets = useMemo<MoveTarget[]>(() => {
     if (!moveTargetId) return [];
     const blocked = new Set([moveTargetId, ...descendantsOf(treePages, moveTargetId).map((page) => page.id)]);
     return [
-      ...sections.map((section) => ({ id: `${SECTION_PREFIX}${section.id}`, label: section.title, kind: "section" as const })),
+      ...sections.map((section) => ({
+        id: `${SECTION_PREFIX}${section.id}`,
+        label: [...sectionAncestorsOf(treeSections, section.id).map((above) => above.title), section.title].join(" / "),
+        kind: "section" as const,
+      })),
       ...visiblePages.filter((page) => !blocked.has(page.id)).map((page) => ({ id: page.id, label: page.title || "Untitled", kind: "page" as const })),
     ];
-  }, [moveTargetId, sections, treePages, visiblePages]);
+  }, [moveTargetId, sections, treePages, treeSections, visiblePages]);
   const moveTargetPage = spacePages.find((page) => page.id === moveTargetId);
 
   const editorPages = useMemo(
@@ -637,6 +686,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
                 }).catch(() => setTransition(null));
               },
               onDeleteSection: (id) => void deleteSection(id),
+              onAddSubsection: canCreate ? (id, title) => void handleCreateSection(title, sectionIdOf(id)) : undefined,
+              onUnnestSection: unnestSection,
               onDuplicate: (id) => void duplicatePage(id),
               onMoveTo: setMoveTargetId,
               onArchive: (id) => void archivePage(id),

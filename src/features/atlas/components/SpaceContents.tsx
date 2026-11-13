@@ -1,5 +1,5 @@
 import { FileText, Link2 } from "lucide-react";
-import type { TreeNode } from "../pageTree";
+import { byTreeOrder as bySort, type TreeNode } from "../pageTree";
 import type { AtlasPageMeta } from "../hooks/useAtlasPrefs";
 
 interface SpaceContentsProps {
@@ -11,8 +11,6 @@ interface SpaceContentsProps {
   /** Shown under the list, e.g. a New page button. */
   footer?: React.ReactNode;
 }
-
-const bySort = (a: TreeNode, b: TreeNode) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
 
 /** A space's or section's pages as a numbered table of contents, nested the way the sidebar nests them. */
 const SpaceContents = ({ title, description, nodes, pageMeta, onOpen, footer }: SpaceContentsProps) => {

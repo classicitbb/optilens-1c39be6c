@@ -51,6 +51,8 @@ export interface AtlasSection {
   slug: string;
   title: string;
   sortOrder: number;
+  /** The section this one sits inside; null or absent at the top level. */
+  parentId?: string | null;
 }
 
 export interface AtlasVersion {
@@ -103,6 +105,12 @@ export interface PlacementMove {
   id: string;
   parent_id: string | null;
   section_id: string | null;
+  sort_order: number;
+}
+
+export interface SectionMove {
+  id: string;
+  parent_id: string | null;
   sort_order: number;
 }
 
@@ -167,7 +175,10 @@ export interface AtlasSource {
   readonly id: string;
   listPages(): Promise<AtlasListing>;
   listSections(): Promise<AtlasSection[]>;
-  createSection(title: string): Promise<void>;
+  /** Creates a section; with `parentId`, a subsection inside that section. */
+  createSection(title: string, parentId?: string | null): Promise<void>;
+  /** Re-parents and reorders sections (drag and drop). Pages are untouched. */
+  moveSections(updates: SectionMove[]): Promise<void>;
   /** Renames a section; its slug (used for categories and links) is left alone. */
   renameSection(id: string, title: string): Promise<void>;
   /** Retires a section. Its pages are untouched and show at the top level; nothing is hard-deleted. */

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-13 — Atlas subsections, homepage clean-up, launch plan (local, not deployed)
+
+- Atlas sections can hold subsections. Drag a section onto another section to nest it, or onto its top or bottom edge to place it beside it; the section menu adds "Add subsection" and "Move to top level". Subsections list before a section's pages. Needs migration `20261113120000_wiki_headings_parent.sql`, not yet applied.
+- Homepage: removed decorative rings, glow, spaced capital labels, glass panels, the two-colour headline and FAQ numbering; reworded four sub-headings. Layout and content are unchanged.
+- `docs/LAUNCH_PLAN.md` records the launch review and the ordered work list.
+
 ## 2026-11-09 — PBX agent runs beside the PBX over AMI (local source)
 
 ### 2026-11-06 — Guided CRM outreach (local, not deployed)

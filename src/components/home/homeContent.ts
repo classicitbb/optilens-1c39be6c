@@ -125,13 +125,13 @@ export const heroPaths = {
 /** Headline + lede per audience. Professional copy is the crawled default. */
 export const heroCopy = {
   professional: {
-    eyebrow: "Professional Optical laboratory",
+    eyebrow: "Professional optical laboratory",
     headline: "Your Caribbean optical",
     headlineAccent: "supply partner.",
     lede: DEFINITION_SENTENCE,
   },
   visitor: {
-    eyebrow: "Locally made Lenses",
+    eyebrow: "Locally made lenses",
     headline: "Clear, comfortable lenses,",
     headlineAccent: "made here in the Caribbean.",
     lede: "Classic Visions makes prescription lenses in Barbados for opticians across the Caribbean. We don't sell glasses directly — your optician orders your lenses from our lab and fits them to your frames.",

@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-13 — Atlas nested sections
+
+`AtlasSection.parentId` maps to `wiki_headings.parent_id`. `buildTree` nests section nodes (a section whose parent is deleted, or that points into its own subtree, stays at the top level) and `byTreeOrder` sorts sections before pages. `planSectionMove` in `pageTreeLogic.ts` plans a section drag and `AtlasSource.moveSections` writes it; `createSection(title, parentId)` gives a subsection a unique slug. `PageTree` rows drag for sections too: a section can only be dropped on another section. Homepage (`HomePage.tsx`, `CustomerJourney.tsx`) drops `OpticalRings` and the monospace label styling; `Eyebrow` is now a plain label.
+
 ## 2026-11-06 — Guided CRM outreach
 
 The existing dashboard route hosts OutreachWorkspace with explicit steps, editable activity briefs/owners/due dates, outbox approval and confirmed sending through existing ComposeDialog. External composer opening never marks sent. Contacts, saved Lead Finder results, My Leads, Pipeline and Activities share links to this workspace. Iris receives an editable router-state request without auto-submit. See docs/crm-outreach-workspace.md for persistence, recovery and live-verification limits. No new route, service, schema or auth boundary.

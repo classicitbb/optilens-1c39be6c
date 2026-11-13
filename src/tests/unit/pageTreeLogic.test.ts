@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ancestorsOf, descendantsOf, planPageMove, type TreePage } from "@/features/atlas/components/pageTreeLogic";
+import { ancestorsOf, descendantsOf, planPageMove, planSectionMove, sectionAncestorsOf, type TreePage, type TreeSection } from "@/features/atlas/components/pageTreeLogic";
 
 const page = (id: string, over: Partial<TreePage> = {}): TreePage => ({
   id,
@@ -66,6 +66,62 @@ describe("planPageMove", () => {
     const updates = planPageMove(pages, "b1", "b", "after") ?? [];
     expect(updates).toContainEqual({ id: "b1", parent_id: null, section_id: "s1", sort_order: 2 });
     expect(updates).toContainEqual({ id: "c", parent_id: null, section_id: "s1", sort_order: 3 });
+  });
+});
+
+describe("planSectionMove", () => {
+  const section = (id: string, over: Partial<TreeSection> = {}): TreeSection => ({ id, title: id, parent_id: null, sort_order: 0, ...over });
+  // top level: s1(0), s2(1), s3(2)    s2 holds s2a -> s2a1
+  const sections: TreeSection[] = [
+    section("s1", { sort_order: 0 }),
+    section("s2", { sort_order: 1 }),
+    section("s3", { sort_order: 2 }),
+    section("s2a", { parent_id: "s2" }),
+    section("s2a1", { parent_id: "s2a" }),
+  ];
+
+  it("nests a section inside another", () => {
+    expect(planSectionMove(sections, "s3", "s1", "inside")).toEqual([{ id: "s3", parent_id: "s1", sort_order: 0 }]);
+  });
+
+  it("puts a nested section last among the subsections already there", () => {
+    expect(planSectionMove(sections, "s1", "s2", "inside")).toContainEqual({ id: "s1", parent_id: "s2", sort_order: 1 });
+  });
+
+  it("reorders top-level sections and renumbers them", () => {
+    const updates = planSectionMove(sections, "s3", "s1", "before") ?? [];
+    expect(updates).toEqual(
+      expect.arrayContaining([
+        { id: "s3", parent_id: null, sort_order: 0 },
+        { id: "s1", parent_id: null, sort_order: 1 },
+        { id: "s2", parent_id: null, sort_order: 2 },
+      ]),
+    );
+  });
+
+  it("moves a subsection back out beside a top-level section", () => {
+    const updates = planSectionMove(sections, "s2a", "s2", "after") ?? [];
+    expect(updates).toContainEqual({ id: "s2a", parent_id: null, sort_order: 2 });
+    expect(updates).toContainEqual({ id: "s3", parent_id: null, sort_order: 3 });
+  });
+
+  it("blocks dropping a section onto itself or into its own subsections", () => {
+    expect(planSectionMove(sections, "s2", "s2", "inside")).toBeNull();
+    expect(planSectionMove(sections, "s2", "s2a", "inside")).toBeNull();
+    expect(planSectionMove(sections, "s2", "s2a1", "inside")).toBeNull();
+    expect(planSectionMove(sections, "s2", "s2a1", "before")).toBeNull();
+  });
+
+  it("treats a subsection of a deleted section as top level", () => {
+    const orphaned = [section("a", { sort_order: 0 }), section("b", { parent_id: "gone", sort_order: 1 })];
+    expect(planSectionMove(orphaned, "a", "b", "after")).toEqual(
+      expect.arrayContaining([{ id: "b", parent_id: "gone", sort_order: 0 }, { id: "a", parent_id: null, sort_order: 1 }]),
+    );
+  });
+
+  it("lists the sections above a subsection, outermost first", () => {
+    expect(sectionAncestorsOf(sections, "s2a1").map((s) => s.id)).toEqual(["s2", "s2a"]);
+    expect(sectionAncestorsOf(sections, "s1")).toEqual([]);
   });
 });
 

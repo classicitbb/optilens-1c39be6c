@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-11-13 — Sections inside sections in Atlas (pending release)
+
+Hover a section, open its **…** menu and choose **Add subsection**, type a name and press Enter. To move an existing section inside another, drag it onto the middle of that section. Drag it onto the top or bottom edge of a section to place it beside that section instead, or choose **Move to top level** from its menu. Deleting a section keeps its subsections and pages; they move to the top level.
+
 ## 2026-11-06 — Contact to customer through guided outreach (pending release)
 
 Open CRM → Outreach workspace, choose a contact, write a brief, assign an owner and date, then save. Write/paste the email, resolve the quality warnings and approve it. Review and Send in company email, or open your mail app and explicitly confirm after sending. Keep the follow-up date, check conversation history and record the reply/next action. Assign a colleague in Plan outreach or use Ask Iris to prepare help for review. No reminder sends automatically. Full walkthrough: docs/crm-outreach-workspace.md.
