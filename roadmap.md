@@ -4,5 +4,6 @@
 - [x] Verify order 33 signed in and run regression tests.
 
 # Open tasks
+- [x] Check staff orders/shipments, customer billing/orders, queue status, agent claim/completion and cleanup for customer-scope consistency; apply the existing missing migration and preserve settled records.
 - [x] Applied migration 20261104120000 byte-for-byte; verified; no schedule created.
 - [x] Deleted the two crm_cadence vault secrets created earlier so the schedule stays off.

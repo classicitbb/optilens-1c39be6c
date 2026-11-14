@@ -6,6 +6,13 @@ const root = process.cwd();
 const read = (relativePath: string) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
 describe("on-demand live-data gateway contract", () => {
+  it("allows a missing customer only for the two staff-wide operations", () => {
+    const migration = read("supabase/migrations/20261114100000_live_data_gateway_all_customers.sql");
+    expect(migration).toContain("ALTER COLUMN website_customer_id DROP NOT NULL");
+    expect(migration).toContain("CHECK ((website_customer_id IS NULL) = (operation IN ('innovations.all_orders', 'optilens.all_deliveries')))");
+    expect(read("drizzle/migrations/0006_live_data_gateway_all_customers.sql")).toBe(migration);
+  });
+
   it("keeps transient requests service-role only", () => {
     const migration = read("supabase/migrations/20260710170000_live_data_gateway.sql");
     expect(migration).toContain("REVOKE ALL ON public.live_data_gateway_requests FROM anon, authenticated, PUBLIC");
