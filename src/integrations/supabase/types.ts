@@ -16338,6 +16338,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          parent_id: string | null
           slug: string
           sort_order: number
           title: string
@@ -16347,6 +16348,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          parent_id?: string | null
           slug: string
           sort_order?: number
           title: string
@@ -16356,12 +16358,21 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          parent_id?: string | null
           slug?: string
           sort_order?: number
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wiki_headings_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "wiki_headings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -17564,6 +17575,10 @@ export type Database = {
       cancel_rx_submission: { Args: { p_id: string }; Returns: undefined }
       cancel_stock_order_submission: {
         Args: { p_id: string }
+        Returns: undefined
+      }
+      cancel_walk_in_payment: {
+        Args: { p_payment_id: string }
         Returns: undefined
       }
       claim_live_data_gateway_request: {
