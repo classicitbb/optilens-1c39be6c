@@ -4,7 +4,7 @@ import Seo from "@/components/seo/Seo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, LayoutGrid, List, Lock, Settings } from "lucide-react";
+import { ShoppingCart, Search, LayoutGrid, List, Lock, Settings, Plus, Minus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,7 @@ import { useTradePricing } from "@/hooks/useTradePricing";
 import { getProductHubRoute } from "@/lib/productLinks";
 import { createAuthHref } from "@/lib/authFlow";
 import StoreProductImage from "@/components/StoreProductImage";
+import QuantityInput from "@/components/cart/QuantityInput";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -40,10 +41,16 @@ const ProductCard = ({
   layout: ProductLayout;
   isTradeCustomer: boolean;
 }) => {
-  const { addToCart } = useCartContext();
+  const { items, addToCart, updateQuantity, removeFromCart } = useCartContext();
   const { user } = useAuth();
   const { canEdit } = useUserRole();
   const navigate = useNavigate();
+
+  const cartId = getStableStoreProductCartId(product);
+  const cartLines = items.filter((i) => i.product_id === cartId && i.product_type === product.product_type);
+  const inCartQty = cartLines.reduce((sum, i) => sum + i.quantity, 0);
+  // Simple products with a single cart line get an inline stepper; variant products just show a count.
+  const stepperLine = !product.has_variants && cartLines.length === 1 ? cartLines[0] : null;
 
   const handleAdd = () => {
     if (product.has_variants) {
@@ -75,9 +82,31 @@ const ProductCard = ({
       {isTradeCustomer && <span className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Trade price</span>}
     </div>
     <div className={`flex gap-2 ${list ? "sm:w-56 lg:w-full" : "border-t border-border/60 pt-4"}`}>
-      <Button variant="hero" className="min-h-11 flex-1" onClick={handleAdd} aria-label={`${product.has_variants ? "Choose options for" : "Add to cart:"} ${product.name}`}>
-        <ShoppingCart className="h-4 w-4" aria-hidden="true" />{product.has_variants ? "Choose options" : "Add to cart"}
-      </Button>
+      {stepperLine ? (
+        <div className="flex min-h-11 flex-1 items-center justify-between rounded-lg border-2 border-accent bg-accent/10 px-1" role="group" aria-label={`${product.name} quantity in cart`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            aria-label={stepperLine.quantity <= 1 ? `Remove ${product.name} from cart` : `Decrease quantity of ${product.name}`}
+            onClick={() => (stepperLine.quantity <= 1 ? removeFromCart(stepperLine.id) : updateQuantity(stepperLine.id, stepperLine.quantity - 1))}
+          >
+            {stepperLine.quantity <= 1 ? <Trash2 className="h-4 w-4" aria-hidden="true" /> : <Minus className="h-4 w-4" aria-hidden="true" />}
+          </Button>
+          <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
+            <QuantityInput quantity={stepperLine.quantity} onCommit={(q) => updateQuantity(stepperLine.id, q)} aria-label={`Quantity of ${product.name} in cart`} />
+            <span className="font-normal text-muted-foreground">in cart</span>
+          </span>
+          <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={`Increase quantity of ${product.name}`} onClick={() => updateQuantity(stepperLine.id, stepperLine.quantity + 1)}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+      ) : (
+        <Button variant="hero" className="min-h-11 flex-1" onClick={handleAdd} aria-label={`${product.has_variants ? "Choose options for" : "Add to cart:"} ${product.name}${inCartQty > 0 ? ` (${inCartQty} in cart)` : ""}`}>
+          <ShoppingCart className="h-4 w-4" aria-hidden="true" />{product.has_variants ? "Choose options" : "Add to cart"}
+          {inCartQty > 0 && <span className="rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold tabular-nums">{inCartQty} in cart</span>}
+        </Button>
+      )}
       {canEdit && !list && manageButton(11)}
     </div>
   </> : <div className={list ? "space-y-3 sm:flex sm:w-full sm:items-center sm:justify-between sm:gap-3 sm:space-y-0 lg:block lg:space-y-3" : "space-y-3 border-t border-border/60 pt-4"}>

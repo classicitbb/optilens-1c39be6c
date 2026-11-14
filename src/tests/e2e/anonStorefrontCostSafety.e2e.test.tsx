@@ -31,7 +31,7 @@ vi.mock("@/components/Footer", () => ({ default: () => <footer>Footer</footer> }
 vi.mock("@/components/LensChatbot", () => ({ LensChatbot: () => null }));
 vi.mock("@/components/StorageImage", () => ({ default: () => null }));
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: null }) }));
-vi.mock("@/contexts/CartContext", () => ({ useCartContext: () => ({ addToCart: vi.fn() }) }));
+vi.mock("@/contexts/CartContext", () => ({ useCartContext: () => ({ items: [], addToCart: vi.fn(), updateQuantity: vi.fn(), removeFromCart: vi.fn() }) }));
 vi.mock("@/hooks/useStoreProducts", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/useStoreProducts")>("@/hooks/useStoreProducts");
   return {

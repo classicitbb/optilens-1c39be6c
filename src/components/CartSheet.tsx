@@ -55,12 +55,12 @@ export const CartSheet = ({
       variant={triggerVariant}
       size={triggerSize}
       className={cn("gap-1.5", showLabel && "px-4", className)}
-      aria-label="Open cart and invoices"
+      aria-label="Shop the catalog"
       asChild
     >
-      <Link to="/cart">
+      <Link to="/store">
         <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-        {showLabel ? <span className="hidden sm:inline">Cart</span> : <span className="sr-only">Cart</span>}
+        {showLabel ? <span className="hidden sm:inline">Shop</span> : <span className="sr-only">Shop</span>}
       </Link>
     </Button>
   );
