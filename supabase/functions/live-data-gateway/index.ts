@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-10-24.1";
+const VERSION = "2026-11-14.1";
 const REQUEST_TTL_MS = 60_000;
 const AGENT_ONLINE_MS = 90_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -24,9 +24,17 @@ const OPERATIONS = {
   "innovations.customer_invoice": { source: "innovations", feature: "statements" },
   "innovations.customer_orders": { source: "innovations", feature: "live-order-status" },
   "optilens.customer_deliveries": { source: "optilens", feature: "live-order-status" },
+  // Staff-only views across every customer (lab work-in-progress, shipments).
+  "innovations.all_orders": { source: "innovations", feature: "live-order-status" },
+  "optilens.all_deliveries": { source: "optilens", feature: "live-order-status" },
 } as const;
 
 type Operation = keyof typeof OPERATIONS;
+
+// Not tied to one customer: staff only, no customer mapping, and an agent must
+// advertise the capability explicitly (an agent that predates them never does).
+const ALL_CUSTOMER_OPERATIONS = new Set<Operation>(["innovations.all_orders", "optilens.all_deliveries"]);
+const isAllCustomerOperation = (operation: Operation) => ALL_CUSTOMER_OPERATIONS.has(operation);
 type JsonObject = Record<string, unknown>;
 
 type CustomerMapping = {
@@ -82,7 +90,7 @@ function sanitizeArguments(operation: Operation, raw: unknown): JsonObject {
     return { invoice_id: invoiceId };
   }
 
-  if (operation === "innovations.customer_orders") {
+  if (operation === "innovations.customer_orders" || operation === "innovations.all_orders") {
     const fromDate = dateOnly(input.from_date);
     const toDate = dateOnly(input.to_date);
     return {
@@ -92,7 +100,7 @@ function sanitizeArguments(operation: Operation, raw: unknown): JsonObject {
     };
   }
 
-  if (operation === "optilens.customer_deliveries") {
+  if (operation === "optilens.customer_deliveries" || operation === "optilens.all_deliveries") {
     const fromDate = dateOnly(input.from_date);
     const toDate = dateOnly(input.to_date);
     const closedSince = dateOnly(input.closed_since);
@@ -427,11 +435,11 @@ function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping
     error: "The private live-data connector is offline.",
   };
 
-  if (operation === "optilens.customer_deliveries") {
+  if (operation === "optilens.customer_deliveries" || operation === "optilens.all_deliveries") {
     return { ...base, deliveries: [] };
   }
 
-  if (operation === "innovations.customer_orders") {
+  if (operation === "innovations.customer_orders" || operation === "innovations.all_orders") {
     return { ...base, orders: [] };
   }
 
@@ -487,7 +495,8 @@ async function fallbackForFailedRequest(
 ) {
   const customer = customerFromRequestRow(row);
   const argumentsBody = isObject(row.arguments) ? row.arguments : {};
-  const cached = await cachedLiveDataResponse(supabase, operation, customer, argumentsBody);
+  // Nothing is mirrored for all-customer views, so there is no cached answer.
+  const cached = isAllCustomerOperation(operation) ? null : await cachedLiveDataResponse(supabase, operation, customer, argumentsBody);
   const fallback = cached
     ? { ...cached, fallback: true, source_status: "cached" }
     : offlineLiveDataResponse(operation, customer);
@@ -534,6 +543,49 @@ async function clientContext(req: Request) {
   return { auth, profile, isStaff };
 }
 
+async function handleAllCustomerRequest(
+  req: Request,
+  auth: { supabaseAdminClient: SupabaseClient; user: { id: string } },
+  isStaff: boolean,
+  operation: Operation,
+  source: "innovations" | "optilens",
+  argumentsBody: JsonObject,
+) {
+  if (!isStaff) return json(req, { error: "This live-data view is available to staff only." }, 403);
+
+  await expireStaleRequests(auth.supabaseAdminClient);
+  const onlineAfter = new Date(Date.now() - AGENT_ONLINE_MS).toISOString();
+  const { data: agents } = await auth.supabaseAdminClient
+    .from("live_data_gateway_agents")
+    .select("capabilities,last_seen_at")
+    .gte("last_seen_at", onlineAfter);
+  const hasAgent = (agents ?? []).some((agent: { capabilities?: string[] }) =>
+    Array.isArray(agent.capabilities) && agent.capabilities.includes(operation)
+  );
+  if (!hasAgent) {
+    const noCustomer = { id: 0, account_number: null, innovations_customer_id: null, portal_orders_use_bill_to_account: false };
+    return json(req, offlineLiveDataResponse(operation, noCustomer), 200);
+  }
+
+  const now = Date.now();
+  const { data: requestRow, error: insertError } = await auth.supabaseAdminClient
+    .from("live_data_gateway_requests")
+    .insert({
+      requested_by: auth.user.id,
+      website_customer_id: null,
+      source,
+      operation,
+      target: { scope: "all_customers" },
+      arguments: argumentsBody,
+      expires_at: new Date(now + REQUEST_TTL_MS).toISOString(),
+      purge_after: new Date(now + 5 * 60_000).toISOString(),
+    })
+    .select("id,status,requested_at,expires_at")
+    .single();
+  if (insertError) return json(req, { error: "Could not queue the live-data request.", detail: insertError.message }, 500);
+  return json(req, { request_id: requestRow.id, status: requestRow.status, expires_at: requestRow.expires_at, poll_after_ms: 500 }, 202);
+}
+
 async function handleClientRequest(req: Request, body: JsonObject) {
   const context = await clientContext(req);
   if (context.response) return context.response;
@@ -548,6 +600,8 @@ async function handleClientRequest(req: Request, body: JsonObject) {
   } catch (error) {
     return json(req, { error: error instanceof Error ? error.message : "Invalid arguments." }, 400);
   }
+
+  if (isAllCustomerOperation(operation)) return handleAllCustomerRequest(req, auth, isStaff, operation, config.source, argumentsBody);
 
   const requestedCustomerId = integer(body.website_customer_id);
   const websiteCustomerId = requestedCustomerId ?? integer(profile?.crm_customer_id);
@@ -792,7 +846,7 @@ async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
       agent_name: typeof body.agent_name === "string" ? body.agent_name.slice(0, 100) : "OptiLens Local",
       capabilities: Array.isArray(body.capabilities)
         ? body.capabilities.filter((value): value is Operation => typeof value === "string" && value in OPERATIONS)
-        : Object.keys(OPERATIONS),
+        : (Object.keys(OPERATIONS) as Operation[]).filter((value) => !isAllCustomerOperation(value)),
       last_seen_at: new Date().toISOString(),
     }, { onConflict: "api_key_id" });
     const { data, error } = await supabase.rpc("claim_live_data_gateway_request", { p_agent_key_id: key.id });
