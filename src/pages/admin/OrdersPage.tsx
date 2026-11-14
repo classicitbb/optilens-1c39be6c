@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useAdminOrders, type AdminOrderRow } from "@/hooks/useAdminOrders";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,9 @@ import {
 import { CheckCircle, Clock, Loader2, Package, Search } from "lucide-react";
 import { format } from "date-fns";
 import OrderDetailDialog from "@/components/admin/OrderDetailDialog";
+import AdminRxOrdersTab from "@/features/rx-order/workspace/AdminRxOrdersTab";
+import { useRxWorkspace } from "@/features/rx-order/workspace/useRxWorkspace";
+import { rxBucket, rxItemMatches } from "@/features/rx-order/workspace/classify";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -147,8 +151,19 @@ const OrdersTable = ({ orders, onApprove, onView, showApprove }: OrdersTableProp
 
 // ── OrdersPage ─────────────────────────────────────────────────────────────
 
+type OrdersTab = "web" | "active-rx" | "shipped-rx";
+const isOrdersTab = (value: string | null): value is OrdersTab => value === "web" || value === "active-rx" || value === "shipped-rx";
+
 const OrdersPage = () => {
   const { orders, loading, fetchOrders, approvePayment } = useAdminOrders();
+  const rx = useRxWorkspace();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const activeTab: OrdersTab = isOrdersTab(urlTab) ? urlTab : "web";
+  const changeTab = (next: string) => {
+    if (!isOrdersTab(next)) return;
+    setSearchParams((prev) => { const params = new URLSearchParams(prev); params.set("tab", next); return params; }, { replace: true });
+  };
   const [search, setSearch] = useState("");
   const [confirmOrder, setConfirmOrder] = useState<AdminOrderRow | null>(null);
   const [viewOrder, setViewOrder] = useState<AdminOrderRow | null>(null);
@@ -167,6 +182,11 @@ const OrdersPage = () => {
       (o.contactEmail ?? "").toLowerCase().includes(q)
     );
   });
+
+  // Rx and stock orders for every customer, narrowed by the same search box.
+  const rxItems = useMemo(() => rx.items.filter((i) => rxItemMatches(i, search)), [rx.items, search]);
+  const activeRxCount = useMemo(() => rxItems.filter((i) => rxBucket(i) === "active").length, [rxItems]);
+  const shippedRxCount = useMemo(() => rxItems.filter((i) => rxBucket(i) === "shipped").length, [rxItems]);
 
   const pendingPayment = filtered.filter((o) => o.status === "pending_payment");
   const active = filtered.filter((o) =>
@@ -189,63 +209,81 @@ const OrdersPage = () => {
       <AdminPageHeader icon={Package} title="Orders" />
 
       <div className="flex items-center justify-between gap-4 pb-4">
-        <div className="relative max-w-xs flex-1">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, or order ID…"
+            placeholder="Search name, email, order, patient, Rx or lab status…"
             className="pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button variant="outline" size="sm" onClick={fetchOrders} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={() => { void fetchOrders(); rx.refresh(); }} disabled={loading || rx.isLoading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
         </Button>
       </div>
 
-      {loading && orders.length === 0 ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <Tabs defaultValue="active">
-          <TabsList className="mb-4">
-            <TabsTrigger value="pending_payment" className="gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              Pending Payment
-              {pendingPayment.length > 0 && (
-                <Badge className="ml-1 h-4 min-w-4 rounded-full px-1 text-[10px] bg-amber-500 text-white border-0">
-                  {pendingPayment.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="all">All Orders</TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={changeTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="web" className="gap-1.5">Web orders <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">{filtered.length}</Badge></TabsTrigger>
+          <TabsTrigger value="active-rx" className="gap-1.5">Active Rx <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">{activeRxCount}</Badge></TabsTrigger>
+          <TabsTrigger value="shipped-rx" className="gap-1.5">Shipped Rx <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">{shippedRxCount}</Badge></TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="pending_payment">
-            <OrdersTable
-              orders={pendingPayment}
-              onApprove={setConfirmOrder}
-              onView={setViewOrder}
-              showApprove
-            />
-          </TabsContent>
+        <TabsContent value="web">
+          {loading && orders.length === 0 ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Tabs defaultValue="active">
+              <TabsList className="mb-4">
+                <TabsTrigger value="pending_payment" className="gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Pending Payment
+                  {pendingPayment.length > 0 && (
+                    <Badge className="ml-1 h-4 min-w-4 rounded-full px-1 text-[10px] bg-amber-500 text-white border-0">
+                      {pendingPayment.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="all">All Orders</TabsTrigger>
+              </TabsList>
+    
+              <TabsContent value="pending_payment">
+                <OrdersTable
+                  orders={pendingPayment}
+                  onApprove={setConfirmOrder}
+                  onView={setViewOrder}
+                  showApprove
+                />
+              </TabsContent>
+    
+              <TabsContent value="active">
+                <OrdersTable orders={active} onView={setViewOrder} />
+              </TabsContent>
+    
+              <TabsContent value="completed">
+                <OrdersTable orders={completed} onView={setViewOrder} />
+              </TabsContent>
+    
+              <TabsContent value="all">
+                <OrdersTable orders={filtered} onApprove={setConfirmOrder} onView={setViewOrder} showApprove />
+              </TabsContent>
+            </Tabs>
+          )}
+        </TabsContent>
 
-          <TabsContent value="active">
-            <OrdersTable orders={active} onView={setViewOrder} />
-          </TabsContent>
+        <TabsContent value="active-rx">
+          <AdminRxOrdersTab mode="active" items={rxItems} loading={rx.isLoading} error={rx.error as Error | null} />
+        </TabsContent>
 
-          <TabsContent value="completed">
-            <OrdersTable orders={completed} onView={setViewOrder} />
-          </TabsContent>
-
-          <TabsContent value="all">
-            <OrdersTable orders={filtered} onApprove={setConfirmOrder} onView={setViewOrder} showApprove />
-          </TabsContent>
-        </Tabs>
-      )}
+        <TabsContent value="shipped-rx">
+          <AdminRxOrdersTab mode="shipped" items={rxItems} loading={rx.isLoading} error={rx.error as Error | null} />
+        </TabsContent>
+      </Tabs>
 
       <OrderDetailDialog
         order={viewOrder}

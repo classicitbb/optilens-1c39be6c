@@ -3,11 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AtSign, Building2, Check, CheckCircle2, IdCard, KeyRound, LogOut, Pencil, Phone, User, X } from "lucide-react";
+import { AtSign, Building2, Check, CheckCircle2, Circle, IdCard, KeyRound, LogOut, Pencil, Phone, ShieldCheck, User, X, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +44,73 @@ const inlineProfileMaxLength: Record<InlineProfileField, number> = {
   phone: 50,
   organization_name: 160,
 };
+
+interface EditableFieldProps {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  name?: string;
+  type?: string;
+  hint?: string;
+  editing: boolean;
+  draft: string;
+  saving: boolean;
+  readOnly: boolean;
+  onDraft: (value: string) => void;
+  onStart: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+/** One labelled row that toggles between display and an inline editor (Enter saves, Escape cancels). */
+const EditableField = ({ icon: Icon, label, value, name, type, hint, editing, draft, saving, readOnly, onDraft, onStart, onSave, onCancel }: EditableFieldProps) => (
+  <div className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-1 text-sm transition-colors hover:bg-muted/50">
+    <Icon className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+    <div className="min-w-0 flex-1">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      {editing ? (
+        <div className="mt-1 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <Input
+              name={name}
+              type={type}
+              aria-label={label}
+              value={draft}
+              onChange={(e) => onDraft(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onSave();
+                } else if (event.key === "Escape") {
+                  onCancel();
+                }
+              }}
+              className="h-9 text-sm"
+              autoFocus
+              disabled={saving}
+            />
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onSave} disabled={saving} aria-label={`Save ${label.toLowerCase()}`}>
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onCancel} disabled={saving} aria-label="Cancel">
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {hint ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 font-medium text-foreground">
+          <span className={`truncate ${value ? "" : "text-muted-foreground"}`}>{value || "Not added yet"}</span>
+          {readOnly ? null : (
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onStart} aria-label={`Edit ${label.toLowerCase()}`}>
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 const MyAccountSection = () => {
   const { user, signOut } = useAuth();
@@ -322,8 +391,10 @@ const MyAccountSection = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="max-w-3xl space-y-4" role="status" aria-label="Loading your profile">
+        <Skeleton className="h-12 w-64" />
+        <Skeleton className="h-28 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
@@ -349,20 +420,33 @@ const MyAccountSection = () => {
     .join("")
     .toUpperCase() || "ME";
   const statusBadges = [
-    `Email ${identity?.emailVerified ? "verified" : "pending"}`,
-    `Profile ${identity?.profileCompleted ? "complete" : "incomplete"}`,
-    `Access ${identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}`,
+    { label: `Email ${identity?.emailVerified ? "verified" : "pending"}`, ok: Boolean(identity?.emailVerified) },
+    { label: `Profile ${identity?.profileCompleted ? "complete" : "incomplete"}`, ok: Boolean(identity?.profileCompleted) },
+    { label: `Access ${identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}`, ok: identity?.portalAccessStatus === "approved_customer" },
   ];
 
+  const checklist = [
+    { label: "Full name", done: !missingRequirements.some((item) => item.key === "full_name"), to: "/profile/account?focus=full_name" },
+    { label: "Phone number", done: !missingRequirements.some((item) => item.key === "phone"), to: "/profile/account?focus=phone" },
+    { label: "Organization", done: !missingRequirements.some((item) => item.key === "organization_name"), to: "/profile/account?focus=organization_name" },
+    { label: "Shipping address", done: addresses.length > 0 || identity?.portalAccessStatus === "approved_customer", href: "#address-book" },
+    { label: "Email verified", done: Boolean(identity?.emailVerified) },
+    { label: "ERP account linked", done: Boolean(identity?.accountNumber) },
+  ];
+  const completedCount = checklist.filter((item) => item.done).length;
+  const completionPercent = Math.round((completedCount / checklist.length) * 100);
+  const passwordTooShort = newPassword.length > 0 && newPassword.length < 8;
+  const passwordMismatch = confirmNewPassword.length > 0 && newPassword !== confirmNewPassword;
+
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
             {initials}
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-semibold text-foreground">Your Profile</h2>
+            <h2 className="truncate text-xl font-semibold text-foreground">Your Profile</h2>
             <p className="text-sm text-muted-foreground">Manage contact details, account access, and security.</p>
           </div>
         </div>
@@ -378,335 +462,151 @@ const MyAccountSection = () => {
         </div>
       </div>
 
-      <div className="max-w-3xl space-y-4">
-          {missingRequirements.length ? (
-            <Card className="overflow-hidden border-amber-400/50 bg-amber-50/40 shadow-sm transition-all hover:shadow-md dark:bg-amber-950/20">
-              <CardContent className="space-y-3 p-5">
-                <p className="text-sm font-medium text-foreground">Profile setup required</p>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {missingRequirements.map((item) => (
-                    <li key={item.key}>
-                      <Link to={`${item.route}?focus=${item.focus}`} className="underline underline-offset-2">
-                        Add {item.label}
-                      </Link>
+      <div className="max-w-3xl space-y-3">
+          <Card className={`overflow-hidden shadow-sm ${completionPercent < 100 ? "border-amber-400/50 bg-amber-50/40 dark:bg-amber-950/20" : "border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/20"}`}>
+            <CardContent className="space-y-2 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-foreground">{completionPercent < 100 ? "Finish setting up your profile" : "Your profile is complete"}</p>
+                <span className="text-sm font-semibold tabular-nums text-foreground">{completedCount}/{checklist.length}</span>
+              </div>
+              <Progress value={completionPercent} aria-label={`Profile ${completionPercent}% complete`} className="h-1.5" />
+              {completionPercent < 100 ? (
+                <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                  {checklist.map((item) => (
+                    <li key={item.label} className="flex items-center gap-2 text-sm">
+                      {item.done ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" /> : <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                      {item.done ? (
+                        <span className="text-muted-foreground">{item.label}</span>
+                      ) : item.to ? (
+                        <Link to={item.to} className="font-medium underline underline-offset-2">Add {item.label.toLowerCase()}</Link>
+                      ) : item.href ? (
+                        <a href={item.href} className="font-medium underline underline-offset-2">Add {item.label.toLowerCase()}</a>
+                      ) : (
+                        <span className="font-medium">{item.label} pending</span>
+                      )}
                     </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
-          ) : null}
+              ) : null}
+            </CardContent>
+          </Card>
+
           <Card className="overflow-hidden border-0 bg-white shadow-sm transition-all hover:shadow-md dark:bg-slate-950 md:border">
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-start gap-4">
-                <div className="rounded-xl bg-primary/10 p-3 text-primary transition-colors hover:bg-primary/20">
-                  <User className="h-4 w-4" />
-                </div>
+            <CardContent className="space-y-0 p-3">
+              <EditableField
+                icon={User}
+                label="Full name"
+                name="full_name"
+                value={profileName}
+                editing={editingProfileField === "full_name"}
+                draft={profileDraft}
+                saving={savingProfileField === "full_name"}
+                readOnly={!!emulation}
+                onDraft={setProfileDraft}
+                onStart={() => handleStartEditProfileField("full_name")}
+                onSave={() => handleSaveProfileField("full_name")}
+                onCancel={handleCancelEditProfileField}
+              />
+              <EditableField
+                icon={AtSign}
+                label="Email"
+                type="email"
+                value={user?.email || ""}
+                hint={editingEmail ? "We'll email a confirmation link. Your email won't change until you confirm." : undefined}
+                editing={editingEmail}
+                draft={newEmail}
+                saving={changingEmail}
+                readOnly={!!emulation}
+                onDraft={setNewEmail}
+                onStart={handleStartEditEmail}
+                onSave={handleSaveEmail}
+                onCancel={handleCancelEditEmail}
+              />
+              <EditableField
+                icon={Phone}
+                label="Phone"
+                name="phone"
+                value={phone}
+                editing={editingProfileField === "phone"}
+                draft={profileDraft}
+                saving={savingProfileField === "phone"}
+                readOnly={!!emulation}
+                onDraft={setProfileDraft}
+                onStart={() => handleStartEditProfileField("phone")}
+                onSave={() => handleSaveProfileField("phone")}
+                onCancel={handleCancelEditProfileField}
+              />
+              <EditableField
+                icon={Building2}
+                label="Organization"
+                name="organization_name"
+                value={organizationName || ""}
+                editing={editingProfileField === "organization_name"}
+                draft={profileDraft}
+                saving={savingProfileField === "organization_name"}
+                readOnly={!!emulation}
+                onDraft={setProfileDraft}
+                onStart={() => handleStartEditProfileField("organization_name")}
+                onSave={() => handleSaveProfileField("organization_name")}
+                onCancel={handleCancelEditProfileField}
+              />
+              <div className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-1 text-sm transition-colors hover:bg-muted/50">
+                <IdCard className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                 <div className="min-w-0 flex-1">
-                  <dl>
-                  <dt className="text-xs text-muted-foreground">Full name</dt>
-                  {editingProfileField === "full_name" ? (
-                    <dd className="mt-1 flex items-center gap-1.5">
-                      <Input
-                        name="full_name"
-                        value={profileDraft}
-                        onChange={(e) => setProfileDraft(e.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            void handleSaveProfileField("full_name");
-                          }
-                        }}
-                        className="h-9 text-sm"
-                        autoFocus
-                        disabled={savingProfileField === "full_name"}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => handleSaveProfileField("full_name")}
-                        disabled={savingProfileField === "full_name"}
-                        aria-label="Save full name"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={handleCancelEditProfileField}
-                        disabled={savingProfileField === "full_name"}
-                        aria-label="Cancel"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </dd>
+                  <p className="text-xs text-muted-foreground">ERP account</p>
+                  {identity?.accountNumber ? (
+                    <p className="truncate font-mono font-medium text-foreground">{identity.accountNumber}</p>
+                  ) : emulation ? (
+                    <p className="truncate font-medium text-muted-foreground">Not linked yet</p>
+                  ) : savedClaim ? (
+                    <div className="space-y-1">
+                      <p className="truncate font-mono font-medium text-foreground">{savedClaim}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Submitted. Our team is confirming it. To change this number, contact us.
+                      </p>
+                    </div>
                   ) : (
-                    <dd className="flex items-center gap-1.5 truncate font-medium text-foreground">
-                      <span className="truncate">{profileName}</span>
-                      {emulation ? null : (
+                    <div className="mt-1 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          name="claimed_account_number"
+                          aria-label="ERP account number"
+                          value={claimDraft}
+                          onChange={(e) => setClaimDraft(e.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void handleSaveClaim();
+                            }
+                          }}
+                          placeholder="Account # from your invoice (optional)"
+                          className="h-9 font-mono text-sm"
+                          disabled={savingClaim}
+                        />
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 shrink-0"
-                          onClick={() => handleStartEditProfileField("full_name")}
-                          aria-label="Edit full name"
+                          onClick={handleSaveClaim}
+                          disabled={savingClaim || claimDraft.trim().toUpperCase() === savedClaim}
+                          aria-label="Save account number"
                         >
-                          <Pencil className="h-3 w-3" />
+                          <Check className="h-3.5 w-3.5" />
                         </Button>
-                      )}
-                    </dd>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Already a customer? Enter your account number to speed up approval. Our team confirms it before it's linked.
+                      </p>
+                    </div>
                   )}
-                  </dl>
                 </div>
               </div>
-              <dl className="grid gap-4 text-sm mt-2">
-                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
-                  <AtSign className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  <div className="min-w-0 flex-1">
-                    <dt className="text-xs text-muted-foreground">Email</dt>
-                    {editingEmail ? (
-                      <dd className="mt-1 flex items-center gap-1.5">
-                        <Input
-                          type="email"
-                          value={newEmail}
-                          onChange={(e) => setNewEmail(e.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              void handleSaveEmail();
-                            }
-                          }}
-                          className="h-9 text-sm"
-                          autoFocus
-                          disabled={changingEmail}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={handleSaveEmail}
-                          disabled={changingEmail}
-                          aria-label="Save email"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={handleCancelEditEmail}
-                          disabled={changingEmail}
-                          aria-label="Cancel"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </dd>
-                    ) : (
-                      <dd className="flex items-center gap-1.5 truncate font-medium text-foreground">
-                        <span className="truncate">{user?.email || "—"}</span>
-                        {emulation ? null : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={handleStartEditEmail}
-                            aria-label="Edit email"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </dd>
-                    )}
-                  </div>
-                </div>
-                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
-                  <Phone className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  <div className="min-w-0 flex-1">
-                    <dt className="text-xs text-muted-foreground">Phone</dt>
-                    {editingProfileField === "phone" ? (
-                      <dd className="mt-1 flex items-center gap-1.5">
-                        <Input
-                          name="phone"
-                          value={profileDraft}
-                          onChange={(e) => setProfileDraft(e.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              void handleSaveProfileField("phone");
-                            }
-                          }}
-                          className="h-9 text-sm"
-                          autoFocus
-                          disabled={savingProfileField === "phone"}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => handleSaveProfileField("phone")}
-                          disabled={savingProfileField === "phone"}
-                          aria-label="Save phone"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={handleCancelEditProfileField}
-                          disabled={savingProfileField === "phone"}
-                          aria-label="Cancel"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </dd>
-                    ) : (
-                      <dd className="flex items-center gap-1.5 truncate font-medium text-foreground">
-                        <span className="truncate">{phone || "—"}</span>
-                        {emulation ? null : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => handleStartEditProfileField("phone")}
-                            aria-label="Edit phone"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </dd>
-                    )}
-                  </div>
-                </div>
-                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
-                  <Building2 className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  <div className="min-w-0 flex-1">
-                    <dt className="text-xs text-muted-foreground">Organization</dt>
-                    {editingProfileField === "organization_name" ? (
-                      <dd className="mt-1 flex items-center gap-1.5">
-                        <Input
-                          name="organization_name"
-                          value={profileDraft}
-                          onChange={(e) => setProfileDraft(e.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              void handleSaveProfileField("organization_name");
-                            }
-                          }}
-                          className="h-9 text-sm"
-                          autoFocus
-                          disabled={savingProfileField === "organization_name"}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => handleSaveProfileField("organization_name")}
-                          disabled={savingProfileField === "organization_name"}
-                          aria-label="Save organization"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={handleCancelEditProfileField}
-                          disabled={savingProfileField === "organization_name"}
-                          aria-label="Cancel"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </dd>
-                    ) : (
-                      <dd className="flex items-center gap-1.5 truncate font-medium text-foreground">
-                        <span className="truncate">{organizationName || "—"}</span>
-                        {emulation ? null : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => handleStartEditProfileField("organization_name")}
-                            aria-label="Edit organization"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </dd>
-                    )}
-                  </div>
-                </div>
-                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
-                  <IdCard className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  <div className="min-w-0 flex-1">
-                    <dt className="text-xs text-muted-foreground">ERP account</dt>
-                    {identity?.accountNumber ? (
-                      <dd className="truncate font-mono font-medium text-foreground">{identity.accountNumber}</dd>
-                    ) : emulation ? (
-                      <dd className="truncate font-medium text-muted-foreground">Not linked yet</dd>
-                    ) : savedClaim ? (
-                      <dd className="space-y-1">
-                        <p className="truncate font-mono font-medium text-foreground">{savedClaim}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          Submitted. Our team is confirming it. To change this number, contact us.
-                        </p>
-                      </dd>
-                    ) : (
-                      <dd className="mt-1 space-y-1">
-                        <div className="flex items-center gap-1.5">
-                          <Input
-                            name="claimed_account_number"
-                            value={claimDraft}
-                            onChange={(e) => setClaimDraft(e.target.value)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                event.preventDefault();
-                                void handleSaveClaim();
-                              }
-                            }}
-                            placeholder="Account # from your invoice (optional)"
-                            className="h-9 font-mono text-sm"
-                            disabled={savingClaim}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={handleSaveClaim}
-                            disabled={savingClaim || claimDraft.trim().toUpperCase() === savedClaim}
-                            aria-label="Save account number"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Already a customer? Enter your account number to speed up approval. Our team confirms it before it's linked.
-                        </p>
-                      </dd>
-                    )}
-                  </div>
-                </div>
-              </dl>
               {role === "admin" ? (
-                <Button asChild variant="outline" size="sm"><Link to="/admin/dashboard">Admin</Link></Button>
+                <Button asChild variant="outline" size="sm" className="mt-3"><Link to="/admin/dashboard">Admin</Link></Button>
               ) : role ? (
                 <Badge
-                  className="h-5 border-0 px-1.5 py-0 text-[10px] font-medium"
+                  className="mt-3 h-5 border-0 px-1.5 py-0 text-[10px] font-medium"
                   style={{ background: roleBadgeStyle[role]?.bg, color: roleBadgeStyle[role]?.color }}
                 >
                   {role}
@@ -716,15 +616,14 @@ const MyAccountSection = () => {
           </Card>
 
           <Card className="overflow-hidden border-0 bg-white shadow-sm transition-all hover:shadow-md dark:bg-slate-950 md:border">
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Workflow status</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">{identity?.portalAccessNote || "Complete setup to create your CRM contact and customer workflow."}</p>
-              <div className="flex flex-wrap gap-2">
+            <CardContent className="space-y-2 p-3">
+              <p className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0 text-primary" />{identity?.portalAccessNote || "Complete setup to create your CRM contact and customer workflow."}</p>
+              <div className="flex flex-wrap gap-1.5">
                 {statusBadges.map((item) => (
-                  <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
+                  <Badge key={item.label} variant="outline" className={`gap-1 text-xs ${item.ok ? "border-emerald-300 text-emerald-700 dark:text-emerald-400" : "border-amber-300 text-amber-700 dark:text-amber-400"}`}>
+                    {item.ok ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+                    {item.label}
+                  </Badge>
                 ))}
               </div>
             </CardContent>
@@ -747,7 +646,7 @@ const MyAccountSection = () => {
 
           {reauthSent ? (
             <Card className="overflow-hidden border-0 bg-white shadow-sm transition-all hover:shadow-md dark:bg-slate-950 md:border">
-              <CardContent className="space-y-4 p-5">
+              <CardContent className="space-y-2 p-3">
                 <div className="flex items-center gap-2">
                   <KeyRound className="h-5 w-5 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">Update password</h3>
@@ -765,17 +664,23 @@ const MyAccountSection = () => {
                   <Input
                     type="password"
                     placeholder="New password"
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={updatingPassword}
+                    aria-invalid={passwordTooShort}
                   />
+                  <p className={`text-[11px] ${passwordTooShort ? "text-destructive" : "text-muted-foreground"}`}>Use at least 8 characters.</p>
                   <Input
                     type="password"
                     placeholder="Confirm new password"
+                    autoComplete="new-password"
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     disabled={updatingPassword}
+                    aria-invalid={passwordMismatch}
                   />
+                  {passwordMismatch ? <p className="text-[11px] text-destructive">Passwords don't match yet.</p> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={handleUpdatePassword} disabled={updatingPassword}>
