@@ -10,6 +10,8 @@ type SeoProps = {
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
   /** Keeps transactional pages (e.g. a payment link) out of search results. */
   noindex?: boolean;
+  /** Open Graph type; articles pass "article". */
+  ogType?: "website" | "article";
 };
 
 const ensureMetaTag = (selector: string, attributes: Record<string, string>) => {
@@ -36,7 +38,7 @@ const ensureLinkTag = (selector: string, attributes: Record<string, string>) => 
   return link;
 };
 
-const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jsonLd, noindex = false }: SeoProps) => {
+const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jsonLd, noindex = false, ogType = "website" }: SeoProps) => {
   useEffect(() => {
     const canonicalUrl = new URL(canonicalPath, BASE_URL).toString();
     const imageUrl = image.startsWith("http") ? image : new URL(image, BASE_URL).toString();
@@ -46,7 +48,7 @@ const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jso
     ensureMetaTag('meta[name="description"]', { name: "description" }).content = description;
     ensureMetaTag('meta[property="og:title"]', { property: "og:title" }).content = title;
     ensureMetaTag('meta[property="og:description"]', { property: "og:description" }).content = description;
-    ensureMetaTag('meta[property="og:type"]', { property: "og:type" }).content = "website";
+    ensureMetaTag('meta[property="og:type"]', { property: "og:type" }).content = ogType;
     ensureMetaTag('meta[property="og:url"]', { property: "og:url" }).content = canonicalUrl;
     ensureMetaTag('meta[property="og:image"]', { property: "og:image" }).content = imageUrl;
     ensureMetaTag('meta[name="twitter:card"]', { name: "twitter:card" }).content = "summary_large_image";
@@ -68,7 +70,7 @@ const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jso
       script.text = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [canonicalPath, description, image, jsonLd, noindex, title]);
+  }, [canonicalPath, description, image, jsonLd, noindex, ogType, title]);
 
   return null;
 };

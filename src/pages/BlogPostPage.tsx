@@ -50,12 +50,35 @@ const BlogPostPage = () => {
     return [...explicit, ...fallback].filter((candidate, index, array) => array.findIndex((item) => item.id === candidate.id) === index).slice(0, 3);
   }, [allPosts, post]);
 
+  // Some covers are stored as data URIs; crawlers need a real URL.
+  const shareImage = post?.cover_image_url?.startsWith("http") ? post.cover_image_url : undefined;
+
+  const articleJsonLd = useMemo(() => {
+    if (!post?.slug || !post.published_at) return undefined;
+    const url = `https://www.classicvisions.net/blog/${post.slug}`;
+    return {
+      "@context": "https://schema.org",
+      "@type": post.entry_type === "newsletter" ? "Article" : "NewsArticle",
+      headline: post.title,
+      description: post.seo_description || post.excerpt || undefined,
+      image: shareImage ? [shareImage] : undefined,
+      datePublished: post.published_at,
+      dateModified: post.updated_at || post.published_at,
+      mainEntityOfPage: url,
+      author: { "@type": post.author_name ? "Person" : "Organization", name: post.author_name || "Classic Visions" },
+      publisher: { "@type": "Organization", name: "Classic Visions", url: "https://www.classicvisions.net" },
+    };
+  }, [post, shareImage]);
+
   return (
     <div className="min-h-screen bg-background">
       <Seo
         title={post ? `${post.seo_title || post.title} | Classic Visions` : "Blog | Classic Visions"}
         description={post?.seo_description || post?.excerpt || "Classic Visions editorial blog post"}
         canonicalPath={post?.slug ? `/blog/${post.slug}` : "/blog"}
+        image={shareImage}
+        ogType={post ? "article" : "website"}
+        jsonLd={articleJsonLd}
       />
       <Header />
 
