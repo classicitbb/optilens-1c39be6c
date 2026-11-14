@@ -18,6 +18,7 @@ const footerColumns = [
       { label: "Professionals", to: "/professionals" },
       { label: "Patients", to: "/patients" },
       { label: "Find a Retailer", to: "/find-a-retailer" },
+      { label: "News & Insights", to: "/blog" },
     ],
   },
   {
@@ -44,6 +45,7 @@ const footerColumns = [
       { label: "Facebook", href: "https://www.facebook.com/classicvisionscb" },
       { label: "Instagram", href: "https://www.instagram.com/classicvisionscb" },
       { label: "LinkedIn", href: "https://www.linkedin.com/company/classic-visions/" },
+      { label: "Add us on Google", href: "https://www.google.com/preferences/source?q=classicvisions.net" },
     ],
   },
 ] as const;

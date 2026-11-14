@@ -213,7 +213,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Hero                                                              */}
         {/* ---------------------------------------------------------------- */}
-        <section data-sc-act="flow" className="relative isolate overflow-hidden bg-surface-deep text-surface-deep-foreground" aria-labelledby="hero-heading">
+        <section data-sc-act="flow" className="sect-deep relative isolate overflow-hidden bg-surface-deep text-surface-deep-foreground" aria-labelledby="hero-heading">
           <div className="container relative mx-auto grid max-w-[1500px] gap-0 px-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:px-0">
             <div className="flex min-w-0 flex-col justify-center pt-24 pb-10 sm:pt-28 sm:pb-14 lg:pb-16 lg:pl-12 lg:pr-10 lg:pt-28 xl:pl-16">
               <Eyebrow>
@@ -234,11 +234,23 @@ const HomePage = () => {
               </p>
 
               {/* Audience switch */}
-              <div className="mt-8 max-w-2xl rounded-xl border border-surface-deep-foreground/15 p-2 sm:p-2.5">
+              <div className="mt-8 max-w-2xl rounded-2xl border border-surface-deep-foreground/15 bg-surface-deep-foreground/[0.05] p-2 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.6)] backdrop-blur-md sm:p-2.5">
                 <p className="px-3 pb-2 pt-1 text-sm text-surface-deep-foreground/70">
                   I'm here as…
                 </p>
-                <div className="grid grid-cols-2 gap-2" role="group" aria-label="Choose your path">
+                <div
+                  className="relative grid grid-cols-2 rounded-xl bg-surface-deep/70 p-1 ring-1 ring-inset ring-surface-deep-foreground/10"
+                  role="group"
+                  aria-label="Choose your path"
+                >
+                  {/* Sliding highlight — moves under the active choice. */}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-surface-deep-foreground shadow-medium transition-transform duration-300 ease-out",
+                      audience === "visitor" && "translate-x-full",
+                    )}
+                  />
                   {(
                     [
                       { key: "professional", label: "Optical professional", icon: Glasses },
@@ -251,10 +263,10 @@ const HomePage = () => {
                       aria-pressed={audience === key}
                       onClick={() => setAudience(key)}
                       className={cn(
-                        "flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-center text-[0.8125rem] font-semibold leading-tight transition sm:gap-2 sm:px-3 sm:text-base",
+                        "relative z-10 flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-center text-[0.8125rem] font-semibold leading-tight transition-colors duration-300 sm:gap-2 sm:px-3 sm:text-base",
                         audience === key
-                          ? "bg-background text-foreground shadow-medium"
-                          : "text-surface-deep-foreground/85 hover:bg-surface-deep-foreground/10",
+                          ? "text-surface-deep"
+                          : "text-surface-deep-foreground/80 hover:text-surface-deep-foreground",
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -263,7 +275,7 @@ const HomePage = () => {
                   ))}
                 </div>
 
-                <div key={audience} className="mt-2 animate-fade-in rounded-lg bg-card p-5 text-card-foreground sm:p-6">
+                <div key={audience} className="mt-2 animate-fade-in rounded-xl bg-card p-5 text-card-foreground shadow-[0_16px_36px_-18px_rgba(0,0,0,0.55)] sm:p-6">
                   <Eyebrow>{path.eyebrow}</Eyebrow>
                   <h2 className="mt-3 font-serif text-2xl font-semibold tracking-[-0.015em] sm:text-[1.75rem]">
                     {path.title}
@@ -371,7 +383,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* What we supply                                                    */}
         {/* ---------------------------------------------------------------- */}
-        <section className="bg-background py-20 sm:py-24" aria-labelledby="capabilities-heading">
+        <section className="sect-glow bg-background py-20 sm:py-24" aria-labelledby="capabilities-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="capabilities-heading"
@@ -411,7 +423,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Lens & coating explorer — internal link equity                     */}
         {/* ---------------------------------------------------------------- */}
-        <section className="border-y border-border bg-muted/40 py-20 sm:py-24" aria-labelledby="explorer-heading">
+        <section className="sect-dots border-y border-border bg-background py-20 sm:py-24" aria-labelledby="explorer-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="explorer-heading"
@@ -452,7 +464,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Onboarding path                                                    */}
         {/* ---------------------------------------------------------------- */}
-        {!portalAccess && <section className="bg-background py-20 sm:py-24" aria-labelledby="onboarding-heading">
+        {!portalAccess && <section className="sect-glow bg-background py-20 sm:py-24" aria-labelledby="onboarding-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="onboarding-heading"
@@ -490,7 +502,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Support promise                                                    */}
         {/* ---------------------------------------------------------------- */}
-        <section className="border-y border-border bg-surface-deep py-20 text-surface-deep-foreground sm:py-24" aria-labelledby="support-heading">
+        <section className="sect-deep border-y border-border bg-surface-deep py-20 text-surface-deep-foreground sm:py-24" aria-labelledby="support-heading">
           <div className="container relative mx-auto px-5 sm:px-8">
             <div className="grid gap-12 lg:grid-cols-[.85fr_1.15fr] lg:gap-16">
               <div>
@@ -548,7 +560,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Patient view — how to get our lenses                              */}
         {/* ---------------------------------------------------------------- */}
-        <section className="bg-background py-20 sm:py-24" aria-labelledby="journey-heading">
+        <section className="sect-glow bg-background py-20 sm:py-24" aria-labelledby="journey-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="journey-heading"
@@ -583,7 +595,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Patient view — plain-English guides                               */}
         {/* ---------------------------------------------------------------- */}
-        <section className="border-y border-border bg-muted/40 py-20 sm:py-24" aria-labelledby="guides-heading">
+        <section className="sect-dots border-y border-border bg-background py-20 sm:py-24" aria-labelledby="guides-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="guides-heading"
@@ -617,7 +629,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Patient view — lens options to ask about                          */}
         {/* ---------------------------------------------------------------- */}
-        <section className="bg-background py-20 sm:py-24" aria-labelledby="patient-lenses-heading">
+        <section className="sect-glow bg-background py-20 sm:py-24" aria-labelledby="patient-lenses-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="patient-lenses-heading"
@@ -661,7 +673,7 @@ const HomePage = () => {
         {/* Trade partner voices — rendered only when real quotes exist        */}
         {/* ---------------------------------------------------------------- */}
         {isProfessional && PLACEHOLDERS.testimonials.length > 0 ? (
-        <section className="bg-background py-20 sm:py-24" aria-labelledby="voices-heading">
+        <section className="sect-glow bg-background py-20 sm:py-24" aria-labelledby="voices-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="voices-heading"
@@ -691,7 +703,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* FAQ — the AEO surface                                             */}
         {/* ---------------------------------------------------------------- */}
-        <section className="border-y border-border bg-muted/40 py-20 sm:py-24" aria-labelledby="faq-heading">
+        <section className="sect-dots border-y border-border bg-background py-20 sm:py-24" aria-labelledby="faq-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-16">
               <div className="lg:sticky lg:top-28 lg:self-start">
@@ -753,7 +765,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Closing CTA — one per audience                                     */}
         {/* ---------------------------------------------------------------- */}
-        <section className="relative isolate overflow-hidden bg-surface-deep py-20 text-surface-deep-foreground sm:py-24" aria-labelledby="cta-heading">
+        <section className="sect-deep relative isolate overflow-hidden bg-surface-deep py-20 text-surface-deep-foreground sm:py-24" aria-labelledby="cta-heading">
           <div className="container relative mx-auto max-w-4xl px-5 text-center sm:px-8">
             <h2
               id="cta-heading"

@@ -32,6 +32,14 @@ pg_cron (`purge_live_data_gateway`), not on each poll.
 | `innovations.customer_account` | Innovations MSSQL | Statements |
 | `innovations.customer_statement` | Innovations MSSQL | Statements |
 | `optilens.customer_deliveries` | OptiLens app MSSQL | Private orders |
+| `innovations.all_orders` | Innovations MSSQL | Staff only, all customers (admin Orders → Active Rx) |
+| `optilens.all_deliveries` | OptiLens app MSSQL | Staff only, all customers (admin Orders → Shipments) |
+
+The two `all_*` operations are not tied to a customer: the edge function accepts
+them from `admin`/`operator` users only, stores the request with a null
+`website_customer_id`, and queues it only when a recently seen agent advertises
+the capability. Their request/response contract is in
+`agent-spec-all-customer-live-data.md`.
 
 Any new operation must be added explicitly to the edge function, migration
 constraint, local dispatcher, agent capabilities, and integration tests.

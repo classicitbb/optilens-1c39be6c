@@ -5,7 +5,9 @@ export type LiveDataOperation =
   | "innovations.customer_statement"
   | "innovations.customer_invoice"
   | "innovations.customer_orders"
-  | "optilens.customer_deliveries";
+  | "optilens.customer_deliveries"
+  | "innovations.all_orders"
+  | "optilens.all_deliveries";
 
 type GatewayEnvelope<T> = {
   request_id: string;

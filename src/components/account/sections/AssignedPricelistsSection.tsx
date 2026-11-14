@@ -388,7 +388,7 @@ const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPriceli
   };
 
   const accordionTriggerClass =
-    "rounded-md bg-secondary px-4 py-3 text-sm font-bold uppercase tracking-wide text-secondary-foreground transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-secondary-foreground";
+    "rounded-md bg-secondary px-4 py-3 text-sm font-bold uppercase tracking-wide text-secondary-foreground transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none aria-expanded:rounded-b-none aria-expanded:[&>svg]:rotate-180 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-secondary-foreground";
 
   const countBadge = (count: number, noun: string) => (
     <span className="rounded-full bg-secondary-foreground/15 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-secondary-foreground">
