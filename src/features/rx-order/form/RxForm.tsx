@@ -491,7 +491,7 @@ function LoadedForm({
   const locked = props.lockedAccountId != null;
 
   return (
-    <div className={cn("mx-auto w-full max-w-6xl px-4 pb-24 pt-4 lg:pb-8", props.surface === "portal" && "min-h-0 flex-1 overflow-y-auto overscroll-contain pt-0 [scrollbar-gutter:stable]")} data-testid="rx-form" data-rx-form data-rx-scroll-frame={props.surface === "portal" || undefined} onKeyDown={onFormKeyDown} onFocusCapture={onFormFocus}>
+    <div className={cn("w-full pb-24 lg:pb-8", props.surface === "portal" ? "min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]" : "mx-auto max-w-6xl px-4 pt-4")} data-testid="rx-form" data-rx-form data-rx-scroll-frame={props.surface === "portal" || undefined} onKeyDown={onFormKeyDown} onFocusCapture={onFormFocus}>
       {confirmDialog}
       {props.surface === "portal" && <RxStickyLayout />}
       {props.introduction && <p className="mb-3 text-sm text-muted-foreground">{props.introduction}</p>}

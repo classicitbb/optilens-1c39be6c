@@ -318,7 +318,6 @@
     height: 44rem;
     border-radius: 9999px;
     background: radial-gradient(circle, hsl(var(--secondary) / 0.28), transparent 68%);
-    filter: blur(40px);
   }
   .sect-glow::after {
     bottom: -10rem;
@@ -327,7 +326,6 @@
     height: 46rem;
     border-radius: 9999px;
     background: radial-gradient(circle, hsl(var(--accent) / 0.26), transparent 68%);
-    filter: blur(48px);
   }
 
   /* Tinted band: vertical wash plus a dot grid that fades out toward the edges. */
@@ -348,7 +346,6 @@
     height: 26rem;
     transform: translateX(-50%);
     background: radial-gradient(ellipse, hsl(var(--secondary) / 0.2), transparent 70%);
-    filter: blur(44px);
   }
 
   /* Deep navy band: corner glows and a faint blueprint grid. */
@@ -373,7 +370,18 @@
     height: 22rem;
     transform: translateX(-50%);
     background: radial-gradient(ellipse, hsl(var(--secondary) / 0.32), transparent 70%);
-    filter: blur(50px);
+  }
+
+  /* Decoration only: drop it for high-contrast users and print. */
+  @media (forced-colors: active), print {
+    .sect-glow::before,
+    .sect-glow::after,
+    .sect-dots::before,
+    .sect-dots::after,
+    .sect-deep::before,
+    .sect-deep::after {
+      display: none;
+    }
   }
 
   .text-gradient {

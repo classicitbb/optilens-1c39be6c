@@ -108,6 +108,8 @@ describe("QuoteFormSection", () => {
     renderSection();
 
     expect(await screen.findByText("Twenty progressive lenses", { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Quote Requests" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: /last saved|requested/i })).toBeInTheDocument();
     expect(screen.getByText("Helpdesk PTL-ABC123 · New")).toBeInTheDocument();
     expect(screen.getByText("Legacy request · No Helpdesk conversation")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /view conversation/i })).toHaveLength(1);
