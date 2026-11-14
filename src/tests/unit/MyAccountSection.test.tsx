@@ -118,7 +118,7 @@ describe("MyAccountSection", () => {
   it("persists an organization to both the profile row and auth metadata", async () => {
     renderSection();
     fireEvent.click(await screen.findByRole("button", { name: "Edit organization" }));
-    const input = screen.getByRole("textbox", { name: "" });
+    const input = screen.getByRole("textbox", { name: "Organization" });
     fireEvent.change(input, { target: { value: "Bridgetown Eyecare" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
@@ -131,7 +131,7 @@ describe("MyAccountSection", () => {
   it("requires an organization and refuses to save it blank", async () => {
     renderSection();
     fireEvent.click(await screen.findByRole("button", { name: "Edit organization" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "" }), { target: { value: "" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Organization" }), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save organization" }));
 
     await vi.waitFor(() => expect(mocks.toast).toHaveBeenCalledWith(
