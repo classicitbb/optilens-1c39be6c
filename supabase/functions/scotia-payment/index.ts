@@ -38,7 +38,7 @@ import {
 } from "../_shared/scotia/ipgConnect.ts";
 // Config resolution (StoreID/SharedSecret lookup) is shared with scotia-return
 // so both functions resolve credentials identically. See _shared/scotia/config.ts.
-import { getScotiaConfig as getConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/scotia/config.ts";
+import { customerLinkOrigin, getScotiaConfig as getConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/scotia/config.ts";
 import {
   classifyProbeHtml,
   logScotiaEvent,
@@ -382,8 +382,7 @@ Deno.serve(async (req) => {
       }
 
       const record = published as { id: string; token: string };
-      const origin = req.headers.get("origin") ?? Deno.env.get("SCOTIA_SITE_ORIGIN")
-        ?? "https://classicvisions.net";
+      const origin = customerLinkOrigin(req);
       const outcome = await sendWalkInPaymentRequest(supabaseAdmin as never, {
         paymentId: record.id,
         token: record.token,

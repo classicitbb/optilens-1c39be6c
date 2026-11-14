@@ -68,3 +68,20 @@ export async function getScotiaConfig(): Promise<ScotiaConfig> {
 export function siteOrigin(): string {
   return Deno.env.get("SCOTIA_SITE_ORIGIN") ?? "https://classicvisions.net";
 }
+
+/** Unpublished development hosts: local dev servers and Lovable preview builds. */
+const DEV_ORIGIN_PATTERNS = [
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/,
+  /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
+  /^https:\/\/id-preview--[a-z0-9-]+\.lovable\.app$/,
+];
+
+/**
+ * Origin to put in links sent to customers (payment emails). Always the live
+ * site, unless the request came from an unpublished development build, so a
+ * link tested from a preview opens that same preview.
+ */
+export function customerLinkOrigin(req: Request): string {
+  const requested = (req.headers.get("origin") ?? "").replace(/\/$/, "");
+  return DEV_ORIGIN_PATTERNS.some((p) => p.test(requested)) ? requested : siteOrigin();
+}
