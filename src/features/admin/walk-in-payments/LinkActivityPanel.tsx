@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/functionErrors";
 
 type LinkRow = {
   id: string;
@@ -162,8 +163,9 @@ const LinkActivityPanel = () => {
           replacesPaymentId: resendTarget.id,
         },
       });
-      const detail = (data as { error?: string } | null)?.error;
-      if (error || detail) throw new Error(detail || error?.message || "Could not resend the request.");
+      if (error || (data as { error?: string } | null)?.error) {
+        throw new Error(await functionErrorMessage(error, data, "Could not resend the request."));
+      }
       toast({
         title: "New payment request sent",
         description: `The old link no longer works. ${resendTarget.customer_email} has the new one.`,

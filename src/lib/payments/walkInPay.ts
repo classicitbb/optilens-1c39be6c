@@ -11,6 +11,7 @@
 // ============================================================
 
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/functionErrors";
 import type { PreparedPayment } from "@/lib/payments/scotiaConnect";
 
 /** What a customer is shown so they can recognise their own payment. */
@@ -37,8 +38,7 @@ async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   // in the response body — surface that rather than "Edge Function returned a
   // non-2xx status code".
   if (error) {
-    const detail = (data as { error?: string } | null)?.error;
-    throw new Error(detail || error.message || "Something went wrong.");
+    throw new Error(await functionErrorMessage(error, data, "Something went wrong."));
   }
   if ((data as { error?: string } | null)?.error) {
     throw new Error((data as { error: string }).error);
