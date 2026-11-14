@@ -27,7 +27,7 @@ export default function StoreProductImage({ imageUrl, name, productType, categor
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const generic = !resolved || failedUrl === resolved;
   return (
-    <div className={cn("relative overflow-hidden bg-[#e7f0f2]", className)}>
+    <div className={cn("relative overflow-hidden", generic ? "bg-[#e7f0f2]" : "bg-white", className)}>
       <img
         src={generic ? getGenericProductImage(productType, category) : resolved}
         alt={generic ? `Generic category illustration for ${name}` : name}

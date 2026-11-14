@@ -63,15 +63,38 @@ const ProductCard = ({
 
   const list = layout === "list";
   const category = product.product_type === "supply" ? SUPPLY_CATEGORY_LABELS[product.category] || product.category : product.category;
+  const priceUnit = product.product_type === "lens" ? "pair" : product.product_type === "addon" ? "service" : "unit";
+  const manageButton = (size: 8 | 11) => (
+    <Button variant="outline" size="icon" className={`shrink-0 ${size === 8 ? "h-8 w-8" : "h-11 w-11"}`} asChild>
+      <Link to={getProductHubRoute(product.product_type, product.id)} aria-label={`Manage ${product.name}`}><Settings className="h-4 w-4" /></Link>
+    </Button>
+  );
+  const actions = user ? <>
+    <div className={`flex ${list ? "flex-col-reverse items-start gap-0.5" : "mb-4 items-end justify-between gap-3"}`}>
+      <p className={`font-semibold tabular-nums text-foreground ${list ? "text-xl" : "text-2xl"}`}>${product.sell_price_usd.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">USD / {priceUnit}</span></p>
+      {isTradeCustomer && <span className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Trade price</span>}
+    </div>
+    <div className={`flex gap-2 ${list ? "sm:w-56 lg:w-full" : "border-t border-border/60 pt-4"}`}>
+      <Button variant="hero" className="min-h-11 flex-1" onClick={handleAdd} aria-label={`${product.has_variants ? "Choose options for" : "Add to cart:"} ${product.name}`}>
+        <ShoppingCart className="h-4 w-4" aria-hidden="true" />{product.has_variants ? "Choose options" : "Add to cart"}
+      </Button>
+      {canEdit && !list && manageButton(11)}
+    </div>
+  </> : <div className={list ? "space-y-3 sm:flex sm:w-full sm:items-center sm:justify-between sm:gap-3 sm:space-y-0 lg:block lg:space-y-3" : "space-y-3 border-t border-border/60 pt-4"}>
+    <p className="flex items-center gap-2 text-sm text-muted-foreground"><Lock className="h-3.5 w-3.5" aria-hidden="true" />Sign in for pricing</p>
+    <Button variant="outline" className={`min-h-11 w-full ${list ? "sm:w-56 lg:w-full" : ""}`} asChild><Link to={createAuthHref({ mode: "signin", audience: "professional", intent: "products", redirect: getStoreProductRoute(product) })}>Sign in to order</Link></Button>
+  </div>;
+
   return (
-    <Card className={`group overflow-hidden border-border/70 bg-card shadow-sm transition-shadow hover:shadow-lg ${list ? "flex flex-col sm:flex-row" : "flex h-full flex-col"}`}>
-      <Link to={getStoreProductRoute(product)} className={`block shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary ${list ? "sm:w-44" : ""}`} aria-label={`View ${product.name}`}>
-        <StoreProductImage imageUrl={product.image_url} name={product.name} productType={product.product_type} category={product.category} className={list ? "h-40 sm:h-full sm:min-h-44" : "aspect-[3/2] w-full"} showCaption={!list} />
+    <Card className={`group overflow-hidden border-border/70 bg-card shadow-sm transition-shadow hover:shadow-lg ${list ? "grid sm:grid-cols-[11rem_minmax(0,1fr)] lg:grid-cols-[13rem_minmax(0,1fr)_15rem]" : "flex h-full flex-col"}`}>
+      <Link to={getStoreProductRoute(product)} className={`block shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary ${list ? "sm:self-start" : ""}`} aria-label={`View ${product.name}`}>
+        <StoreProductImage imageUrl={product.image_url} name={product.name} productType={product.product_type} category={product.category} className="aspect-[3/2] w-full" showCaption={!list} />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col p-5">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="font-medium capitalize text-secondary">{category}</span>
           {product.has_variants && <span className="rounded-full border border-border px-2 py-0.5">Choose options</span>}
+          {list && canEdit && <span className="ml-auto">{manageButton(8)}</span>}
         </div>
         <h3 className="text-lg font-semibold leading-snug text-foreground">
           <Link to={getStoreProductRoute(product)} className="rounded-sm hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary">{product.name}</Link>
@@ -80,24 +103,9 @@ const ProductCard = ({
         <div className="mt-3 flex flex-wrap gap-1.5">
           {product.tags.slice(0, 3).map((tag) => <span key={tag} className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">{tag}</span>)}
         </div>
-        <div className="mt-auto pt-5">
-          {user ? <>
-            <div className="mb-4 flex items-end justify-between gap-3">
-              <p className="text-2xl font-semibold tabular-nums text-foreground">${product.sell_price_usd.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">USD / {product.product_type === "lens" ? "pair" : product.product_type === "addon" ? "service" : "unit"}</span></p>
-              {isTradeCustomer && <span className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Trade price</span>}
-            </div>
-            <div className="flex gap-2 border-t border-border/60 pt-4">
-              <Button variant="hero" className="min-h-11 flex-1" onClick={handleAdd} aria-label={`${product.has_variants ? "Choose options for" : "Add to cart:"} ${product.name}`}>
-                <ShoppingCart className="h-4 w-4" aria-hidden="true" />{product.has_variants ? "Choose options" : "Add to cart"}
-              </Button>
-              {canEdit && <Button variant="outline" size="icon" className="h-11 w-11" asChild><Link to={getProductHubRoute(product.product_type, product.id)} aria-label={`Manage ${product.name}`}><Settings className="h-4 w-4" /></Link></Button>}
-            </div>
-          </> : <div className="space-y-3 border-t border-border/60 pt-4">
-            <p className="flex items-center gap-2 text-sm text-muted-foreground"><Lock className="h-3.5 w-3.5" aria-hidden="true" />Sign in for pricing</p>
-            <Button variant="outline" className="min-h-11 w-full" asChild><Link to={createAuthHref({ mode: "signin", audience: "professional", intent: "products", redirect: getStoreProductRoute(product) })}>Sign in to order</Link></Button>
-          </div>}
-        </div>
+        {!list && <div className="mt-auto pt-5">{actions}</div>}
       </div>
+      {list && <div className="flex flex-col justify-center gap-3 border-t border-border/60 p-5 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between lg:col-span-1 lg:flex-col lg:items-stretch lg:justify-center lg:border-l lg:border-t-0">{actions}</div>}
     </Card>
   );
 };
@@ -114,7 +122,9 @@ const Store = () => {
   const { tradePricing, customerId: tradeCustomerId, isTradeCustomer } = useTradePricing();
   const { data: products, isLoading, isError, refetch } = useStoreProducts(tradePricing, tradeCustomerId);
 
-  const filtered = useMemo(() => {
+  const tabOf = (p: StoreProduct) => (p.product_type === "lens" ? "lenses" : p.product_type === "supply" ? "supplies" : "services");
+
+  const searched = useMemo(() => {
     const categorySlug = initialCategory.toLowerCase();
     // Map landing-page collection slugs to product_type so we never render an empty store.
     const categoryToProductType: Record<string, StoreProduct["product_type"]> = {
@@ -127,17 +137,11 @@ const Store = () => {
     };
     const aliasedType = categoryToProductType[categorySlug];
 
-    const result = (products || []).filter((p) => {
+    return (products || []).filter((p) => {
       const matchesSearch =
         !searchTerm ||
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesTab =
-        activeTab === "all" ||
-        (activeTab === "lenses" && p.product_type === "lens") ||
-        (activeTab === "supplies" && p.product_type === "supply") ||
-        (activeTab === "services" && p.product_type === "addon");
 
       const matchesCategory =
         !categorySlug ||
@@ -147,13 +151,22 @@ const Store = () => {
             p.subcategory.toLowerCase() === categorySlug ||
             p.tags.some((t) => t.toLowerCase() === categorySlug));
 
-      return matchesSearch && matchesTab && matchesCategory;
+      return matchesSearch && matchesCategory;
     });
+  }, [initialCategory, products, searchTerm]);
 
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: searched.length, lenses: 0, supplies: 0, services: 0 };
+    searched.forEach((p) => { counts[tabOf(p)] += 1; });
+    return counts;
+  }, [searched]);
+
+  const filtered = useMemo(() => {
+    const result = activeTab === "all" ? searched : searched.filter((p) => tabOf(p) === activeTab);
     return [...result].sort((a, b) =>
       sortMode === "name" ? a.name.localeCompare(b.name) : sortMode === "price_low_high" ? a.sell_price_usd - b.sell_price_usd : b.sell_price_usd - a.sell_price_usd,
     );
-  }, [activeTab, initialCategory, products, searchTerm, sortMode]);
+  }, [activeTab, searched, sortMode]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -175,9 +188,9 @@ const Store = () => {
         <div className="container mx-auto px-4 lg:px-8">
           <div className="mb-8 flex flex-col justify-between gap-6 rounded-2xl border border-border/60 bg-card p-6 sm:p-9 md:flex-row md:items-end">
             <div className="max-w-2xl">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Classic Visions · Optical essentials</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">The right products.<br className="hidden sm:block" /> A simpler way to order.</h1>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">Browse stock lenses, optical supplies and lab services. Choose your options, review your cart and order in a few clear steps.</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Classic Visions · Wholesale catalog</p>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Lenses, supplies and lab services</h1>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">Stock lenses, optical supplies and lab services for eye care professionals. Pick a category or search by product name.</p>
             </div>
             <Button variant="outline" className="min-h-11 shrink-0" asChild><Link to="/cart"><ShoppingCart className="h-4 w-4" aria-hidden="true" />View your cart</Link></Button>
           </div>
@@ -186,10 +199,12 @@ const Store = () => {
             <div className="flex flex-col gap-4 rounded-xl bg-card p-4 shadow-soft">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <TabsList className="h-auto flex-wrap justify-start">
-                  <TabsTrigger value="all">All Products</TabsTrigger>
-                  <TabsTrigger value="lenses">Lenses</TabsTrigger>
-                  <TabsTrigger value="supplies">Supplies</TabsTrigger>
-                  <TabsTrigger value="services">Services</TabsTrigger>
+                  {([["all", "All Products"], ["lenses", "Lenses"], ["supplies", "Supplies"], ["services", "Services"]] as const).map(([value, label]) => (
+                    <TabsTrigger key={value} value={value}>
+                      {label}
+                      {!isLoading && <span className="ml-1.5 tabular-nums text-muted-foreground">{tabCounts[value]}</span>}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -198,7 +213,7 @@ const Store = () => {
                     aria-label="Search products"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="h-11 pl-10 text-sm"
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
@@ -234,8 +249,8 @@ const Store = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground" aria-live="polite">
-              <span>{isLoading ? "Loading products…" : `${filtered.length} products`}</span>
+            <span className="sr-only" aria-live="polite">{isLoading ? "Loading products…" : `${filtered.length} products`}</span>
+            <div className="flex justify-end py-2 empty:hidden">
               {(searchTerm || initialCategory) && <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(""); handleTabChange(activeTab); }}>Clear filters</Button>}
             </div>
             {isError ? <div role="alert" className="rounded-xl border border-border p-8 text-center"><p>Products could not be loaded. Please try again.</p><Button className="mt-4" onClick={() => void refetch()}>Try again</Button></div> : isLoading ? (
@@ -244,7 +259,7 @@ const Store = () => {
               </div>
             ) : (
               <>
-                <TabsContent value={activeTab}>
+                <TabsContent value={activeTab} className="mt-6">
                   <h2 className="sr-only">Product listings</h2>
                   <div className={layout === "grid" ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {filtered.map((product) => (

@@ -114,11 +114,20 @@ const StoreProductPage = () => {
               <nav className="mb-5 flex items-center gap-1 text-xs text-muted-foreground" aria-label="Breadcrumb">
                 <Link to="/store" className="hover:text-foreground transition-colors">Store</Link>
                 <ChevronRight className="h-3 w-3 text-muted-foreground/50" aria-hidden="true" />
-                <span className="capitalize">
+                <Link
+                  to={
+                    product.product_type === "lens"
+                      ? "/store?tab=lenses"
+                      : product.product_type === "supply"
+                        ? `/store?tab=supplies${SUPPLY_CATEGORY_LABELS[product.category] ? `&category=${encodeURIComponent(product.category)}` : ""}`
+                        : "/store?tab=services"
+                  }
+                  className="capitalize hover:text-foreground transition-colors"
+                >
                   {product.product_type === "supply"
                     ? (SUPPLY_CATEGORY_LABELS[product.category] || product.category)
                     : product.category}
-                </span>
+                </Link>
                 <ChevronRight className="h-3 w-3 text-muted-foreground/50" aria-hidden="true" />
                 <span className="font-semibold text-foreground truncate max-w-[200px]">{product.name}</span>
               </nav>
@@ -151,23 +160,22 @@ const StoreProductPage = () => {
                   <div className="space-y-3">
                     <div className="relative flex h-[320px] items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br from-muted/10 to-muted/40 shadow-inner">
                       <StoreProductImage imageUrl={product.image_url} name={product.name} productType={product.product_type} category={product.category} className="h-full w-full" eager />
+                      {product.image_url && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="secondary" size="icon" className="absolute bottom-2 right-2 h-9 w-9" aria-label="Expand image" title="Expand image">
+                              <Expand className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>{product.name}</DialogTitle>
+                            </DialogHeader>
+                            <StoreProductImage imageUrl={product.image_url} name={product.name} productType={product.product_type} category={product.category} className="max-h-[75vh] w-full rounded-md" />
+                          </DialogContent>
+                        </Dialog>
+                      )}
                     </div>
-                    {product.image_url && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="secondary" className="w-full">
-                            <Expand className="h-4 w-4" />
-                            Expand image
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl">
-                          <DialogHeader>
-                            <DialogTitle>{product.name}</DialogTitle>
-                          </DialogHeader>
-                          <StoreProductImage imageUrl={product.image_url} name={product.name} productType={product.product_type} category={product.category} className="max-h-[75vh] w-full rounded-md" />
-                        </DialogContent>
-                      </Dialog>
-                    )}
                   </div>
 
                   {/* Right column: name, tags, price, cart */}
@@ -246,8 +254,8 @@ const StoreProductPage = () => {
                         <h2 className="text-sm font-semibold text-foreground">Select lens powers</h2>
                         <span className="h-px flex-1 bg-border" />
                       </div>
-                      <Card className="w-full border-border/70 bg-muted/20">
-                        <CardContent className="p-3">
+                      <Card className="w-full overflow-hidden rounded-none border-border/70 bg-muted/20">
+                        <CardContent className="p-0">
                           <LensVariantGrid
                             variants={variants}
                             isChiral={isChiralLens}

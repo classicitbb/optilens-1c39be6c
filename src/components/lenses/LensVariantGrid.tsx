@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ShoppingCart } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -18,6 +18,52 @@ interface LensVariantGridProps {
 }
 
 const asNumber = (value: unknown) => Number(value ?? 0);
+
+const QuantityCell = ({
+  value,
+  label,
+  readOnly,
+  outOfStock,
+  onChange,
+}: {
+  value: number | undefined;
+  label: string;
+  readOnly: boolean;
+  outOfStock: boolean;
+  onChange: (next: number) => void;
+}) => (
+  <div
+    className={cn(
+      "group relative h-7 w-full min-w-0",
+      outOfStock && "shadow-[inset_0_0_0_1px_rgb(245_158_11),inset_0_0_8px_1px_rgb(245_158_11/0.55)]",
+    )}
+  >
+    {outOfStock && <AlertTriangle className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-amber-500" aria-hidden="true" />}
+    <Input
+      type="number"
+      min={0}
+      value={value ?? ""}
+      onChange={(event) => onChange(Math.max(0, Number(event.target.value || 0)))}
+      onDoubleClick={() => !readOnly && onChange((value ?? 0) + 1)}
+      className={cn(
+        "h-full rounded-none border-0 bg-transparent pr-5 text-[10px] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+        outOfStock ? "pl-6" : "pl-2",
+      )}
+      disabled={readOnly}
+      aria-label={label}
+    />
+    {!readOnly && (
+      <div className="absolute inset-y-0 right-0 hidden w-4 flex-col border-l border-border/60 bg-background group-focus-within:flex group-hover:flex">
+        <button type="button" tabIndex={-1} aria-label="Increase quantity" onClick={() => onChange((value ?? 0) + 1)} className="flex flex-1 items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground">
+          <ChevronUp className="h-2.5 w-2.5" aria-hidden="true" />
+        </button>
+        <button type="button" tabIndex={-1} aria-label="Decrease quantity" onClick={() => onChange(Math.max(0, (value ?? 0) - 1))} className="flex flex-1 items-center justify-center border-t border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <ChevronDown className="h-2.5 w-2.5" aria-hidden="true" />
+        </button>
+      </div>
+    )}
+  </div>
+);
 
 export const LensVariantGrid = ({
   variants,
@@ -53,10 +99,6 @@ export const LensVariantGrid = ({
 
   const selectedCount = Object.values(quantities).reduce((sum, qty) => sum + (qty > 0 ? qty : 0), 0);
 
-  const incrementQuantity = (variantId: string) => {
-    setQuantities((prev) => ({ ...prev, [variantId]: (prev[variantId] ?? 0) + 1 }));
-  };
-
   const handleAdd = async () => {
     const payload = Object.entries(quantities)
       .filter(([, quantity]) => quantity > 0)
@@ -74,15 +116,15 @@ export const LensVariantGrid = ({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-auto rounded-lg border border-border">
-        <table className="border-collapse text-xs">
+      <div className="overflow-auto">
+        <table className="w-full table-fixed border-collapse text-xs">
           <thead className="sticky top-0 z-10 bg-background">
             <tr>
-              <th className="sticky left-0 z-20 border-b border-r bg-muted/50 px-2 py-1.5 text-left text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+              <th className="sticky left-0 z-20 w-[104px] border-b border-r bg-muted/50 px-2 py-1.5 text-left text-[10px] font-semibold leading-tight text-muted-foreground">
                 {rowLabel} \ {columnLabel}
               </th>
               {cylinders.map((cylinder) => (
-                <th key={cylinder} className="border-b border-r bg-muted/30 px-1 py-1.5 text-center text-[10px] font-semibold text-foreground min-w-[44px]">
+                <th key={cylinder} className="border-b border-r bg-muted/30 px-1 py-1.5 text-center text-[10px] font-semibold text-foreground">
                   {cylinder.toFixed(2)}
                 </th>
               ))}
@@ -102,58 +144,37 @@ export const LensVariantGrid = ({
 
                   if (noVariant) {
                     return (
-                      <td key={`${sphere}:${cylinder}`} className="border-r border-t p-0.5 align-middle">
-                        <div className="flex h-6 w-11 items-center justify-center text-[9px] text-muted-foreground/40">—</div>
+                      <td key={`${sphere}:${cylinder}`} className="border-r border-t p-0 align-middle">
+                        <div className="flex h-7 w-full items-center justify-center text-[9px] text-muted-foreground/40">—</div>
                       </td>
                     );
                   }
 
+                  const cell = (
+                    <QuantityCell
+                      value={quantities[variant.id]}
+                      label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
+                      readOnly={readOnly}
+                      outOfStock={isOutOfStock}
+                      onChange={(next) => setQuantities((prev) => ({ ...prev, [variant.id]: next }))}
+                    />
+                  );
+
                   return (
                     <td key={`${sphere}:${cylinder}`} className={cn(
-                      "border-r border-t p-0.5 align-middle transition-colors",
+                      "border-r border-t p-0 align-middle transition-colors",
                       (quantities[variant.id] ?? 0) > 0 && "bg-secondary/10",
                     )}>
                       {isOutOfStock ? (
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="relative flex items-center">
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  value={quantities[variant.id] ?? ""}
-                                  onChange={(event) => {
-                                    const next = Math.max(0, Number(event.target.value || 0));
-                                    setQuantities((prev) => ({ ...prev, [variant.id]: next }));
-                                  }}
-                                  onDoubleClick={() => !readOnly && incrementQuantity(variant.id)}
-                                  className="h-6 w-11 px-1 text-left text-[10px] ring-1 ring-amber-400/70"
-                                  disabled={readOnly}
-                                  aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
-                                />
-                                <AlertTriangle className="absolute -right-1 -top-1 h-2.5 w-2.5 text-amber-500" />
-                              </div>
-                            </TooltipTrigger>
+                            <TooltipTrigger asChild><div>{cell}</div></TooltipTrigger>
                             <TooltipContent side="top" className="max-w-[180px] text-xs">
                               Out of stock — this order may not be fulfilled
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                      ) : (
-                        <Input
-                          type="number"
-                          min={0}
-                          value={quantities[variant.id] ?? ""}
-                          onChange={(event) => {
-                            const next = Math.max(0, Number(event.target.value || 0));
-                            setQuantities((prev) => ({ ...prev, [variant.id]: next }));
-                          }}
-                          onDoubleClick={() => !readOnly && incrementQuantity(variant.id)}
-                          className="h-6 w-11 px-1 text-left text-[10px]"
-                          disabled={readOnly}
-                          aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
-                        />
-                      )}
+                      ) : cell}
                     </td>
                   );
                 })}
@@ -163,7 +184,7 @@ export const LensVariantGrid = ({
         </table>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 px-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{selectedCount}</span>
           {" "}{selectedCount === 1 ? "item" : "items"} selected
