@@ -17911,6 +17911,20 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_my_contact_shipping_address: {
+        Args: { p_contact_id: string }
+        Returns: {
+          city: string
+          country: string
+          phone: string
+          recipient: string
+          source: string
+          state: string
+          street: string
+          street2: string
+          zip: string
+        }[]
+      }
       get_my_rx_order_status: { Args: { p_quote_id: string }; Returns: Json }
       get_order_dispatch_settings: { Args: never; Returns: Json }
       get_portal_account_memberships: {
@@ -18453,6 +18467,10 @@ export type Database = {
         Args: { p_customer_id?: number }
         Returns: Json
       }
+      portal_user_owns_contact: {
+        Args: { p_contact_id: string }
+        Returns: boolean
+      }
       profile_privileged_fields_match: {
         Args: {
           _crm_contact_id: string
@@ -18944,6 +18962,18 @@ export type Database = {
       }
       update_api_key_scopes: {
         Args: { p_id: string; p_scopes: string[] }
+        Returns: undefined
+      }
+      update_my_contact_shipping_address: {
+        Args: {
+          p_city: string
+          p_contact_id: string
+          p_country: string
+          p_state: string
+          p_street: string
+          p_street2: string
+          p_zip: string
+        }
         Returns: undefined
       }
       upsert_ai_agent_settings: {
