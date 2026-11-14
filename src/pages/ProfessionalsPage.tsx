@@ -25,7 +25,7 @@ const tradeBenefits = [
 
 const whyClassicVisions = [
   "We support independent opticians, clinics, and multi-location retailers with tools that help staff sell more confidently and serve patients faster.",
-  "We combine trade account onboarding, LabLink ordering, technical education, and service support in one place so practices are not left piecing the relationship together themselves.",
+  "We combine trade account onboarding, online ordering, technical education, and service support in one place so practices are not left piecing the relationship together themselves.",
   "We position the partnership around consistency, responsiveness, and practical regional knowledge rather than a generic wholesale catalog experience.",
 ];
 
@@ -99,7 +99,7 @@ const ProfessionalsPage = () => {
       <span data-sc-progress aria-hidden="true" />
       <Seo
         title="Trade Account & Professional Resources | Classic Visions"
-        description="Access trade account onboarding, LabLink ordering, order tracking, pricing requests, and technical resources built for optical stores and clinics."
+        description="Access trade account onboarding, online ordering, order tracking, pricing requests, and technical resources built for optical stores and clinics."
         canonicalPath="/professionals"
       />
       <Header />

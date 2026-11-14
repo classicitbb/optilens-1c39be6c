@@ -391,7 +391,7 @@ const MyAccountSection = () => {
 
   if (loading) {
     return (
-      <div className="max-w-3xl space-y-4" role="status" aria-label="Loading your profile">
+      <div className="space-y-4" role="status" aria-label="Loading your profile">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-28 w-full rounded-lg" />
         <Skeleton className="h-64 w-full rounded-lg" />
@@ -462,7 +462,7 @@ const MyAccountSection = () => {
         </div>
       </div>
 
-      <div className="max-w-3xl space-y-3">
+      <div className="space-y-3">
           <Card className={`overflow-hidden shadow-sm ${completionPercent < 100 ? "border-amber-400/50 bg-amber-50/40 dark:bg-amber-950/20" : "border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/20"}`}>
             <CardContent className="space-y-2 p-3">
               <div className="flex items-center justify-between gap-3">

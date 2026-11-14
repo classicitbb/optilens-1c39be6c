@@ -621,13 +621,8 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
               </Button>
 
               {!user ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="hidden sm:inline-flex"
-                  onClick={() => openAssistant({ formKind: "trade_signup" })}
-                >
-                  Create a trade account
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex" asChild>
+                  <Link to="/professionals/trade-account">Create a trade account</Link>
                 </Button>
               ) : null}
 

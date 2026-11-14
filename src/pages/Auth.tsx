@@ -6,6 +6,7 @@ import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { lovable } from "@/integrations/lovable/index";
 import { useForm } from "react-hook-form";
+import Seo from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -486,6 +487,12 @@ const Auth = () => {
 
   return (
     <div className={`min-h-screen text-foreground ${isReturningVisitor ? "bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.12),_transparent_42%),linear-gradient(145deg,_hsl(var(--background)),_hsl(var(--muted)/0.65))]" : "bg-background"}`}>
+      <Seo
+        title={mode === "signup" ? "Create a Trade Account | Classic Visions" : "Sign In | Classic Visions"}
+        description="Sign in to or create your Classic Visions trade account."
+        canonicalPath="/auth"
+        noindex
+      />
       <main id="main-content" className={`mx-auto flex min-h-screen flex-col justify-center px-4 py-6 sm:py-8 ${isReturningVisitor ? "max-w-xl" : "max-w-2xl"}`}>
         <div className={`relative overflow-hidden border bg-card ${isReturningVisitor ? "rounded-3xl p-6 shadow-2xl shadow-primary/10 sm:p-8" : "rounded-2xl p-5 shadow-sm sm:p-6"}`}>
           {isReturningVisitor ? <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" aria-hidden="true" /> : null}

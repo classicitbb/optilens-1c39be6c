@@ -111,7 +111,7 @@ const AccountLayout = () => {
           </Tooltip>
         </aside>
 
-        <main className={`mx-auto min-w-0 w-full flex-1 ${isRxOrder ? "flex min-h-0 max-w-[1200px] flex-col" : "max-w-[1280px]"}`}>
+        <main className={`mx-auto min-w-0 w-full flex-1 max-w-[1280px] ${isRxOrder ? "flex min-h-0 flex-col" : ""}`}>
           <Outlet />
         </main>
       </div>

@@ -1,12 +1,29 @@
 import { useLocation, useNavigate } from "react-router";
-import { FileSignature, MessageCircle, MessageSquareText } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MessageCircle, MessageSquareText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { AccountListTable, type AccountListColumn } from "@/components/account/AccountListTable";
+
+const formatDate = (s: string) => new Date(s).toLocaleString();
+const humanize = (s: string) => s.replace(/_/g, " ").toLowerCase();
+
+interface QuoteRow {
+  id: string;
+  quote_number: string;
+  status: string;
+  quote_type: string;
+  created_at: string;
+  customer_name: string;
+  notes_customer: string | null;
+  account_id: number | null;
+  helpdesk_ticket_id: string | null;
+  ticket: { id: string; ticket_number: string; closed_at: string | null; stage?: { name: string; is_closed: boolean } | null } | null;
+}
 
 const QuoteFormSection = () => {
   const { user } = useAuth();
@@ -19,7 +36,7 @@ const QuoteFormSection = () => {
   const navigate = useNavigate();
   const { openAssistant } = useCompanionAssistant();
   const activeCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : null;
-  const { data: quotes = [], isLoading } = useQuery({
+  const { data: quotes = [], isLoading } = useQuery<QuoteRow[]>({
     queryKey: ["customer-quotes", emulation?.userId ?? user?.id, activeCustomerId],
     enabled: !!user,
     queryFn: async () => {
@@ -66,50 +83,55 @@ const QuoteFormSection = () => {
     },
   });
 
+  const columns: AccountListColumn<QuoteRow>[] = [
+    {
+      key: "name",
+      label: "Request",
+      sortValue: (q) => q.quote_number,
+      className: "max-w-sm px-4 py-3",
+      render: (q) => (
+        <>
+          <p className="truncate font-medium">{q.quote_number} · {q.customer_name || "Quote request"}</p>
+          {q.notes_customer ? <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{q.notes_customer}</p> : null}
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {q.ticket
+              ? `Helpdesk ${q.ticket.ticket_number} · ${q.ticket.closed_at || q.ticket.stage?.is_closed ? "Closed" : q.ticket.stage?.name || "Open"}`
+              : "Legacy request · No Helpdesk conversation"}
+          </p>
+        </>
+      ),
+    },
+    { key: "type", label: "Type", sortValue: (q) => q.quote_type, className: "px-4 py-3 capitalize text-muted-foreground", render: (q) => humanize(q.quote_type) },
+    { key: "status", label: "Status", sortValue: (q) => q.status, render: (q) => <Badge variant="secondary" className="capitalize text-[10px]">{humanize(q.status)}</Badge> },
+    { key: "updated", label: "Requested", sortValue: (q) => new Date(q.created_at).getTime(), className: "whitespace-nowrap px-4 py-3 text-muted-foreground", render: (q) => formatDate(q.created_at) },
+  ];
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <FileSignature className="h-5 w-5" />
-          Quote Requests
-        </CardTitle>
-        <CardDescription>Start quote requests in the assistant and track their status here.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div><p className="text-sm font-semibold text-foreground">Start a quote request</p><p className="text-sm text-muted-foreground">The assistant uses this signed-in account, lets you edit the quote title and details, then asks you to confirm before submitting.</p></div>
-          <Button type="button" onClick={() => openAssistant({ formKind: "quote_request", formValues: { summary: (location.state as { prefillNote?: string } | null)?.prefillNote ?? "" } })} disabled={submissionDisabled} title={submissionDisabled ? "Submitting is disabled while previewing a customer read-only" : undefined}><MessageCircle className="mr-2 h-4 w-4" />Request a quote</Button>
-        </div>
-        <div className="space-y-2">
-          {isLoading ? <p className="text-sm text-muted-foreground">Loading quote requests…</p> : null}
-          {!isLoading && !quotes.length ? <p className="text-sm text-muted-foreground">No quote requests yet.</p> : null}
-          {quotes.map((quote) => (
-            <div key={quote.id} className="space-y-3 rounded-lg border p-3 text-sm">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="font-medium">{quote.quote_number} · {quote.customer_name || "Quote request"}</p>
-                  <p className="text-muted-foreground">{quote.status} · {new Date(quote.created_at).toLocaleString()}</p>
-                </div>
-                {quote.ticket ? (
-                  <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/profile/helpdesk/${quote.ticket.id}`)}>
-                    <MessageSquareText className="h-4 w-4" aria-hidden="true" />
-                    View conversation
-                  </Button>
-                ) : null}
-              </div>
-              {quote.notes_customer ? <p className="whitespace-pre-wrap text-foreground">{quote.notes_customer}</p> : null}
-              {quote.ticket ? (
-                <p className="text-xs text-muted-foreground">
-                  Helpdesk {quote.ticket.ticket_number} · {quote.ticket.closed_at || quote.ticket.stage?.is_closed ? "Closed" : quote.ticket.stage?.name || "Open"}
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">Legacy request · No Helpdesk conversation</p>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl text-foreground">Quote Requests</h1>
+        <p className="text-sm text-muted-foreground">Start quote requests in the assistant and track their status here.</p>
+      </div>
+      <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div><p className="text-sm font-semibold text-foreground">Start a quote request</p><p className="text-sm text-muted-foreground">The assistant uses this signed-in account, lets you edit the quote title and details, then asks you to confirm before submitting.</p></div>
+        <Button type="button" onClick={() => openAssistant({ formKind: "quote_request", formValues: { summary: (location.state as { prefillNote?: string } | null)?.prefillNote ?? "" } })} disabled={submissionDisabled} title={submissionDisabled ? "Submitting is disabled while previewing a customer read-only" : undefined}><MessageCircle className="mr-2 h-4 w-4" />Request a quote</Button>
+      </div>
+      <AccountListTable
+        columns={columns}
+        rows={quotes}
+        rowKey={(q) => q.id}
+        isLoading={isLoading}
+        empty="No quote requests yet."
+        defaultSort={{ key: "updated", dir: "desc" }}
+        preview={(q) => <p className="whitespace-pre-wrap text-sm text-foreground">{q.notes_customer || "No details were added to this request."}</p>}
+        actions={(q) => q.ticket ? (
+          <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/profile/helpdesk/${q.ticket!.id}`)}>
+            <MessageSquareText className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+            View conversation
+          </Button>
+        ) : null}
+      />
+    </div>
   );
 };
 
