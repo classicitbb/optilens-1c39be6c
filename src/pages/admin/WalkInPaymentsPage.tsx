@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/functionErrors";
 import { isPublicHost } from "@/lib/payments/customerLinkOrigin";
 import { prepareScotiaPayment, redirectToScotiaPayment, SCOTIA_RETURN_URL } from "@/lib/payments/scotiaConnect";
 import LinkActivityPanel from "@/features/admin/walk-in-payments/LinkActivityPanel";
@@ -231,9 +232,8 @@ const WalkInPaymentsPage = () => {
           contactId: form.contactId || undefined,
         },
       });
-      const detail = (data as { error?: string } | null)?.error;
-      if (invokeError || detail) {
-        throw new Error(detail || invokeError?.message || "Could not send the payment request.");
+      if (invokeError || (data as { error?: string } | null)?.error) {
+        throw new Error(await functionErrorMessage(invokeError, data, "Could not send the payment request."));
       }
       toast({
         title: "Payment request sent",
