@@ -127,7 +127,7 @@ export function ShippingComparison() {
     const setter = side === "current" ? setCurrent : setProposed;
     setter(previous => previous.map((item, position) => position === index ? value : item) as CostInputs);
   };
-  return <section id="shipping" className="scroll-mt-24 border-y border-border bg-muted/30 py-14" aria-labelledby="shipping-heading">
+  return <section id="shipping" className="sect-dots scroll-mt-24 border-y border-border bg-background py-14" aria-labelledby="shipping-heading">
     <div className="container mx-auto px-5 sm:px-8">
       <p className="text-xs font-semibold uppercase tracking-[.2em] text-secondary">Delivery to your island</p>
       <h2 id="shipping-heading" className="mt-3 font-serif text-3xl sm:text-4xl">Know the full cost before you decide.</h2>
@@ -176,7 +176,7 @@ export function ShippingComparison() {
 export function RelationshipJourney({ portalAccess = false }: { portalAccess?: boolean }) {
   const shippingPlanner = useShippingPlannerEnabled();
   const signedIn = useHomeSignedIn();
-  return <section id="why-classic" className="scroll-mt-24 bg-background py-14" aria-labelledby="relationship-heading"><div className="container mx-auto px-5 sm:px-8">
+  return <section id="why-classic" className="sect-glow scroll-mt-24 bg-background py-14" aria-labelledby="relationship-heading"><div className="container mx-auto px-5 sm:px-8">
     <p className="text-sm font-semibold text-secondary">From first enquiry to your next order</p>
     <h2 id="relationship-heading" className="mt-3 max-w-3xl font-serif text-3xl sm:text-4xl">Caribbean optical supply, with a personal touch.</h2>
     <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">Classic Visions is a Barbados-based wholesale optical laboratory. Explore lens options, request a price list and speak with the team before you decide. Already a customer? Keep using your account; ask us to help connect your online access.</p>

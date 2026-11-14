@@ -287,6 +287,95 @@
 }
 
 @layer utilities {
+  /* Home-page section backdrops. Each needs `relative isolate overflow-hidden` on
+     the section; the decoration sits behind content (z-index -1) and never takes
+     pointer events. Teal = --secondary, gold = --accent, so it follows the theme. */
+  .sect-glow,
+  .sect-dots,
+  .sect-deep {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .sect-glow::before,
+  .sect-glow::after,
+  .sect-dots::before,
+  .sect-dots::after,
+  .sect-deep::before,
+  .sect-deep::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Light band: two soft blurred colour orbs on the linen field. */
+  .sect-glow::before {
+    top: -8rem;
+    right: -6rem;
+    width: 44rem;
+    height: 44rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, hsl(var(--secondary) / 0.28), transparent 68%);
+    filter: blur(40px);
+  }
+  .sect-glow::after {
+    bottom: -10rem;
+    left: -8rem;
+    width: 46rem;
+    height: 46rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, hsl(var(--accent) / 0.26), transparent 68%);
+    filter: blur(48px);
+  }
+
+  /* Tinted band: vertical wash plus a dot grid that fades out toward the edges. */
+  .sect-dots {
+    background-image: linear-gradient(180deg, hsl(var(--secondary) / 0.08), hsl(var(--muted) / 0.55) 45%, hsl(var(--accent) / 0.09));
+  }
+  .sect-dots::before {
+    inset: 0;
+    background-image: radial-gradient(hsl(var(--secondary) / 0.18) 1.1px, transparent 1.7px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, #000 30%, transparent 100%);
+    mask-image: radial-gradient(ellipse 90% 85% at 50% 45%, #000 30%, transparent 100%);
+  }
+  .sect-dots::after {
+    top: -8rem;
+    left: 50%;
+    width: 56rem;
+    height: 26rem;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse, hsl(var(--secondary) / 0.2), transparent 70%);
+    filter: blur(44px);
+  }
+
+  /* Deep navy band: corner glows and a faint blueprint grid. */
+  .sect-deep {
+    background-image:
+      radial-gradient(64rem 34rem at 100% 0%, hsl(var(--secondary) / 0.36), transparent 65%),
+      radial-gradient(54rem 30rem at 0% 100%, hsl(var(--accent) / 0.2), transparent 65%);
+  }
+  .sect-deep::before {
+    inset: 0;
+    background-image:
+      linear-gradient(hsl(var(--surface-deep-foreground) / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--surface-deep-foreground) / 0.055) 1px, transparent 1px);
+    background-size: 40px 40px;
+    -webkit-mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, #000 15%, transparent 100%);
+    mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, #000 15%, transparent 100%);
+  }
+  .sect-deep::after {
+    top: -6rem;
+    left: 50%;
+    width: 48rem;
+    height: 22rem;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse, hsl(var(--secondary) / 0.32), transparent 70%);
+    filter: blur(50px);
+  }
+
   .text-gradient {
     background-image: var(--gradient-accent);
     -webkit-background-clip: text;
