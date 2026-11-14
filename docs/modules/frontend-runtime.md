@@ -2,7 +2,7 @@
 
 ## 2026-11-13 — Atlas nested sections
 
-`AtlasSection.parentId` maps to `wiki_headings.parent_id`. `buildTree` nests section nodes (a section whose parent is deleted, or that points into its own subtree, stays at the top level) and `byTreeOrder` sorts sections before pages. `planSectionMove` in `pageTreeLogic.ts` plans a section drag and `AtlasSource.moveSections` writes it; `createSection(title, parentId)` gives a subsection a unique slug. `PageTree` rows drag for sections too: a section can only be dropped on another section. Homepage (`HomePage.tsx`, `CustomerJourney.tsx`) drops `OpticalRings` and the monospace label styling; `Eyebrow` is now a plain label.
+`AtlasSection.parentId` maps to `wiki_headings.parent_id`. `buildTree` nests section nodes (a section whose parent is deleted, or that points into its own subtree, stays at the top level) and `byTreeOrder` sorts sections before pages. `planSectionMove` in `pageTreeLogic.ts` plans a section drag and `AtlasSource.moveSections` writes it; `createSection(title, parentId)` gives a subsection a unique slug. `PageTree` rows drag for sections too: a section can only be dropped on another section. Homepage (`HomePage.tsx`, `CustomerJourney.tsx`) drops `OpticalRings` and the monospace label styling; `Eyebrow` is now a plain label. `failureReason` in `hooks/useAtlas.ts` reads the `message` of a backend error object (these are not `Error` instances) for Atlas mutation toasts.
 
 ## 2026-11-06 — Guided CRM outreach
 

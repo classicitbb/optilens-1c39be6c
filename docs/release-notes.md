@@ -2,6 +2,10 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-13 — Atlas failure messages show the reason (local, not deployed)
+
+### Release Notes
+
 ## 2026-11-13 — Atlas subsections, homepage clean-up, launch plan (local, not deployed)
 
 ### Release Notes

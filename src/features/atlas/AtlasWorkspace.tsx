@@ -20,7 +20,7 @@ import IrisPanel, { type IrisProposal, type IrisRequest } from "./iris/IrisPanel
 import ImportDryRunDialog from "./import/ImportDryRunDialog";
 import { buildSpaceExport, zipFiles } from "./exportSpace";
 import { buildTree, toPageSlug } from "./pageTree";
-import { useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
+import { failureReason, useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
 import { usePageEditor } from "./hooks/usePageEditor";
 import { useAtlasDefaultFullWidth, useAtlasExpanded, useAtlasFavorites, useAtlasPageMeta, useAtlasSidebarState } from "./hooks/useAtlasPrefs";
 import SpaceContents from "./components/SpaceContents";
@@ -373,7 +373,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       await data.createSection({ title, parentId });
       toast({ title: parentId ? "Subsection created" : "Section created" });
     } catch (error) {
-      toast({ title: "Could not create section", description: error instanceof Error ? error.message : "Try again in a moment.", variant: "destructive" });
+      toast({ title: "Could not create section", description: failureReason(error, "Try again in a moment."), variant: "destructive" });
     }
   };
 

@@ -11,6 +11,12 @@ import type { AtlasPage, AtlasSource, AtlasVersion, AutosaveInput, NewPageInput,
 
 const EMPTY_PAGES: AtlasPage[] = [];
 
+/** The backend reports failures as plain objects, not Error instances; show their message rather than a generic line. */
+export const failureReason = (error: unknown, fallback: string): string => {
+  const message = (error as { message?: unknown } | null)?.message;
+  return typeof message === "string" && message ? message : fallback;
+};
+
 /** Query keys other parts of the app (public site, help panel) still read; an Atlas write refreshes them too. */
 const SHARED_KEYS = [["help_articles"], ["help_articles_all"], ["content_articles"], ["public_knowledge"], ["sop_articles"], ["wiki_headings"], ["help_article_versions"]];
 
@@ -69,7 +75,7 @@ export const useAtlasData = () => {
   }, [queryClient]);
 
   const failure = (title: string) => (error: unknown) =>
-    toast({ title, description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    toast({ title, description: failureReason(error, "Please try again."), variant: "destructive" });
 
   const createPage = useMutation({ mutationFn: (input: NewPageInput) => source.createPage(input), onSuccess: refresh });
   const renameSection = useMutation({ mutationFn: ({ id, title }: { id: string; title: string }) => source.renameSection(id, title), onSuccess: refresh, onError: failure("Could not rename the section") });

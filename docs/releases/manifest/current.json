@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.36.0",
-  "sourceEntry": "2026-11-13 — Atlas subsections, homepage clean-up, launch plan (local, not deployed)",
+  "semanticVersion": "0.37.0",
+  "sourceEntry": "2026-11-13 — Atlas failure messages show the reason (local, not deployed)",
   "releaseDateTimeUtc": "2026-11-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Atlas subsections, homepage clean-up, launch plan (local, not deployed)"
+    "Atlas failure messages show the reason (local, not deployed)"
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Atlas subsections, homepage clean-up, launch plan (local, not deployed)."
+      "notes": "Updated as part of Atlas failure messages show the reason (local, not deployed)."
     }
   ],
   "migrationNotes": [

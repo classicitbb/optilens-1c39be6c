@@ -2,7 +2,7 @@
 
 ## 2026-11-13 — Atlas subsections and homepage clean-up (no defect)
 
-New feature and a presentation change; no bug fixed. Found while testing: a menu action that opens a text field lost keyboard focus to the menu button; the section menu now hands focus to the field. Known limits: the public Knowledge page still lists sections flat, and creating a top-level section named like a deleted one still does nothing.
+New feature and a presentation change; no bug fixed. Found while testing: a menu action that opens a text field lost keyboard focus to the menu button; the section menu now hands focus to the field. Known limits: the public Knowledge page still lists sections flat, and creating a top-level section named like a deleted one still does nothing. Reported the same day: "Add subsection" and dragging a section failed with "Try again in a moment". Cause: the build was running before the `wiki_headings.parent_id` change reached the live database, and the message hid the reason. The change is now applied and both actions were confirmed on live data; failure messages show the backend's reason.
 
 ## 2026-11-06 — Fragmented CRM outreach and premature sent status (local fix)
 

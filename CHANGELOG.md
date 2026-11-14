@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-13 — Atlas failure messages show the reason (local, not deployed)
+
+- Atlas toasts for a failed section or page action now show the reason the backend gave instead of "Please try again".
+- The section database change (`wiki_headings.parent_id`) is applied live; adding a subsection and drag-to-nest were confirmed on live data.
+- The launch plan is also an Atlas page: Wiki → Admin - Settings → Website Docs → Launch plan (draft).
+
 ## 2026-11-13 — Atlas subsections, homepage clean-up, launch plan (local, not deployed)
 
 - Atlas sections can hold subsections. Drag a section onto another section to nest it, or onto its top or bottom edge to place it beside it; the section menu adds "Add subsection" and "Move to top level". Subsections list before a section's pages. Needs migration `20261113120000_wiki_headings_parent.sql`, not yet applied.

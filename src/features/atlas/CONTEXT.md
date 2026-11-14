@@ -71,8 +71,7 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
 - Tree: only pages with pages inside show an arrow; clicking a section (or opening a tree space with no page) shows its
   pages as a numbered table of contents (`SpaceContents`, `?section=<id>`). Tables get row/column hover grips and a
   Merge / Unmerge bar for multi-cell selections (`editor/TableHandles.tsx`).
-- Sections nest: `wiki_headings.parent_id` (`20261113120000_wiki_headings_parent.sql`, **not applied yet**; until it is, adding a
-  subsection or dragging a section fails with an error toast and nothing else changes). A section row drags onto another section
+- Sections nest: `wiki_headings.parent_id` (`20261113120000_wiki_headings_parent.sql`, applied live 2026-11-13). A section row drags onto another section
   (middle = inside, top/bottom edge = beside it, which is also how a subsection comes back out); "Add subsection" and "Move to top
   level" are in the section menu. `planSectionMove` (pageTreeLogic) plans it, `AtlasSource.moveSections` writes it. Subsections list
   before a section's pages. Deleting a section leaves its subsections and pages at the top level. The public Knowledge page and

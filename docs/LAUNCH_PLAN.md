@@ -15,7 +15,7 @@ every item.
 |---|---|
 | Live pages (`/`, `/store`, `/knowledge`, `/professionals/*`, `/find-a-retailer`, `/auth`, `/pay`, legal pages, `robots.txt`, `sitemap.xml`, `llms.txt`) | All answer 200 from Vercel. Sitemap lists 58 URLs. |
 | Security headers on `www.classicvisions.net` | CSP, HSTS (preload), `nosniff`, `X-Frame-Options`, Referrer-Policy and Permissions-Policy are all present. |
-| Database vs repo migrations since August | 139 tables, 211 functions and 70 columns created by migration files were looked up live. All exist except `wiki_headings.parent_id` (new, item 6) and `statement_document_jobs.storage_bucket`. This checks that objects exist, not that function bodies are the latest version. |
+| Database vs repo migrations since August | 139 tables, 211 functions and 70 columns created by migration files were looked up live. All exist except `statement_document_jobs.storage_bucket` (`wiki_headings.parent_id`, item 6, was applied later the same day). This checks that objects exist, not that function bodies are the latest version. |
 | QuickBooks sandbox | Connected 2026-11-12. Disconnect and three reconciliations completed with no errors. |
 | QuickBooks production | Not working. See item 1. |
 | CI on `main` | "PR Validation" is red on the last two pushes: the release-ledger drift check fails. Lint, tests, typecheck and build jobs pass. |
@@ -104,12 +104,12 @@ turn self-serve off in settings.
 
 ### 4. Red CI on `main`
 
-Fixed on branch `launch-prep`, not yet merged: the release ledger is synced, and a
+Fixed in commit `872c9a83` on `main` (2026-11-13): the release ledger is synced, and a
 second failure hidden behind it is corrected. The QuickBooks gateway hosts had been
 added to the `connect-src` list in `vercel.json` only, so the header sync check
 failed and the next sync would have removed them and broken the Connect button.
 They are now in `security/http-header-policy.json`. `npm run qa:pr-checks` passes
-locally. Merge the branch and confirm "PR Validation" goes green on `main`.
+locally. Confirm "PR Validation" is green on `main` for that commit.
 
 ### 5. The most frequent production error
 
@@ -128,18 +128,17 @@ Also: errors from local development are written to the same production table
 (a `useRef` crash on `/` logged today came from a dev session). Skip logging when
 `import.meta.env.DEV`.
 
-### 6. Atlas subsections: apply the database change
+### 6. Atlas subsections: publish and finish checking
 
-Built on branch `launch-prep` (2026-11-13): sections nest, a section drags onto
+Done (commit `872c9a83` on `main`, 2026-11-13): sections nest, a section drags onto
 another section, and the section menu has "Add subsection" and "Move to top level".
-Tests pass and the tree was exercised in a browser on a test page.
+`supabase/migrations/20261113120000_wiki_headings_parent.sql` is applied to the live
+database. Adding a subsection and dragging one section into another were both
+confirmed against live data from a local build, and the test sections were removed.
 
-The feature needs `supabase/migrations/20261113120000_wiki_headings_parent.sql`
-(one nullable column, a check constraint and an index). It is **not applied**.
-Apply it to the live database before the frontend ships; until then adding a
-subsection or dragging a section shows an error and changes nothing. Then check it
-in a signed-in session: add a subsection, drag one section into another, drag it
-back out, delete a parent section.
+Left to do: confirm the live site has rebuilt with this commit (check the deployed
+bundle, not the commit), then in a signed-in session drag a subsection back out and
+delete a parent section that has subsections.
 
 ### 7. Edge functions
 
@@ -172,7 +171,7 @@ anything keyed on country cannot work yet.
 
 ## Phase 3: homepage and brand
 
-Done on `launch-prep` (2026-11-13), without changing layout or content: removed
+Done (commit `872c9a83` on `main`, 2026-11-13), without changing layout or content: removed
 the decorative rings and glow, the spaced-out capital-letter labels, the glass
 panels, the two-colour headline, the "01 02 03" numbering and the ornament lines;
 tightened card corners; rewrote four sub-headings that read as filler. Checked at
