@@ -43,6 +43,13 @@
       "when": 1794485535858,
       "tag": "0005_restrict_leave_settings_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794684819508,
+      "tag": "0006_live_data_gateway_all_customers",
+      "breakpoints": true
     }
   ]
 }

@@ -10399,7 +10399,7 @@ export type Database = {
           source: string
           status: string
           target: Json
-          website_customer_id: number
+          website_customer_id: number | null
         }
         Insert: {
           arguments?: Json
@@ -10419,7 +10419,7 @@ export type Database = {
           source: string
           status?: string
           target?: Json
-          website_customer_id: number
+          website_customer_id?: number | null
         }
         Update: {
           arguments?: Json
@@ -10439,7 +10439,7 @@ export type Database = {
           source?: string
           status?: string
           target?: Json
-          website_customer_id?: number
+          website_customer_id?: number | null
         }
         Relationships: [
           {
