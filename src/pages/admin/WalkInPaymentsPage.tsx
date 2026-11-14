@@ -21,7 +21,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { isPublicHost } from "@/lib/payments/customerLinkOrigin";
 import { prepareScotiaPayment, redirectToScotiaPayment, SCOTIA_RETURN_URL } from "@/lib/payments/scotiaConnect";
+import LinkActivityPanel from "@/features/admin/walk-in-payments/LinkActivityPanel";
 import PublishedLinkPanel from "@/features/admin/walk-in-payments/PublishedLinkPanel";
 import UnmatchedPaymentsQueue from "@/features/admin/walk-in-payments/UnmatchedPaymentsQueue";
 import { useLiveWalkInPayment } from "@/features/admin/walk-in-payments/useLiveWalkInPayment";
@@ -65,6 +67,13 @@ const WalkInPaymentsPage = () => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [publishedLink, setPublishedLink] = useState<PublishedLink | null>(null);
+  const [pendingLinkAction, setPendingLinkAction] = useState<(() => Promise<void>) | null>(null);
+
+  /** Customer links only work from the live site or Vercel; warn before creating one elsewhere. */
+  const guardPublicLink = (action: () => Promise<void>) => {
+    if (isPublicHost()) void action();
+    else setPendingLinkAction(() => action);
+  };
 
   const paymentId = searchParams.get("payment");
   const isStaff = realRole === "admin" || realRole === "operator";
@@ -447,11 +456,11 @@ const WalkInPaymentsPage = () => {
                   {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
                   Take card now
                 </Button>
-                <Button variant="outline" onClick={publishLink} disabled={submitting}>
+                <Button variant="outline" onClick={() => guardPublicLink(publishLink)} disabled={submitting}>
                   <Link2 className="mr-2 h-4 w-4" />
                   Publish link
                 </Button>
-                <Button variant="outline" onClick={requestByEmail} disabled={submitting}>
+                <Button variant="outline" onClick={() => guardPublicLink(requestByEmail)} disabled={submitting}>
                   <Send className="mr-2 h-4 w-4" />
                   Request by email
                 </Button>
@@ -470,6 +479,33 @@ const WalkInPaymentsPage = () => {
           </CardContent>
         </Card>
       ) : null}
+
+      {!receiptReady ? <LinkActivityPanel /> : null}
+
+      <AlertDialog open={pendingLinkAction !== null} onOpenChange={(open) => { if (!open) setPendingLinkAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This link won't work for customers</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are on <strong>{window.location.hostname}</strong>, which is not the live site. A payment link or QR
+              code created here can't be opened from a customer's phone. Open this page on classicvisions.net to
+              send a link customers can use.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const action = pendingLinkAction;
+                setPendingLinkAction(null);
+                void action?.();
+              }}
+            >
+              Continue anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

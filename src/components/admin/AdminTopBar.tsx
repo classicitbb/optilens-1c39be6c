@@ -26,6 +26,7 @@ import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
 import AnnotateMenu from "@/features/annotate/AnnotateMenu";
 import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
+import { ADMIN_APPS, type AppKey, type SidebarItem } from "@/features/admin/core/config/apps";
 import { toursForPage } from "@/help/tours";
 import { useTours } from "@/help/tours/TourProvider";
 import { TRAINING_HUB_PATH } from "@/help/trainingHub";
@@ -93,11 +94,36 @@ const getInitials = (value: string) =>
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("") || "?";
 
-function getRouteLabel(pathname: string): string {
-  for (const [prefix, label] of ROUTE_LABELS) {
-    if (pathname === prefix || pathname.startsWith(prefix + "/")) return label;
+interface Crumb {
+  label: string;
+  to?: string;
+}
+
+const underRoute = (pathname: string, route: string) => pathname === route || pathname.startsWith(route + "/");
+
+/**
+ * Module and submodule for the current page, taken from the same app/sidebar
+ * config the launcher uses so the names always match the navigation.
+ * The longest matching sidebar route wins; ROUTE_LABELS covers pages outside any app.
+ */
+function getModuleCrumbs(pathname: string): Crumb[] {
+  let best: { app: (typeof ADMIN_APPS)[AppKey]; item: SidebarItem } | null = null;
+  for (const app of Object.values(ADMIN_APPS)) {
+    for (const item of app.sidebarItems as readonly SidebarItem[]) {
+      if (!underRoute(pathname, item.route)) continue;
+      const longer = !best || item.route.length > best.item.route.length;
+      const sameLengthInOwnApp = best && item.route.length === best.item.route.length
+        && underRoute(pathname, app.baseRoute) && !underRoute(pathname, best.app.baseRoute);
+      if (longer || sameLengthInOwnApp) best = { app, item };
+    }
   }
-  return "Dashboard";
+  if (best) {
+    return [{ label: best.app.title, to: best.app.defaultRoute }, { label: best.item.label }];
+  }
+  for (const [prefix, label] of ROUTE_LABELS) {
+    if (underRoute(pathname, prefix)) return label.split(" · ").map((part) => ({ label: part }));
+  }
+  return [{ label: "Dashboard" }];
 }
 
 interface AdminTopBarProps {
@@ -163,7 +189,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
     }
   };
 
-  const pageLabel = getRouteLabel(location.pathname);
+  const crumbs = getModuleCrumbs(location.pathname);
   const isEditorRoute = /\/publisher\/\d+/.test(location.pathname) || /\/quotations\/[^/]+$/.test(location.pathname) || /\/pricing\/pricelists\/[^/]+\/(rx|stock|supplies)$/.test(location.pathname);
   const canGoBack = !isEditorRoute && ((window.history.state?.idx ?? 0) > 0);
   const activeTheme = theme ?? "system";
@@ -199,6 +225,8 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             </svg>
           </Button>
 
+          {/* Baseline-aligned so the breadcrumb text sits on the same line as "OpticAdmin". */}
+          <div className="flex items-baseline">
           <Link
             to="/admin/dashboard"
             title="Back to Launch Pad"
@@ -206,9 +234,29 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             OpticAdmin
           </Link>
 
-          <span className="text-[11px] hidden md:inline-block text-[hsl(var(--admin-muted-fg))]">
-            {pageLabel}
-          </span>
+          <nav aria-label="Breadcrumb" className="hidden md:block">
+            <ol className="flex items-baseline text-[11px] text-[hsl(var(--admin-muted-fg))]">
+              {crumbs.map((crumb, index) => {
+                const isLast = index === crumbs.length - 1;
+                return (
+                  <li key={crumb.label} className="flex items-baseline">
+                    <span aria-hidden="true" className="mx-2 h-3 w-px self-center bg-[hsl(var(--admin-border))]" />
+                    {crumb.to && !isLast ? (
+                      <Link to={crumb.to} className="hover:text-[hsl(var(--admin-content-fg))]">{crumb.label}</Link>
+                    ) : (
+                      <span
+                        aria-current={isLast ? "page" : undefined}
+                        className={isLast ? "font-medium text-[hsl(var(--admin-content-fg))]" : undefined}
+                      >
+                        {crumb.label}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+          </div>
         </div>
 
         {/* ── CENTER: search ── */}

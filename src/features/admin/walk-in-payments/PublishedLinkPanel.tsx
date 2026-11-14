@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Check, Copy, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { customerLinkOrigin } from "@/lib/payments/customerLinkOrigin";
 
 const PAY_PATH = "/pay";
 
@@ -42,7 +43,7 @@ const PublishedLinkPanel = ({
 }: PublishedLinkPanelProps) => {
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState(() => remaining(expiresAt));
-  const payUrl = `${window.location.origin}${PAY_PATH}`;
+  const payUrl = `${customerLinkOrigin()}${PAY_PATH}`;
 
   useEffect(() => {
     const tick = window.setInterval(() => setCountdown(remaining(expiresAt)), 1000);
@@ -71,7 +72,7 @@ const PublishedLinkPanel = ({
           Ask them to scan the code on the counter, then read them the code below.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-5 sm:grid-cols-[auto,1fr] sm:items-center">
+      <CardContent className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
         <div className="mx-auto rounded-lg bg-white p-3">
           <QRCodeSVG value={payUrl} size={150} includeMargin />
         </div>
