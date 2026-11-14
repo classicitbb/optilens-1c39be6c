@@ -10,6 +10,8 @@ import {
   CONSENT_PREFERENCES_KEY,
   DEFAULT_COOKIE_PREFERENCES,
   type CookiePreferences,
+  OPEN_COOKIE_SETTINGS_EVENT,
+  getCookiePreferences,
   hasGivenConsent,
   notifyCookiePreferencesChanged,
 } from "@/lib/cookieConsent";
@@ -25,6 +27,17 @@ const CookieConsentBanner = () => {
     if (!hasGivenConsent()) {
       setShowBanner(true);
     }
+  }, []);
+
+  // The footer's "Cookie settings" link reopens just the preferences dialog,
+  // pre-filled with the visitor's saved choices.
+  useEffect(() => {
+    const handleOpen = () => {
+      setPreferences(getCookiePreferences() ?? DEFAULT_COOKIE_PREFERENCES);
+      setShowPreferences(true);
+    };
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, handleOpen);
   }, []);
 
   const saveConsent = (prefs: CookiePreferences) => {
@@ -60,12 +73,12 @@ const CookieConsentBanner = () => {
   // Staff tools fill the screen; the banner covered Doc Studio's controls.
   // Admin pages are staff-only, so the consent prompt is left to the public site.
   const onAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
-  if (!showBanner || onAdminPage) return null;
+  if ((!showBanner && !showPreferences) || onAdminPage) return null;
 
   return (
     <>
       {/* Main banner */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-2xl">
+      {showBanner && <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-2xl">
         <div className="container mx-auto px-4 py-4 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-3 lg:items-center">
@@ -120,7 +133,7 @@ const CookieConsentBanner = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Preferences dialog */}
       <Dialog open={showPreferences} onOpenChange={setShowPreferences}>
