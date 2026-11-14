@@ -188,3 +188,20 @@ export const countByTab = (items: readonly WorkspaceItem[]): Record<WorkspaceTab
   for (const i of items) out[i.tab] += 1;
   return out;
 };
+
+/** What the admin Orders screen calls an Rx/stock order: still moving, shipped (done), or cancelled. */
+export type RxBucket = "active" | "shipped" | "cancelled";
+export const rxBucket = (i: Pick<WorkspaceItem, "tab" | "status">): RxBucket =>
+  i.tab !== "done" ? "active" : i.status === "cancelled" ? "cancelled" : "shipped";
+
+/** Free-text search across everything staff recognise an Rx or stock order by. */
+export function rxItemMatches(i: WorkspaceItem, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const s = i.submission ?? i.stock;
+  return [
+    i.accountName, i.patientName, i.quoteNumber, i.status, SOURCE_LABELS[i.source],
+    s?.lab_status, s?.lab_status_detail,
+    i.stock?.order_reference, i.stock?.po_number, i.stock?.gatekeeper_order_id,
+  ].some((v) => String(v ?? "").toLowerCase().includes(q));
+}

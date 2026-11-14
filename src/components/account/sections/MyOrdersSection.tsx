@@ -1,8 +1,8 @@
 import { format, subDays } from "date-fns";
 import { Fragment, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, ExternalLink, Loader2, Package, Printer, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, ExternalLink, Loader2, Package, Printer, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { useAccountPayments } from "@/hooks/useAccountPayments";
 import type { OrderEntity } from "@/domain/entities";
@@ -11,16 +11,11 @@ import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { printOrderDocument } from "@/features/admin/print/orderDocument";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { requestLiveData } from "@/lib/liveDataGateway";
 import InquireButton from "@/components/account/InquireButton";
@@ -28,6 +23,10 @@ import { ORDER_AGE_BANDS, orderAgeBand, orderAgeTint } from "@/lib/orderAge";
 import { useMyRxOrders } from "@/features/rx-order/orders/api";
 import { rxBrief, rxStage, STAGE_LABELS, type RxOrderFacts, type RxStage } from "@/features/rx-order/orders/lifecycle";
 
+
+// The shared table cell is tight (5px side padding); list rows need room to breathe.
+const ROW_CELL = "px-4 py-2";
+const ORDER_PAGE_SIZES = [10, 25, 50];
 
 const formatAddress = (address?: Record<string, unknown> | null) => {
   if (!address) return "—";
@@ -247,70 +246,79 @@ const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpan
     ? shipmentPrices.reduce((sum, value) => sum + (value ?? 0), 0)
     : null;
 
+  const toggle = () => onExpandedChange(!expanded);
+
   return (
-    <Accordion
-      type="single"
-      collapsible
-      value={expanded ? delivery.shipment_session_id : undefined}
-      onValueChange={(value) => onExpandedChange(value === delivery.shipment_session_id)}
-      className={cn(
-        "rounded-lg border bg-card px-3 transition-[border-color,box-shadow] sm:px-4",
-        highlighted && "animate-[pulse_1.2s_ease-in-out_1] border-primary/60 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]",
-      )}
-    >
-      <AccordionItem value={delivery.shipment_session_id} className="border-none">
-        <div className="flex items-center gap-1">
-          <div className="min-w-0 flex-1">
-            <AccordionTrigger className="py-3 text-left hover:no-underline">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 pr-3">
-                <span className="font-medium text-foreground">Shipment #{liveDeliveryId(delivery)}</span>
-                <Badge variant="outline">{isOpen ? "Open" : "Closed"}</Badge>
-                {!isOpen ? (
-                  <span className="text-sm text-muted-foreground">Closed {formatLiveDate(delivery.closed_at)}</span>
-                ) : null}
-                <span className="text-sm text-muted-foreground">{shippingMethodName || "Delivery method pending"}</span>
-                <span className="text-sm text-muted-foreground">{shipmentRowCount} item{shipmentRowCount === 1 ? "" : "s"}</span>
-                {delivery.tracking_number ? (
-                  trackingUrl ? (
-                    <a
-                      href={trackingUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      Track {delivery.tracking_number} <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : <span className="text-sm text-muted-foreground">Tracking {delivery.tracking_number}</span>
-                ) : null}
-              </div>
-            </AccordionTrigger>
+    <>
+      <TableRow
+        className={cn("cursor-pointer focus-visible:bg-muted/50 focus-visible:outline-none", highlighted && "animate-[pulse_1.2s_ease-in-out_1] bg-primary/5")}
+        tabIndex={0}
+        aria-expanded={expanded}
+        onClick={toggle}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+          event.preventDefault();
+          toggle();
+        }}
+      >
+        <TableCell className={cn(ROW_CELL, "font-medium text-foreground")}>#{liveDeliveryId(delivery)}</TableCell>
+        <TableCell className={ROW_CELL}>
+          <Badge variant="outline">{isOpen ? "Open" : "Closed"}</Badge>
+        </TableCell>
+        <TableCell className={cn(ROW_CELL, "whitespace-nowrap text-sm")}>
+          {isOpen ? <span className="text-muted-foreground">—</span> : formatLiveDate(delivery.closed_at)}
+        </TableCell>
+        <TableCell className={cn(ROW_CELL, "text-sm")}>{shippingMethodName || <span className="text-muted-foreground">Pending</span>}</TableCell>
+        <TableCell className={cn(ROW_CELL, "text-right")}>{shipmentRowCount}</TableCell>
+        <TableCell className={cn(ROW_CELL, "text-sm")}>
+          {delivery.tracking_number ? (
+            trackingUrl ? (
+              <a
+                href={trackingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+                onClick={(event) => event.stopPropagation()}
+              >
+                {delivery.tracking_number} <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            ) : delivery.tracking_number
+          ) : <span className="text-muted-foreground">—</span>}
+        </TableCell>
+        <TableCell className={cn(ROW_CELL, "text-right")}>
+          <div className="flex items-center justify-end gap-2">
+            <span onClick={(event) => event.stopPropagation()}>
+              <InquireButton
+                label="Ask about this shipment"
+                title={`Inquiry about Shipment #${liveDeliveryId(delivery)}`}
+                description={[
+                  `Shipment #${liveDeliveryId(delivery)}`,
+                  `Status: ${isOpen ? "Open" : "Closed"}`,
+                  `Shipping method: ${shippingMethodName || "—"}`,
+                  `Items: ${shipmentRowCount}`,
+                  delivery.tracking_number ? `Tracking #: ${delivery.tracking_number}` : null,
+                  "",
+                  "Question: ",
+                ].filter((line) => line !== null).join("\n")}
+              />
+            </span>
+            <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")} aria-hidden="true" />
           </div>
-          <InquireButton
-            label="Ask about this shipment"
-            title={`Inquiry about Shipment #${liveDeliveryId(delivery)}`}
-            description={[
-              `Shipment #${liveDeliveryId(delivery)}`,
-              `Status: ${isOpen ? "Open" : "Closed"}`,
-              `Shipping method: ${shippingMethodName || "—"}`,
-              `Items: ${shipmentRowCount}`,
-              delivery.tracking_number ? `Tracking #: ${delivery.tracking_number}` : null,
-              "",
-              "Question: ",
-            ].filter((line) => line !== null).join("\n")}
-          />
-        </div>
-        <AccordionContent className="pb-3">
+        </TableCell>
+      </TableRow>
+      {expanded ? (
+        <TableRow className="hover:bg-transparent">
+          <TableCell colSpan={7} className="bg-muted/40 p-0">
           {shipmentItems.length ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Rx</TableHead>
-                  <TableHead>Patient / item</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead>Status</TableHead>
-                  {showPrices ? <TableHead className="text-right">Price (BBD)</TableHead> : null}
+                  <TableHead className="h-6 text-xs">Order</TableHead>
+                  <TableHead className="h-6 text-xs">Rx</TableHead>
+                  <TableHead className="h-6 text-xs">Patient / item</TableHead>
+                  <TableHead className="h-6 text-right text-xs">Qty</TableHead>
+                  <TableHead className="h-6 text-xs">Status</TableHead>
+                  {showPrices ? <TableHead className="h-6 text-right text-xs">Price (BBD)</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -322,12 +330,12 @@ const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpan
                     const invoiceId = Number(item.invoice_id);
                     if (Number.isSafeInteger(invoiceId) && invoiceId > 0) onSelectInvoice(invoiceId, item);
                   }}>
-                    <TableCell className="font-medium">{item.order_id ?? "—"}</TableCell>
-                    <TableCell>{item.rx_number ?? "—"}</TableCell>
-                    <TableCell>{item.patient || item.description || "—"}</TableCell>
-                    <TableCell className="text-right">{item.quantity ?? "—"}</TableCell>
-                    <TableCell>{item.status_name ?? "—"}</TableCell>
-                    {showPrices ? <TableCell className="text-right">{formatLivePrice(shipmentPrices[index])}</TableCell> : null}
+                    <TableCell className={cn(ROW_CELL, "font-medium")}>{item.order_id ?? "—"}</TableCell>
+                    <TableCell className={ROW_CELL}>{item.rx_number ?? "—"}</TableCell>
+                    <TableCell className={ROW_CELL}>{item.patient || item.description || "—"}</TableCell>
+                    <TableCell className={cn(ROW_CELL, "text-right")}>{item.quantity ?? "—"}</TableCell>
+                    <TableCell className={ROW_CELL}>{item.status_name ?? "—"}</TableCell>
+                    {showPrices ? <TableCell className={cn(ROW_CELL, "text-right")}>{formatLivePrice(shipmentPrices[index])}</TableCell> : null}
                   </TableRow>
                   );
                 })}
@@ -343,11 +351,12 @@ const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpan
               ) : null}
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground">Shipment details are not available yet.</p>
+            <p className="px-4 py-3 text-sm text-muted-foreground">Shipment details are not available yet.</p>
           )}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </>
   );
 };
 
@@ -421,7 +430,10 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
   const rxOrdersQuery = useMyRxOrders(!staffTarget && !portal.emulation);
   const [orderFilter, setOrderFilter] = useState<OrderBucket | "all">("pending");
   const [orderSearch, setOrderSearch] = useState("");
+  const [orderPage, setOrderPage] = useState(0);
+  const [orderPageSize, setOrderPageSize] = useState(ORDER_PAGE_SIZES[0]);
   const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [selectedLabOrder, setSelectedLabOrder] = useState<LiveInnovationsOrder | null>(null);
   const [selectedDeliveryInvoice, setSelectedDeliveryInvoice] = useState<{ invoiceId: number; item: LiveDeliveryItem } | null>(null);
   const selectedInvoiceId = selectedDeliveryInvoice?.invoiceId ?? selectedLabOrder?.invoice_id ?? null;
@@ -527,7 +539,16 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
     });
   }, [orderRows, orderFilter, orderSearch]);
 
+  const orderPageCount = Math.max(1, Math.ceil(visibleOrderRows.length / orderPageSize));
+  const currentOrderPage = Math.min(orderPage, orderPageCount - 1);
+  const pagedOrderRows = visibleOrderRows.slice(currentOrderPage * orderPageSize, (currentOrderPage + 1) * orderPageSize);
+
   const pendingCount = bucketCounts.pending;
+  const rowOpensDetail = (row: OrderRow) => !!row.rx || !!row.order;
+  const openRow = (row: OrderRow) => {
+    if (row.rx) navigate(`/profile/orders/rx/${row.rx.facts.quote_id}`);
+    else if (row.order) setExpandedOrderKey(expandedOrderKey === row.key ? null : row.key);
+  };
 
   return (
     <section className="space-y-6">
@@ -751,18 +772,35 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
             </CardContent></Card>
 
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
-              {filteredLiveDeliveries.map((delivery) => <LiveDeliveryCard
-                key={`${delivery.shipment_session_id}-${singleMatchedDeliveryId === delivery.shipment_session_id ? normalizedInnovationsSearch : ""}`}
-                delivery={delivery}
-                expanded={singleMatchedDeliveryId === delivery.shipment_session_id || expandedDeliveryId === delivery.shipment_session_id}
-                highlighted={singleMatchedDeliveryId === delivery.shipment_session_id}
-                showPrices={showPrices}
-                onExpandedChange={(expanded) => setExpandedDeliveryId(expanded ? delivery.shipment_session_id : null)}
-                onSelectInvoice={(invoiceId, item) => setSelectedDeliveryInvoice({ invoiceId, item })}
-              />)}
-            </div>
+            <Card className="overflow-hidden border-0 shadow-sm md:border">
+              <CardContent className="overflow-x-auto p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Shipment #</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Closed</TableHead>
+                      <TableHead>Delivery method</TableHead>
+                      <TableHead className="text-right">Items</TableHead>
+                      <TableHead>Tracking</TableHead>
+                      <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLiveDeliveries.map((delivery) => <LiveDeliveryCard
+                      key={`${delivery.shipment_session_id}-${singleMatchedDeliveryId === delivery.shipment_session_id ? normalizedInnovationsSearch : ""}`}
+                      delivery={delivery}
+                      expanded={singleMatchedDeliveryId === delivery.shipment_session_id || expandedDeliveryId === delivery.shipment_session_id}
+                      highlighted={singleMatchedDeliveryId === delivery.shipment_session_id}
+                      showPrices={showPrices}
+                      onExpandedChange={(expanded) => setExpandedDeliveryId(expanded ? delivery.shipment_session_id : null)}
+                      onSelectInvoice={(invoiceId, item) => setSelectedDeliveryInvoice({ invoiceId, item })}
+                    />)}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <p className="border-t px-4 py-2 text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
+            </Card>
           )}
           {deliveriesQuery.data?.retrieved_at ? (
             <p className="text-xs text-muted-foreground" role="status">
@@ -805,7 +843,7 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                     type="button"
                     role="tab"
                     aria-selected={orderFilter === filter.value}
-                    onClick={() => setOrderFilter(filter.value)}
+                    onClick={() => { setOrderFilter(filter.value); setOrderPage(0); }}
                     className={cn(
                       "rounded-sm px-3 py-1.5 text-sm font-medium transition-colors",
                       orderFilter === filter.value
@@ -822,7 +860,7 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                 <Input
                   type="search"
                   value={orderSearch}
-                  onChange={(event) => setOrderSearch(event.target.value)}
+                  onChange={(event) => { setOrderSearch(event.target.value); setOrderPage(0); }}
                   placeholder="Search orders or patients"
                   aria-label="Search orders by number, patient, reference, status, date, total or product"
                   className="h-9 pl-9"
@@ -842,7 +880,7 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Items</TableHead>
                     <TableHead className="text-right">Total (USD)</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -853,40 +891,48 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                       </TableCell>
                     </TableRow>
                   ) : (
-                    visibleOrderRows.map((row) => {
+                    pagedOrderRows.map((row) => {
                       const isExpanded = expandedOrderKey === row.key;
                       return (
                         <Fragment key={row.key}>
-                          <TableRow className="group transition-colors hover:bg-muted/50">
-                            <TableCell className="font-medium transition-colors group-hover:text-primary">
+                          <TableRow
+                            className={cn("group transition-colors hover:bg-muted/50", rowOpensDetail(row) && "cursor-pointer focus-visible:bg-muted/50 focus-visible:outline-none")}
+                            tabIndex={rowOpensDetail(row) ? 0 : undefined}
+                            aria-expanded={row.order ? isExpanded : undefined}
+                            onClick={() => openRow(row)}
+                            onKeyDown={(event) => {
+                              if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+                              event.preventDefault();
+                              openRow(row);
+                            }}
+                          >
+                            <TableCell className={cn(ROW_CELL, "font-medium transition-colors group-hover:text-primary")}>
                               {row.rx ? (
-                                <Link to={`/profile/orders/rx/${row.rx.facts.quote_id}`} className="block hover:underline">
+                                <>
                                   Rx order {row.rx.facts.rx_order_number != null ? `#${row.rx.facts.rx_order_number}` : row.reference}
                                   <span className="block max-w-xs truncate text-xs font-normal text-muted-foreground">
                                     {[row.rx.patient, row.rx.reference && `Ref ${row.rx.reference}`, row.rx.lens].filter(Boolean).join(" · ")}
                                   </span>
-                                </Link>
+                                </>
                               ) : `Order ${row.reference}`}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                              {format(new Date(row.date), "PPP 'at' p")}
+                            <TableCell className={cn(ROW_CELL, "whitespace-nowrap text-sm")}>
+                              {format(new Date(row.date), "PP")}
+                              <span className="block text-xs text-muted-foreground">{format(new Date(row.date), "p")}</span>
                             </TableCell>
-                            <TableCell className="text-sm">{row.typeLabel}</TableCell>
-                            <TableCell>
+                            <TableCell className={cn(ROW_CELL, "text-sm")}>{row.typeLabel}</TableCell>
+                            <TableCell className={ROW_CELL}>
                               <Badge variant="outline" className={getStatusColor(row.bucket === "completed" ? "completed" : row.status)}>
                                 {row.statusLabel}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">{row.kind === "payment" ? "—" : row.itemCount}</TableCell>
-                            <TableCell className="text-right font-semibold">${row.total.toFixed(2)} USD</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className={cn(ROW_CELL, "text-right")}>{row.kind === "payment" ? "—" : row.itemCount}</TableCell>
+                            <TableCell className={cn(ROW_CELL, "whitespace-nowrap text-right font-semibold")}>${row.total.toFixed(2)}</TableCell>
+                            <TableCell className={cn(ROW_CELL, "text-right")}>
                               <div className="flex items-center justify-end gap-2">
-                                {row.rx ? (
-                                  <Button asChild variant="outline" size="sm"><Link to={`/profile/orders/rx/${row.rx.facts.quote_id}`}>View Rx order</Link></Button>
-                                ) : null}
+                                <span className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                                 {row.order ? (
-                                  <>
-                                    <Button
+                                  <Button
                                       type="button"
                                       variant="outline"
                                       size="icon"
@@ -914,16 +960,6 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                                     >
                                       <Printer className="h-4 w-4" />
                                     </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      aria-expanded={isExpanded}
-                                      onClick={() => setExpandedOrderKey(isExpanded ? null : row.key)}
-                                    >
-                                      {isExpanded ? "Hide items" : `View ${row.itemCount} item${row.itemCount === 1 ? "" : "s"}`}
-                                    </Button>
-                                  </>
                                 ) : row.rx ? null : (
                                   <span className="text-sm text-muted-foreground">Applied to account</span>
                                 )}
@@ -941,6 +977,12 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                                     ].join("\n")}
                                   />
                                 ) : null}
+                                </span>
+                                {row.order ? (
+                                  <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", isExpanded && "rotate-180")} aria-hidden="true" />
+                                ) : row.rx ? (
+                                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                ) : <span className="w-4 shrink-0" aria-hidden="true" />}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -959,10 +1001,10 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                                   <TableBody>
                                     {(row.order.items ?? []).map((item) => (
                                       <TableRow key={item.id}>
-                                        <TableCell className="font-medium">{item.productName}</TableCell>
-                                        <TableCell className="text-right">${item.unitPrice.toFixed(2)} USD</TableCell>
-                                        <TableCell className="text-right">{item.quantity}</TableCell>
-                                        <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)} USD</TableCell>
+                                        <TableCell className={cn(ROW_CELL, "font-medium")}>{item.productName}</TableCell>
+                                        <TableCell className={cn(ROW_CELL, "text-right")}>${item.unitPrice.toFixed(2)} USD</TableCell>
+                                        <TableCell className={cn(ROW_CELL, "text-right")}>{item.quantity}</TableCell>
+                                        <TableCell className={cn(ROW_CELL, "text-right")}>${(item.unitPrice * item.quantity).toFixed(2)} USD</TableCell>
                                       </TableRow>
                                     ))}
                                   </TableBody>
@@ -985,6 +1027,26 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                 </TableBody>
               </Table>
             </CardContent>
+            {visibleOrderRows.length > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span id="order-page-size-label">Rows per page</span>
+                  <Select value={String(orderPageSize)} onValueChange={(value) => { setOrderPageSize(Number(value)); setOrderPage(0); }}>
+                    <SelectTrigger className="h-8 w-[72px]" aria-labelledby="order-page-size-label"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ORDER_PAGE_SIZES.map((size) => <SelectItem key={size} value={String(size)}>{size}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span role="status">
+                    {currentOrderPage * orderPageSize + 1}–{Math.min((currentOrderPage + 1) * orderPageSize, visibleOrderRows.length)} of {visibleOrderRows.length}
+                  </span>
+                  <Button variant="outline" size="sm" disabled={currentOrderPage === 0} onClick={() => setOrderPage(currentOrderPage - 1)}>Previous</Button>
+                  <Button variant="outline" size="sm" disabled={currentOrderPage >= orderPageCount - 1} onClick={() => setOrderPage(currentOrderPage + 1)}>Next</Button>
+                </div>
+              </div>
+            ) : null}
           </Card>
         </section>
       )}
