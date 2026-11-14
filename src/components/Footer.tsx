@@ -3,6 +3,7 @@ import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router";
 import { useLegalPage } from "@/hooks/useContentArticles";
 import { COMPANY_CONTACT } from "@/config/companyContact";
+import { openCookieSettings } from "@/lib/cookieConsent";
 
 type FooterLink = {
   label: string;
@@ -84,10 +85,21 @@ const FooterColumnLink = ({ link, preserveLabLinkSession }: { link: FooterLink; 
   return null;
 };
 
+const FALLBACK_COPYRIGHT = "© 2026 Classic Visions. All rights reserved.";
+
+// The copyright article is stored as HTML (and may be entity-escaped); the footer wants plain text.
+const toPlainText = (value: string) => {
+  let text = value;
+  for (let pass = 0; pass < 2 && /[<&]/.test(text); pass += 1) {
+    text = new DOMParser().parseFromString(text, "text/html").body.textContent ?? "";
+  }
+  return text.replace(/\s+/g, " ").trim();
+};
+
 const Footer = () => {
   const { data: copyrightArticle } = useLegalPage("copyright");
   const location = useLocation();
-  const copyrightText = copyrightArticle?.content || "© 2026 Classic Visions. All rights reserved.";
+  const copyrightText = toPlainText(copyrightArticle?.content ?? "") || FALLBACK_COPYRIGHT;
   const preserveLabLinkSession = location.pathname === "/rx-job-status";
   const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
@@ -114,6 +126,15 @@ const Footer = () => {
               <h4 className="text-sm font-semibold uppercase tracking-wider">{column.title}</h4>
               <nav className="flex flex-col gap-2" aria-label={`${column.title} links`}>
                 {column.links.map((link) => <FooterColumnLink key={link.label} link={link} preserveLabLinkSession={preserveLabLinkSession} />)}
+                {column.title === "Legal" && (
+                  <button
+                    type="button"
+                    onClick={openCookieSettings}
+                    className="text-left text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground"
+                  >
+                    Cookie settings
+                  </button>
+                )}
               </nav>
             </div>
           )}

@@ -39,6 +39,14 @@ export const hasAnalyticsConsent = (): boolean => {
   return Boolean(preferences?.analytics);
 };
 
+export const OPEN_COOKIE_SETTINGS_EVENT = "open-cookie-settings";
+
+/** Reopens the preferences dialog so visitors can change or withdraw consent. */
+export const openCookieSettings = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(OPEN_COOKIE_SETTINGS_EVENT));
+};
+
 export const notifyCookiePreferencesChanged = () => {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(COOKIE_PREFERENCES_EVENT));
