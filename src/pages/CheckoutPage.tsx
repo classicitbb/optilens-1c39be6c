@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ContactAssistantLink from "@/components/assistant/ContactAssistantLink";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import {
@@ -34,6 +34,7 @@ import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { useCustomerAddresses, toProfileAddress } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
+import { sameAddress, useContactShippingAddress } from "@/hooks/useContactShippingAddress";
 import { supabase } from "@/integrations/supabase/client";
 import { EMPTY_ADDRESS, type ProfileAddress, resolveUserFullName } from "@/lib/profileData";
 import { cn } from "@/lib/utils";
@@ -258,6 +259,7 @@ const CheckoutPage = () => {
   const { createOrder } = useOrders();
   const { identity, isLoading: identityLoading } = usePortalIdentity();
   const { addresses, defaultShipping, defaultBilling, isLoading: addressesLoading } = useCustomerAddresses();
+  const { contactAddress, isLoading: contactAddressLoading, saveToContact } = useContactShippingAddress(identity?.crmContactId);
   const { defaultPaymentMethod, paymentMethods, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
   const savedScotiaCards = paymentMethods.filter((m) => m.provider === "scotia" && m.status === "active");
 
@@ -273,6 +275,10 @@ const CheckoutPage = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [formData, setFormData] = useState<CheckoutFormData>(() => emptyForm(false));
   const [sameAsShipping, setSameAsShipping] = useState(true);
+  // True while the shipping address on screen is the one from the customer's
+  // CRM contact (no saved address book entry existed to use instead).
+  const [addressFromContact, setAddressFromContact] = useState(false);
+  const contactAddressApplied = useRef(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express" | "pickup">("standard");
   const [poNumber, setPoNumber] = useState<string>(
@@ -320,6 +326,7 @@ const CheckoutPage = () => {
         setIsProcessing(false);
         return;
       }
+      await syncContactAddress();
 
       const prepared = await prepareScotiaPayment({
         // The server signs the persisted payable total. Do not calculate a
@@ -431,8 +438,32 @@ const CheckoutPage = () => {
     }));
   }, [identityLoading, addressesLoading, paymentMethodsLoading, canPayOnAccount, defaultShipping, defaultBilling]);
 
+  // ── Fill shipping from the customer's CRM contact ──
+  // Only when they have no address book entry (that default wins) and nothing
+  // is typed yet. Runs once so it never overwrites what the customer edits.
+  useEffect(() => {
+    if (contactAddressApplied.current) return;
+    if (identityLoading || addressesLoading || contactAddressLoading) return;
+    contactAddressApplied.current = true;
+    if (!contactAddress || defaultShipping) return;
+    setAddressFromContact(true);
+    setFormData((prev) => {
+      if (prev.shippingAddress.line1.trim()) return prev;
+      const shipping = { ...contactAddress.address, recipient: contactAddress.address.recipient || prev.fullName };
+      return {
+        ...prev,
+        shippingAddressId: null,
+        shippingAddress: shipping,
+        billingAddress: sameAsShipping ? shipping : prev.billingAddress,
+        billingAddressId: sameAsShipping ? null : prev.billingAddressId,
+      };
+    });
+  }, [identityLoading, addressesLoading, contactAddressLoading, contactAddress, defaultShipping, sameAsShipping]);
+
   // ── Derived ──
-  const isLoading = isLoadingProfile || addressesLoading || paymentMethodsLoading || identityLoading;
+  const isLoading = isLoadingProfile || addressesLoading || paymentMethodsLoading || identityLoading || contactAddressLoading;
+  const showingContactAddress =
+    addressFromContact && !!contactAddress && sameAddress(formData.shippingAddress, contactAddress.address);
 
   // 1stPay and BimPay are Caribbean payment networks only available when shipping to Barbados.
   const isBarbadosShipment = formData.shippingAddress.country === "Barbados";
@@ -449,10 +480,8 @@ const CheckoutPage = () => {
     }
   }, [isBarbadosShipment, formData.checkoutMethod]);
 
-  const completedOrderNum = useMemo(
-    () => `CV-${new Date().getFullYear()}-${String(Math.floor(10000 + Math.random() * 90000)).slice(0, 5)}`,
-    [],
-  );
+  // The real order's reference (first block of its id), not a made-up number.
+  const completedOrderNum = completedOrderId ? completedOrderId.slice(0, 8).toUpperCase() : "";
 
   // ── Validation ──
   const validateStep = (s: Step): Partial<Record<string, string>> => {
@@ -491,6 +520,20 @@ const CheckoutPage = () => {
     else navigate("/cart");
   };
 
+  // A shipping address typed at checkout becomes the one on the customer's
+  // CRM contact. Picking a saved address leaves the contact alone. Never
+  // blocks or fails the order.
+  const syncContactAddress = async () => {
+    const address = formData.shippingAddress;
+    if (formData.shippingAddressId || !address.line1.trim()) return;
+    if (contactAddress && sameAddress(address, contactAddress.address)) return;
+    try {
+      await saveToContact(address);
+    } catch {
+      // The order is already placed; the contact can be corrected by staff.
+    }
+  };
+
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
     const order = await createOrder(items, totalPrice, {
@@ -504,6 +547,7 @@ const CheckoutPage = () => {
     });
     setIsProcessing(false);
     if (order) {
+      await syncContactAddress();
       setCompletedOrderId(order.id);
       setIsComplete(true);
       await clearCart();
@@ -977,6 +1021,15 @@ const CheckoutPage = () => {
                   {/* Address form */}
                   <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                     <SectionHead>Shipping address</SectionHead>
+                    {showingContactAddress && (
+                      <div className="mb-4 flex items-start gap-2 rounded-lg border border-secondary/30 bg-secondary/5 px-3 py-2.5 text-xs text-muted-foreground">
+                        <BadgeCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secondary" aria-hidden="true" />
+                        <span>
+                          Filled in from {contactAddress?.source === "company" ? "your company's address" : "the address we have on file for you"}.
+                          Change anything that&apos;s out of date and we&apos;ll update our records when you place your order.
+                        </span>
+                      </div>
+                    )}
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5 sm:col-span-2">
                         <Label htmlFor="ship-recipient">Recipient</Label>
@@ -1320,10 +1373,6 @@ const CheckoutPage = () => {
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               Invoice issued after dispatch. No payment required now.
                             </p>
-                            <div className="mt-2.5 flex items-center justify-between rounded-md bg-muted/60 px-3 py-2">
-                              <span className="text-xs text-muted-foreground">Available credit</span>
-                              <span className="tabular-nums text-sm font-bold text-foreground">$12,500 USD</span>
-                            </div>
                           </div>
                         </div>
                         {formData.checkoutMethod === "on_account" && (
@@ -1436,11 +1485,16 @@ const CheckoutPage = () => {
                         goTo: 2 as Step,
                         content: (
                           <>
+                            {formData.shippingAddress.recipient && (
+                              <p className="text-sm font-medium text-foreground">{formData.shippingAddress.recipient}</p>
+                            )}
                             <p className="text-sm text-foreground">
                               {[
                                 formData.shippingAddress.line1,
+                                formData.shippingAddress.line2,
                                 formData.shippingAddress.city,
                                 formData.shippingAddress.state,
+                                formData.shippingAddress.postalCode,
                                 formData.shippingAddress.country,
                               ]
                                 .filter(Boolean)
@@ -1487,7 +1541,7 @@ const CheckoutPage = () => {
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formData.checkoutMethod === "on_account"
-                                ? "Invoice to follow · Credit available: $12,500"
+                                ? "Invoice to follow"
                                 : "Awaiting payment confirmation"}
                             </p>
                           </>
