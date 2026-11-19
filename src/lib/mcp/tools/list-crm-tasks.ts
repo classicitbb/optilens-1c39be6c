@@ -8,7 +8,7 @@ export default defineTool({
   description: "List CRM activities/tasks visible to the caller, newest first. Optionally filter to open tasks or one contact.",
   inputSchema: {
     contact_id: z.string().min(1).optional().describe("Restrict to one CRM contact id."),
-    status: z.string().min(1).optional().describe("Filter by activity status (e.g. open, done)."),
+    status: z.string().min(1).optional().describe("Filter by inbox, planned, in_progress, waiting, completed, or cancelled. Legacy open and done are accepted."),
     limit: z.number().int().min(1).max(50).optional().describe("Max rows (default 15)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -21,7 +21,8 @@ export default defineTool({
       .order("created_at", { ascending: false })
       .limit(limit ?? 15);
     if (contact_id) q = q.eq("contact_id", contact_id);
-    if (status) q = q.eq("status", status);
+    if (status === "open") q = q.in("status", ["inbox", "planned", "in_progress", "waiting"]);
+    else if (status) q = q.eq("status", status === "done" ? "completed" : status);
     const { data, error } = await q;
     if (error) return fail(error.message);
     const rows = data ?? [];

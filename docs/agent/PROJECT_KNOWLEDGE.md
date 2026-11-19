@@ -315,3 +315,9 @@ Mobile admin search follow-up (2026-10-28, local source): GlobalSearch collapses
 Order transmission and supplementary invoices (2026-10-28): unpriced published stock items carry price_pending and lab hold notes; account-only prices, Gatekeeper default and server-driven auto-transmit for new submissions, admin switch with manual mode, and staff-issued itemised BBD invoices payable separately from the customer cart. Website shipping transitions are blocked for unpaid extras/unquoted submissions. Test fixtures and historical drafts are not auto-sent. Existing payment settlement and access controls remain authoritative. See docs/order-transmission-and-extra-invoices.md for operational limits and verification.
 
 Homepage quick-start and returning-customer presentation are documented in src/components/home/CONTEXT.md. Keep its 44px handle spacer aligned below the existing 64px public header; portal identity affects presentation only.
+
+### CRM country, activity and stage contracts
+
+The Contacts editor sets both `country` and the existing country-name field `country_code` when a country is selected. Contacts and ERP Accounts offer a country filter and exact account number search. The CRM board stores Dormant as `contacts.stage = 'dormant'` under the existing pipeline requirement. Apply the Dormant constraint migration before enabling the board's new stage in a hosted environment.
+
+MCP task creation maps the task label to the existing note channel with a planned state. The title is stored in `activities.activity_type`. Scheduled activities use `planned` and keep their timezone-aware due date. Unscheduled notes use `inbox`. Activity list filters accept the legacy open/done aliases. MCP search accepts an exact account number or country and returns identity and location fields for filtered requests.

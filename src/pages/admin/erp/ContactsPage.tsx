@@ -62,7 +62,7 @@ const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string 
     </>
   );
 };
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
 type FilterMode = "all" | "companies" | "persons" | "customers" | "erp_accounts";
@@ -333,12 +333,13 @@ type ImportedCustomerRowProps = {
   customer: ImportedCustomer;
   linkedContact: Contact | null;
   onOpenLinked: (customer: ImportedCustomer) => void;
+  onEditAccountNumber: (customer: ImportedCustomer) => void;
   onCreateContact: (customer: ImportedCustomer) => void;
 };
 
 // Memoized so a row only re-renders when its own data changes, not on every
 // keystroke or dialog-state change elsewhere in this page.
-const ImportedCustomerRow = memo(function ImportedCustomerRow({ customer, linkedContact, onOpenLinked, onCreateContact }: ImportedCustomerRowProps) {
+const ImportedCustomerRow = memo(function ImportedCustomerRow({ customer, linkedContact, onOpenLinked, onCreateContact, onEditAccountNumber }: ImportedCustomerRowProps) {
   return (
     <TableRow>
       <TableCell className="font-medium text-xs">
@@ -351,6 +352,9 @@ const ImportedCustomerRow = memo(function ImportedCustomerRow({ customer, linked
         <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}>
           {customer.account_number || "No account #"}
         </Badge>
+        <Button type="button" variant="ghost" size="sm" aria-label={`Edit account number for ${customer.name}`} onClick={() => onEditAccountNumber(customer)}>
+          Edit
+        </Button>
       </TableCell>
       <TableCell className="text-xs">{customer.email || "—"}</TableCell>
       <TableCell className="text-xs">{customer.phone || "—"}</TableCell>
@@ -548,6 +552,9 @@ const ContactsPage = ({
   const [groupBy, setGroupBy] = useState<GroupByMode>("none");
   const [countryFilter, setCountryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [accountFilter, setAccountFilter] = useState("");
+  const [accountToEdit, setAccountToEdit] = useState<ImportedCustomer | null>(null);
+  const [accountNumberDraft, setAccountNumberDraft] = useState("");
   const [contactsPage, setContactsPage] = useState(1);
   // Debounced so typing doesn't re-filter and re-render the full contacts
   // table (hundreds of rows) on every keystroke.
@@ -683,6 +690,33 @@ const ContactsPage = ({
         .order("name");
       if (error) throw error;
       return (data ?? []) as ImportedCustomer[];
+    },
+  });
+
+  const openAccountNumberEditor = useCallback((customer: ImportedCustomer) => {
+    setAccountNumberDraft(customer.account_number ?? "");
+    setAccountToEdit(customer);
+  }, []);
+
+  const saveErpAccountNumber = useMutation({
+    mutationFn: async ({ id, accountNumber }: { id: number; accountNumber: string }) => {
+      await assignCustomerAccountNumber(id, accountNumber);
+      const { data, error } = await supabase.from("customers")
+        .select("account_number").eq("id", id).single();
+      if (error || data.account_number !== accountNumber) {
+        throw new Error("Could not verify the saved portal account number. Reload the account before retrying.");
+      }
+    },
+    onSuccess: () => {
+      setAccountToEdit(null);
+      toast({ title: "Portal account number saved" });
+      void qc.invalidateQueries({ queryKey: ["erp-imported-customers"] });
+      void qc.invalidateQueries({ queryKey: ["contacts-linked-customers"] });
+      void qc.invalidateQueries({ queryKey: ["customers-list"] });
+      void qc.invalidateQueries({ queryKey: ["contacts"] });
+    },
+    onError: (error) => {
+      toast({ title: "Could not save account number", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     },
   });
 
@@ -893,9 +927,19 @@ const ContactsPage = ({
     if (filter === "companies") list = list.filter((c) => c.is_company);
     if (filter === "persons") list = list.filter((c) => !c.is_company);
     if (filter === "customers") list = list.filter((c) => c.is_customer);
-    if (countryFilter !== "all") list = list.filter((c) => c.country_code === countryFilter);
-    if (debouncedSearch) {
-      const s = debouncedSearch.toLowerCase();
+    if (countryFilter !== "all") {
+      list = list.filter((contact) => {
+        const country = contact.country_code?.trim() || contact.country?.trim();
+        return countryFilter === "__missing" ? !country : country?.toLowerCase() === countryFilter.toLowerCase();
+      });
+    }
+    const account = normalizeAccountNumberInput(accountFilter);
+    if (account) {
+      list = list.filter((c) => c.linked_customer_id != null &&
+        normalizeAccountNumberInput(linkedCustomersById[c.linked_customer_id]?.account_number) === account);
+    }
+    if (debouncedSearch.trim()) {
+      const s = debouncedSearch.trim().toLowerCase();
       list = list.filter((c) => {
         // Resolve linked ERP account info for this contact so staff can find
         // contacts by typing an account number or ERP account name.
@@ -909,6 +953,7 @@ const ContactsPage = ({
           c.city,
           c.state,
           c.country_code,
+          c.country,
           c.street,
           c.street2,
           c.zip,
@@ -928,12 +973,15 @@ const ContactsPage = ({
       });
     }
     return list;
-  }, [contacts, countryFilter, filter, debouncedSearch, showArchived, linkedCustomersById]);
+  }, [contacts, countryFilter, filter, debouncedSearch, showArchived, linkedCustomersById, accountFilter]);
 
   const filteredImportedCustomers = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
+    const account = normalizeAccountNumberInput(accountFilter);
     return importedCustomers.filter((customer) => {
-      if (countryFilter !== "all" && customer.country_code !== countryFilter) return false;
+      if (account && normalizeAccountNumberInput(customer.account_number) !== account) return false;
+      if (countryFilter === "__missing" && customer.country_code?.trim()) return false;
+      if (countryFilter !== "all" && countryFilter !== "__missing" && customer.country_code?.trim().toLowerCase() !== countryFilter.toLowerCase()) return false;
       if (!q) return true;
       return [
         customer.id,
@@ -949,7 +997,7 @@ const ContactsPage = ({
         .toLowerCase()
         .includes(q);
     });
-  }, [countryFilter, importedCustomers, debouncedSearch]);
+  }, [countryFilter, importedCustomers, debouncedSearch, accountFilter]);
 
   const contactsPagination = useMemo(
     () => paginate(filtered, contactsPage, CONTACTS_PAGE_SIZE),
@@ -963,7 +1011,7 @@ const ContactsPage = ({
     const current = isErpAccountsMode ? importedCustomersPagination.page : contactsPagination.page;
     if (contactsPage !== current) setContactsPage(current);
   }, [contactsPage, contactsPagination.page, importedCustomersPagination.page, isErpAccountsMode]);
-  useEffect(() => setContactsPage(1), [countryFilter, debouncedSearch, filter, groupBy, showArchived]);
+  useEffect(() => setContactsPage(1), [countryFilter, debouncedSearch, filter, groupBy, showArchived, accountFilter]);
 
   const groupedByCountry = useMemo(() => {
     if (groupBy !== "country") return [] as { countryCode: string; contacts: Contact[] }[];
@@ -1590,6 +1638,7 @@ const ContactsPage = ({
             state: editContact.state ?? "",
             zip: editContact.zip ?? "",
             country_code: editContact.country_code ?? "",
+            country: editContact.country ?? "",
             tax_id: editContact.tax_id ?? "",
             website: editContact.website ?? "",
             industry_id: editContact.industry_id ?? null,
@@ -2008,12 +2057,20 @@ const ContactsPage = ({
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
           Archived
         </label>}
+        <Input
+          aria-label="Filter by exact account number"
+          placeholder="Exact account #"
+          value={accountFilter}
+          onChange={(event) => setAccountFilter(event.target.value)}
+          className="h-8 w-36 text-xs"
+        />
         <Select value={countryFilter} onValueChange={setCountryFilter}>
           <SelectTrigger className="h-8 text-xs w-[150px]">
             <SelectValue placeholder="Country" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All countries</SelectItem>
+            <SelectItem value="__missing">No country</SelectItem>
             {COUNTRY_OPTIONS.map((country) => (
               <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
             ))}
@@ -2113,6 +2170,7 @@ const ContactsPage = ({
                     customer={customer}
                     linkedContact={customer.contact_id ? contacts.find((entry) => entry.id === customer.contact_id) ?? null : null}
                     onOpenLinked={openLinkedImportedCustomerContact}
+                    onEditAccountNumber={openAccountNumberEditor}
                     onCreateContact={createContactFromImportedCustomer}
                   />
                 ))
@@ -2229,6 +2287,33 @@ const ContactsPage = ({
               {isImporting ? "Importing..." : `Import ${previewSummary.ready} ready records`}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={accountToEdit !== null} onOpenChange={(open) => {
+        if (!open && !saveErpAccountNumber.isPending) setAccountToEdit(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Portal account number</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-3" onSubmit={(event) => {
+            event.preventDefault();
+            if (!accountToEdit || saveErpAccountNumber.isPending) return;
+            saveErpAccountNumber.mutate({
+              id: accountToEdit.id,
+              accountNumber: normalizeAccountNumberInput(accountNumberDraft),
+            });
+          }}>
+            <p className="text-sm text-muted-foreground">{accountToEdit?.name}. Enter its existing Innovations account number to link this portal account.</p>
+            <Label htmlFor="erp-portal-account-number">Account number</Label>
+            <Input id="erp-portal-account-number" value={accountNumberDraft}
+              onChange={(event) => setAccountNumberDraft(event.target.value)} required
+              disabled={saveErpAccountNumber.isPending} />
+            <Button type="submit" disabled={saveErpAccountNumber.isPending || !accountNumberDraft.trim()}>
+              {saveErpAccountNumber.isPending ? "Saving…" : "Save account number"}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -2434,7 +2519,7 @@ const ContactsPage = ({
                             value={editContact.country_code || "__none"}
                             onValueChange={(v) => {
                               if (v === "__none") {
-                                setEditContact({ ...editContact, country_code: "", state: "", city: "" });
+                                setEditContact({ ...editContact, country_code: "", country: "", state: "", city: "" });
                                 return;
                               }
                               const nextStateOptions = getStateOptionsByCountry(v);
@@ -2442,6 +2527,7 @@ const ContactsPage = ({
                               setEditContact({
                                 ...editContact,
                                 country_code: v,
+                                country: v,
                                 state: nextStateOptions.some((opt) => opt.value === (editContact.state ?? "")) ? (editContact.state ?? "") : "",
                                 city: nextCityOptions.some((opt) => opt.value === (editContact.city ?? "")) ? (editContact.city ?? "") : "",
                               });

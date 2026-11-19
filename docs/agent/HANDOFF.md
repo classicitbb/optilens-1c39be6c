@@ -1113,3 +1113,15 @@ Affected: `src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx`, `src/pages/admin/h
 Ticket Queue card uses bounded flex sizing and internal overflow so the title/count stays in place while rows scroll. Overview List stage groups can be collapsed from keyboard-accessible buttons, and list table headings/data cells explicitly use square corners.
 
 Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json` and `npm run build` pass; `git diff --check` passes. Scoped ESLint reports 0 errors and 19 existing warnings. Connected Edge rendered the bounded queue with the Ticket Queue title visible at the top while rows extend below the viewport. Overview interaction could not be rechecked because its toggle did not accept the attempted CUA action. No backend, schema, authorization or deployment changes.
+
+## 2026-11-18 — CRM and MCP administration repairs
+
+Status: Local repairs ready for verification. Production release and MCP permission policy are pending.
+
+Affected files: Contacts and CRM Pipeline pages, `usePipeline.ts`, the Dormant-stage migration, the MCP search and create/list activity tools and their generated sections, and `mcpCrmTasks.unit.test.ts`. The account edit uses the existing guarded RPC and verifies the account number on readback. ERP upstream writes and record corrections were outside this local change. No live CRM or ERP records were changed.
+
+Validation: eleven focused tests passed across MCP activity and search, CRM Focus Desk, activity channels and contact dictation. Repository lint passed with warnings. App build, TypeScript check and MCP generation passed. The generator reproduced unrelated baseline drift, so this patch carries only the generated search and activity sections. The approved read-only GitHub lookup confirmed that main still matches the local base. Repository coverage run passed with 2,045 tests and one skip. The final changes passed eleven focused tests. Docker’s Linux engine was unavailable, so the migration has source checks only. The hosted migration and authenticated MCP deployment remain unverified.
+
+Automatic review rejected the broader MCP write allowlist and approval-policy change and also rejected an MCP search change involving the existing financial projection. The implemented filtered search uses a limited CRM and customer identity projection. Existing caller permissions and approval rules continue to apply. Confirm the exact admin-only write operations and approval boundaries before retrying. The user approved the production email/ticket smoke test triggered by the main-branch Edge workflow.
+
+Release preflight: `git ls-remote origin refs/heads/main` to verify the release base before creating the scoped commit and pushing.

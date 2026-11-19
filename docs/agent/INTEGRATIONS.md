@@ -160,3 +160,7 @@ Store checkout coverage: migration 20261028193836_stock_checkout_gatekeeper_defa
 # Helpdesk overview panel boundary - 2026-11-02
 
 The combined Helpdesk UI reuses the existing overview page and existing Supabase queries/mutations. Tickets toggles its main view between queue and overview; a user click may also open the overview in a named same-origin popup window. Popup mode omits the admin top bar/sidebar while retaining existing auth, role context, and ticket dialog support. Same-origin app authentication continues to use the existing browser session. The browser may block popups or control window positioning/taskbar behavior; the Tickets page announces when popups must be allowed. No new integration or data write was introduced.
+
+### CRM portal account number assignment
+
+The ERP Accounts list edits the portal customer account number through the existing `assign_customer_account_number` RPC and verifies the saved row with the signed-in client's permissions. This uses the Supabase customer record and its duplicate-account guard. Account numbers must be existing Innovations account numbers. The upstream Innovations record is maintained in Innovations. The MCP activity fixes use the existing OAuth and RLS path.

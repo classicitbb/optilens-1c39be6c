@@ -480,15 +480,45 @@ var search_crm_default = defineTool15({
   title: "Search CRM contacts and customers",
   description: "Search CRM contacts and customer accounts by name, email or account number. Staff-only in practice: RLS returns nothing for customer-role callers.",
   inputSchema: {
-    query: z14.string().min(1).describe("Name, email, business name or account number."),
+    query: z14.string().trim().min(1).describe("Name, email, business name or account number. When combined with a filter, this is a name search.").optional(),
+    country: z14.string().trim().min(1).describe("Exact country or island, e.g. Grenada.").optional(),
+    account_number: z14.string().trim().min(1).describe("Exact portal account number.").optional(),
     limit: z14.number().int().min(1).max(25).optional().describe("Max rows per collection (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ query, limit }, ctx) => {
+  handler: async ({ query, country, account_number, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
+    if (!query && !country && !account_number) return fail("Supply a name, country or account number.");
     const supabase = supabaseForUser(ctx);
-    const like = likePattern(query);
     const cap = limit ?? 10;
+    if (country || account_number) {
+      let contacts = supabase.from("contacts").select("id,name,business_name,country,country_code,stage,linked_customer_id").order("id");
+      let customers = supabase.from("customers").select("id,name,account_number,country_code").order("id");
+      if (country) {
+        contacts = contacts.eq("country_code", country);
+        customers = customers.eq("country_code", country);
+      }
+      if (account_number) {
+        const number = account_number.toUpperCase();
+        const { data: matches2, error: error2 } = await supabase.from("customers").select("id,contact_id").eq("account_number", number).limit(2);
+        if (error2) return fail(error2.message);
+        if (!matches2?.length) return ok({ contacts: [], customers: [] });
+        if (matches2.length > 1) return fail("Multiple customers match this account number.");
+        const [match] = matches2;
+        contacts = match.contact_id ? contacts.or(`linked_customer_id.eq.${match.id},id.eq.${match.contact_id}`) : contacts.eq("linked_customer_id", match.id);
+        customers = customers.eq("id", match.id);
+      }
+      if (query) {
+        contacts = contacts.ilike("name", likePattern(query));
+        customers = customers.ilike("name", likePattern(query));
+      }
+      const [contactRows, customerRows] = await Promise.all([contacts.limit(cap), customers.limit(cap)]);
+      const error = contactRows.error ?? customerRows.error;
+      if (error) return fail(error.message);
+      const payload2 = { contacts: contactRows.data ?? [], customers: customerRows.data ?? [] };
+      return ok(payload2, payload2);
+    }
+    const like = likePattern(query ?? "");
     const [contactsRes, customersRes] = await Promise.all([
       supabase.from("contacts").select("id,name,business_name,email,phone,city,country,pipeline,stage,status,is_customer,linked_customer_id,next_action_at").or(`name.ilike.${like},business_name.ilike.${like},email.ilike.${like}`).limit(cap),
       supabase.from("customers").select("id,name,account_number,type,email,phone,country_code,pipeline_stage,credit_limit,pay_by_card,pay_by_eft,assigned_pricelist_id").or(`name.ilike.${like},account_number.ilike.${like},email.ilike.${like}`).limit(cap)
@@ -508,7 +538,7 @@ var list_crm_tasks_default = defineTool16({
   description: "List CRM activities/tasks visible to the caller, newest first. Optionally filter to open tasks or one contact.",
   inputSchema: {
     contact_id: z15.string().min(1).optional().describe("Restrict to one CRM contact id."),
-    status: z15.string().min(1).optional().describe("Filter by activity status (e.g. open, done)."),
+    status: z15.string().min(1).optional().describe("Filter by inbox, planned, in_progress, waiting, completed, or cancelled. Legacy open and done are accepted."),
     limit: z15.number().int().min(1).max(50).optional().describe("Max rows (default 15).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -517,7 +547,8 @@ var list_crm_tasks_default = defineTool16({
     const supabase = supabaseForUser(ctx);
     let q = supabase.from("activities").select("id,contact_id,opportunity_id,type,activity_type,content,status,priority,due_at,completed_at,owner_id,task_channel,created_at").order("created_at", { ascending: false }).limit(limit ?? 15);
     if (contact_id) q = q.eq("contact_id", contact_id);
-    if (status) q = q.eq("status", status);
+    if (status === "open") q = q.in("status", ["inbox", "planned", "in_progress", "waiting"]);
+    else if (status) q = q.eq("status", status === "done" ? "completed" : status);
     const { data, error } = await q;
     if (error) return fail(error.message);
     const rows = data ?? [];
@@ -535,24 +566,26 @@ var create_crm_task_default = defineTool17({
   inputSchema: {
     contact_id: z16.string().min(1).describe("CRM contact id from search_crm."),
     content: z16.string().trim().min(1).max(4e3).describe("Note text or task description."),
-    activity_type: z16.string().min(1).optional().describe("Activity type label (e.g. note, call, email, task)."),
-    due_at: z16.string().min(1).optional().describe("ISO timestamp when the task is due."),
-    priority: z16.string().min(1).optional().describe("Priority label.")
+    activity_type: z16.enum(["note", "call", "email", "whatsapp", "meeting", "quote", "task"]).optional().describe("Use task for a to-do, or choose a communication type."),
+    title: z16.string().trim().min(1).max(200).optional().describe("Short activity title."),
+    due_at: z16.string().datetime({ offset: true }).optional().describe("ISO timestamp with a timezone offset."),
+    priority: z16.enum(["urgent", "high", "normal", "low"]).optional().describe("Priority, default normal.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  handler: async ({ contact_id, content, activity_type, due_at, priority }, ctx) => {
+  handler: async ({ contact_id, content, activity_type = "note", title, due_at, priority }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
     const supabase = supabaseForUser(ctx);
     const { data, error } = await supabase.from("activities").insert({
       contact_id,
       content,
-      type: activity_type ?? "note",
-      activity_type: activity_type ?? "note",
+      type: activity_type === "task" ? "note" : activity_type,
+      activity_type: title ?? activity_type,
       created_by: ctx.getUserId(),
       owner_id: ctx.getUserId(),
-      ...due_at ? { due_at, status: "open" } : {},
-      ...priority ? { priority } : {}
-    }).select("id,contact_id,activity_type,status,due_at,created_at").maybeSingle();
+      due_at: due_at ?? null,
+      status: due_at || activity_type === "task" ? "planned" : "inbox",
+      priority: priority ?? "normal"
+    }).select("id,contact_id,type,activity_type,status,priority,due_at,created_at").single();
     if (error) return fail(error.message);
     return ok(data, { activity: data });
   }

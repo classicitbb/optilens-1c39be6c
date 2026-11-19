@@ -20,7 +20,9 @@ export const PIPELINE_STAGES = [
 
 export const NURTURE_STAGE = { key: "nurture", title: "Nurture", hint: "Not now — warm long-game lure" } as const;
 
-export const ALL_STAGES = [...PIPELINE_STAGES, NURTURE_STAGE] as const;
+export const DORMANT_STAGE = { key: "dormant", title: "Dormant", hint: "Relationship on hold" } as const;
+
+export const ALL_STAGES = [...PIPELINE_STAGES, NURTURE_STAGE, DORMANT_STAGE] as const;
 
 export type PipelineStageKey = (typeof ALL_STAGES)[number]["key"];
 

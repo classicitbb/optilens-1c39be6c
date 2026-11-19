@@ -12,6 +12,7 @@ import {
   ALL_STAGES,
   CRM_PIPELINES,
   NURTURE_STAGE,
+  DORMANT_STAGE,
   PIPELINE_STAGES,
   useClassifyContact,
   usePipelineContacts,
@@ -128,17 +129,20 @@ const CrmPipelinePage = () => {
             healthById={healthById}
           />
         ))}
-        <StageColumn
-          title={NURTURE_STAGE.title}
-          hint={NURTURE_STAGE.hint}
-          rows={byStage[NURTURE_STAGE.key] ?? []}
-          cadences={cadences}
-          onMove={handleMove}
-          onEnroll={handleEnroll}
-          onRemove={(c) => removeFromPipeline.mutate(c.id)}
-          healthById={healthById}
-          muted
-        />
+        {[NURTURE_STAGE, DORMANT_STAGE].map((col) => (
+          <StageColumn
+            key={col.key}
+            title={col.title}
+            hint={col.hint}
+            rows={byStage[col.key] ?? []}
+            cadences={cadences}
+            onMove={handleMove}
+            onEnroll={handleEnroll}
+            onRemove={(c) => removeFromPipeline.mutate(c.id)}
+            healthById={healthById}
+            muted
+          />
+        ))}
       </div>
 
       {isLoading ? <p className="text-xs text-muted-foreground">Loading pipeline…</p> : null}
