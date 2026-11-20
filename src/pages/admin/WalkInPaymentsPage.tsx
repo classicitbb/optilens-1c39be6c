@@ -49,10 +49,10 @@ type WalkInPayment = {
   created_at: string;
 };
 
-const initialForm = { amount: "", customerName: "", customerEmail: "", orderReference: "", reason: "", contactId: "" };
+const initialForm = { amount: "", customerName: "", customerEmail: "", orderReference: "", reason: "", contactId: "", expiresAt: "" };
 
 /** What staff get back from publish_walk_in_payment, shown once and never re-readable. */
-type PublishedLink = { paymentId: string; claimCode: string; expiresAt: string; amount: number };
+type PublishedLink = { paymentId: string; token: string; claimCode: string; expiresAt: string; amount: number };
 const money = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "BBD" }).format(amount);
 const when = (value: string) => new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
@@ -176,32 +176,51 @@ const WalkInPaymentsPage = () => {
   };
 
   /**
-   * Flow A. Mints a one-time link and a short claim code, and shows the code
-   * for the cashier to read out. The customer scans the counter QR and types it.
+   * Flow A. Mints a one-time link to share and a claim code for the counter QR.
    */
   const publishLink = async () => {
     const amount = validatedAmount();
     if (amount === null) return;
 
+    const expiry = form.expiresAt ? new Date(form.expiresAt) : null;
+    if (expiry && !(expiry.getTime() > Date.now())) {
+      setError("Choose an expiry date and time in the future.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const { data, error: publishError } = await (supabase.rpc as any)("publish_walk_in_payment", {
+      const paymentDetails = {
         p_amount: amount,
         p_customer_name: form.customerName,
-        p_origin: "assisted_link",
         p_customer_email: form.customerEmail.trim() || null,
         p_order_reference: form.orderReference || null,
         p_reason: form.reason || null,
         p_contact_id: form.contactId || null,
-      });
+      };
+      const { data, error: publishError } = expiry
+        ? await (supabase.rpc as any)("publish_walk_in_payment_with_expiry", {
+          ...paymentDetails,
+          p_expires_at: expiry.toISOString(),
+        })
+        : await (supabase.rpc as any)("publish_walk_in_payment", {
+          ...paymentDetails,
+          p_origin: "assisted_link",
+        });
       if (publishError || !data) {
         throw new Error(publishError?.message || "Could not publish the payment link.");
       }
-      const published = data as { id: string; claim_code: string; expires_at: string };
+      const { id, token, claim_code, expires_at } = data as {
+        id: string;
+        token: string;
+        claim_code: string;
+        expires_at: string;
+      };
       setPublishedLink({
-        paymentId: published.id,
-        claimCode: published.claim_code,
-        expiresAt: published.expires_at,
+        paymentId: id,
+        token,
+        claimCode: claim_code,
+        expiresAt: expires_at,
         amount,
       });
     } catch (err) {
@@ -431,6 +450,7 @@ const WalkInPaymentsPage = () => {
 
       {publishedLink && !receiptReady ? (
         <PublishedLinkPanel
+          token={publishedLink.token}
           claimCode={publishedLink.claimCode}
           expiresAt={publishedLink.expiresAt}
           amountLabel={money(publishedLink.amount)}
@@ -449,6 +469,18 @@ const WalkInPaymentsPage = () => {
             <label className="grid gap-1.5 text-sm font-medium">Order / reference <span className="font-normal text-muted-foreground">(optional)</span><Input value={form.orderReference} onChange={(event) => setForm((current) => ({ ...current, orderReference: event.target.value }))} placeholder="Order number or reference" autoComplete="off" /></label>
             <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Reason <span className="font-normal text-muted-foreground">(optional)</span><Textarea value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} placeholder="What is this payment for?" className="min-h-20" /></label>
             <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Link to a contact <span className="font-normal text-muted-foreground">(optional)</span><ContactPickerSelect value={form.contactId} onValueChange={(contactId) => setForm((current) => ({ ...current, contactId }))} placeholder="Search contacts" /></label>
+            <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
+              Published link expiry (optional)
+              <Input
+                type="datetime-local"
+                value={form.expiresAt}
+                onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))}
+                aria-describedby="published-link-expiry-help"
+              />
+              <span id="published-link-expiry-help" className="text-xs font-normal text-muted-foreground">
+                Local date and time for the published link and counter code. Leave blank to use the default.
+              </span>
+            </label>
             <div className="sm:col-span-2 grid gap-3 border-t pt-4">
               <p className="text-xs text-muted-foreground">This page never collects or displays raw card details.</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -470,8 +502,8 @@ const WalkInPaymentsPage = () => {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                <strong>Take card now</strong> uses this device. <strong>Publish link</strong> gives the
-                customer a code to pay on their own phone. <strong>Request by email</strong> sends them a
+                <strong>Take card now</strong> uses this device. <strong>Publish link</strong> gives you
+                a payment link to share or a code to read at the counter. <strong>Request by email</strong> sends them a
                 link they can use from anywhere. <strong>Record cash</strong> logs cash taken at the counter and
                 emails a receipt.
               </p>
