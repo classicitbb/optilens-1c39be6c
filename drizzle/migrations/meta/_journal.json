@@ -50,6 +50,13 @@
       "when": 1794684819508,
       "tag": "0006_live_data_gateway_all_customers",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795142502129,
+      "tag": "0007_harden_crm_merge_and_enrichment_functions",
+      "breakpoints": true
     }
   ]
 }

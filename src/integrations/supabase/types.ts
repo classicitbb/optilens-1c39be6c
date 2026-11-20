@@ -17688,6 +17688,10 @@ export type Database = {
         Args: { p_drop: string; p_dry_run?: boolean; p_keep: string }
         Returns: Json
       }
+      crm_merge_ref_allowed: {
+        Args: { p_column: string; p_table: string }
+        Returns: boolean
+      }
       crm_unmerge_contacts: { Args: { p_log_id: string }; Returns: Json }
       delete_ai_agent_settings: {
         Args: { p_actor_user_id?: string; p_provider: string }
