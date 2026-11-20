@@ -432,7 +432,17 @@
             "query": {
               "type": "string",
               "minLength": 1,
-              "description": "Name, email, business name or account number."
+              "description": "Name, email, business name or account number. When combined with a filter, this is a name search."
+            },
+            "country": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Exact country or island, e.g. Grenada."
+            },
+            "account_number": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Exact portal account number."
             },
             "limit": {
               "description": "Max rows per collection (default 10).",
@@ -440,10 +450,7 @@
               "minimum": 1,
               "maximum": 25
             }
-          },
-          "required": [
-            "query"
-          ]
+          }
         },
         "outputSchema": null
       },
@@ -466,7 +473,7 @@
               "minLength": 1
             },
             "status": {
-              "description": "Filter by activity status (e.g. open, done).",
+              "description": "Filter by inbox, planned, in_progress, waiting, completed, or cancelled. Legacy open and done are accepted.",
               "type": "string",
               "minLength": 1
             },
@@ -506,19 +513,39 @@
               "description": "Note text or task description."
             },
             "activity_type": {
-              "description": "Activity type label (e.g. note, call, email, task).",
+              "description": "Use task for a to-do, or choose a communication type.",
               "type": "string",
-              "minLength": 1
+              "enum": [
+                "note",
+                "call",
+                "email",
+                "whatsapp",
+                "meeting",
+                "quote",
+                "task"
+              ]
+            },
+            "title": {
+              "description": "Short activity title.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
             },
             "due_at": {
-              "description": "ISO timestamp when the task is due.",
+              "description": "ISO timestamp with a timezone offset.",
               "type": "string",
-              "minLength": 1
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
             },
             "priority": {
-              "description": "Priority label.",
+              "description": "Priority, default normal.",
               "type": "string",
-              "minLength": 1
+              "enum": [
+                "urgent",
+                "high",
+                "normal",
+                "low"
+              ]
             }
           },
           "required": [
