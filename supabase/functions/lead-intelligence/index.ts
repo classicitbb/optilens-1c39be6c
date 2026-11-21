@@ -328,7 +328,7 @@ serve(async (req) => {
     }
 
     // Step 2 - fetch grounded results.
-    const providerCredentials = await loadProviderCredentials(supabaseClient);
+    const providerCredentials = await loadProviderCredentials(authContext.supabaseAdminClient);
     const providers: ProviderAdapter[] = [googlePlacesProvider, firecrawlSearchProvider];
     const providerStatus = {
       googlePlacesConfigured: googlePlacesProvider.isConfigured(providerCredentials),
