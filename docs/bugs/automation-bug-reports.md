@@ -89,3 +89,6 @@ The harness still expected the retired CRM proposal page and its former legacy d
 
 
 PBX agent over AMI (2026-11-09, local source): unconfirmed on the real PBX: AMI login and permissions, the caller ID the customer sees, and `ChannelId` on Originate (Asterisk 13+; the PBX runs 16.30). Recording uploads need the PBX folder reachable from the agent machine.
+## 2026-11-20 — Classic Visions MCP and Live
+
+MCP connection diagnosis: the live anonymous metadata/challenge checks pass, superseding the historical 404 report. Missing ChatGPT tools remain unresolved without an authenticated host connection. Full test run has one unrelated CRLF/LF migration equality failure in liveDataGateway.integration.test.ts.

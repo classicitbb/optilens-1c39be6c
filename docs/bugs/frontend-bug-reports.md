@@ -537,3 +537,6 @@ Fixed the homepage handle covering the hero text on phones. Restored its origina
 Call panel (2026-10-30, local source): no known defects; not exercised against hosted data or a real PBX. Record shows "turned off on the PBX agent" until `PBX_ALLOW_RECORDING=1` is set, by design.
 
 Call dial format (2026-10-30, local source): Barbados numbers were sent as `1246…`, which the PBX routes to the password-protected overseas route. Now sent as 7 digits. Not yet tested with a real call.
+## 2026-11-20 — Classic Visions MCP and Live
+
+MCP tools absent in this chat are not proof of an expired login or missing server. Anonymous endpoint checks pass; authenticated discovery and Live use remain unverified. The contact review avoids personal details and distinguishes reviewed rows from the visible total.

@@ -321,3 +321,6 @@ Homepage quick-start and returning-customer presentation are documented in src/c
 The Contacts editor sets both `country` and the existing country-name field `country_code` when a country is selected. Contacts and ERP Accounts offer a country filter and exact account number search. The CRM board stores Dormant as `contacts.stage = 'dormant'` under the existing pipeline requirement. Apply the Dormant constraint migration before enabling the board's new stage in a hosted environment.
 
 MCP task creation maps the task label to the existing note channel with a planned state. The title is stored in `activities.activity_type`. Scheduled activities use `planned` and keep their timezone-aware due date. Unscheduled notes use `inbox`. Activity list filters accept the legacy open/done aliases. MCP search accepts an exact account number or country and returns identity and location fields for filtered requests.
+## 2026-11-20 — Classic Visions MCP and Live
+
+MCP 0.5.0: 28 tools, bounded review_crm_organization and tests for OAuth metadata/anonymous challenge. `npm run mcp:check` uses MCP_SERVER_URL; `npm run mcp:generate` uses existing SUPABASE_PROJECT_REF. Caller OAuth/RLS and existing approval policy remain unchanged. See docs/classic-visions-mcp.md.

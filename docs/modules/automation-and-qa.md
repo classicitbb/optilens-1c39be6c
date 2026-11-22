@@ -85,3 +85,6 @@ The admin smoke harness now verifies the current admin-only pricing publisher an
 
 
 PBX agent over AMI (2026-11-09, local source): the agent talks to Asterisk's manager interface on port 5038 instead of `asterisk -rx`, so it can run on a LAN machine. Settings may come from `pbx-agent.env` beside the script (gitignored). Exercised against a fake AMI server speaking the wire protocol; not run against the real PBX.
+## 2026-11-20 — Classic Visions MCP and Live
+
+`npm run mcp:check` uses MCP_SERVER_URL for anonymous HTTPS metadata and 401 challenge checks. `mcp:generate` no longer prints the project reference. Neither command proves user authorization; deployment requires approval and subsequent qa:edge-smoke.

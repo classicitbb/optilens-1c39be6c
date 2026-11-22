@@ -164,3 +164,6 @@ The combined Helpdesk UI reuses the existing overview page and existing Supabase
 ### CRM portal account number assignment
 
 The ERP Accounts list edits the portal customer account number through the existing `assign_customer_account_number` RPC and verifies the saved row with the signed-in client's permissions. This uses the Supabase customer record and its duplicate-account guard. Account numbers must be existing Innovations account numbers. The upstream Innovations record is maintained in Innovations. The MCP activity fixes use the existing OAuth and RLS path.
+## 2026-11-20 — Classic Visions MCP and Live
+
+MCP live anonymous metadata and initialization challenge pass on November 20, 2026, superseding the historical 404. This does not verify authenticated identity, deployed tool inventory or ChatGPT connection. Local 0.5.0 generated function is pending approved release. ChatGPT Live supports available connected plugins; required host approvals are on-screen. MCP_SERVER_URL is the anonymous diagnostic input; no new credentials or services.

@@ -1,5 +1,6 @@
 import { auth, defineMcp } from "@lovable.dev/mcp-js";
 import whoamiTool from "./tools/whoami";
+import reviewCrmOrganizationTool from "./tools/review-crm-organization";
 import searchProductsTool from "./tools/search-products";
 import listOrdersTool from "./tools/list-my-orders";
 import getOrderTool from "./tools/get-order";
@@ -36,11 +37,13 @@ const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unse
 export default defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",
-  version: "0.4.0",
+  version: "0.5.0",
   instructions: [
     "Tools for the Classic Visions optical platform (wholesale lenses, coatings and optical supplies).",
     "Every call acts as the signed-in user and row-level security decides what is visible: customers see only their own account data, staff see the wider CRM, catalog and operations data.",
     "Start with `whoami` to learn the caller's roles and linked customer accounts.",
+    "For a contact organization review, use `review_crm_organization`; explain its coverage before presenting counts. Resource discovery lists supported capabilities, not proof of the caller's access; actual reads remain subject to row-level permissions.",
+    "ChatGPT Live can invoke connected tools when available to the caller. Use the same permissions for voice and typed requests. Actions needing host approval must be reviewed on screen; spoken approval does not replace it. Resolve ambiguous spoken names before writes. Never claim a connection or a write succeeded without its result.",
     "Billing: `get_account_balance`, `list_statements`, `get_statement`. Orders: `list_orders`, `get_order`. Quotes: `list_quotes`, `get_quote`.",
     "Support: `list_support_tickets`, `get_support_ticket`, `create_support_ticket`, `reply_to_support_ticket`.",
     "Catalog and knowledge: `search_products`, `list_pricelists`, `search_knowledge_base`.",
@@ -55,6 +58,7 @@ export default defineMcp({
   }),
   tools: [
     whoamiTool,
+    reviewCrmOrganizationTool,
     searchProductsTool,
     listOrdersTool,
     getOrderTool,

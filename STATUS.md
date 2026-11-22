@@ -549,3 +549,6 @@ Order transmission and supplementary invoices (2026-10-28): unpriced published s
 ### CRM administration follow-up (2026-11-18)
 
 Local source adds Dormant to the CRM board, saves both contact country fields, adds exact account and missing-country filters, and lets staff assign portal account numbers from ERP Accounts. MCP activity creation now accepts its schema's valid channel, priority, status and due-date values. Hosted migration and MCP rollout require release verification. See the handoff for pending release and MCP permission decisions.
+## 2026-11-20 — Classic Visions MCP and Live
+
+Local MCP 0.5.0: 28 tools including read-only contact organization review; generated production function updated, not deployed. Anonymous live metadata/challenge pass, superseding historical 404. Focused tests (6), typecheck, build and lint (0 errors) pass. Broad suite: 2050 passed, 1 skipped, 1 unrelated CRLF/LF migration equality failure. Authenticated discovery/Live verification and approved deployment remain pending. See docs/classic-visions-mcp.md.

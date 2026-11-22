@@ -48,7 +48,8 @@
     "test:integration": "vitest run --coverage=false src/tests/integration",
     "test:unit": "vitest run --coverage=false src/tests/unit",
     "qa:doc-symmetry": "node scripts/check_doc_symmetry.mjs",
-    "ci:pr-checks": "npm run qa:pr-checks"
+    "ci:pr-checks": "npm run qa:pr-checks",
+    "mcp:check": "node scripts/check_mcp_connection.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",

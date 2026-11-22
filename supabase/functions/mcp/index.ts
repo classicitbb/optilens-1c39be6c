@@ -133,18 +133,60 @@ var whoami_default = defineTool({
   }
 });
 
-// src/lib/mcp/tools/search-products.ts
+// src/lib/mcp/tools/review-crm-organization.ts
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z } from "npm:zod@^4.4.3";
+function summarizeContactOrganization(rows, total) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    const key = JSON.stringify([row.pipeline, row.stage]);
+    const group = groups.get(key) ?? { pipeline: row.pipeline, stage: row.stage, count: 0 };
+    group.count++;
+    groups.set(key, group);
+  }
+  return {
+    visible_total: total,
+    reviewed_count: rows.length,
+    complete: total !== null && total === rows.length,
+    counts_scope: "All breakdowns describe only the reviewed rows visible to the signed-in user.",
+    companies: rows.filter((row) => row.is_company === true).length,
+    people: rows.filter((row) => row.is_company === false).length,
+    unspecified_kind: rows.filter((row) => row.is_company === null).length,
+    archived: rows.filter((row) => row.is_archived === true).length,
+    linked_to_customer_account: rows.filter((row) => row.linked_customer_id !== null).length,
+    without_customer_account: rows.filter((row) => row.linked_customer_id === null).length,
+    pipeline_stages: [...groups.values()].sort((a, b) => b.count - a.count)
+  };
+}
+var review_crm_organization_default = defineTool2({
+  name: "review_crm_organization",
+  title: "Review contact organization",
+  description: "Read how visible CRM contacts are organized by company/person, pipeline, stage, archive status and ERP customer-account links. Returns counts without names, emails, notes or financial data. Bounded review; reports whether results cover the complete visible collection. Empty results do not establish that the CRM is empty or that access is granted.",
+  inputSchema: {
+    limit: z.number().int().min(1).max(1e3).optional().describe("Maximum contacts to review, newest first (default 500).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const { data, count, error } = await supabaseForUser(ctx).from("contacts").select("pipeline,stage,is_company,is_archived,linked_customer_id", { count: "exact" }).order("id", { ascending: false }).limit(limit ?? 500);
+    if (error) return fail(error.message);
+    const summary = summarizeContactOrganization(data ?? [], count);
+    return ok(summary, summary);
+  }
+});
+
+// src/lib/mcp/tools/search-products.ts
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z2 } from "npm:zod@^4.4.3";
 var matches = (row, needle) => String(row.name ?? "").toLowerCase().includes(needle) || String(row.description ?? "").toLowerCase().includes(needle) || String(row.sku ?? "").toLowerCase().includes(needle);
-var search_products_default = defineTool2({
+var search_products_default = defineTool3({
   name: "search_products",
   title: "Search catalog",
   description: "Search the Classic Visions catalog (lenses, supplies, add-ons) by name, SKU or description. Cost data is never returned.",
   inputSchema: {
-    query: z.string().min(1).describe("Search text matched against name, SKU or description."),
-    category: z.enum(["all", "lenses", "supplies", "addons"]).optional().describe("Restrict the search to one catalog type (default: all)."),
-    limit: z.number().int().min(1).max(50).optional().describe("Max rows per category (default 10).")
+    query: z2.string().min(1).describe("Search text matched against name, SKU or description."),
+    category: z2.enum(["all", "lenses", "supplies", "addons"]).optional().describe("Restrict the search to one catalog type (default: all)."),
+    limit: z2.number().int().min(1).max(50).optional().describe("Max rows per category (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ query, category, limit }, ctx) => {
@@ -173,15 +215,15 @@ var search_products_default = defineTool2({
 });
 
 // src/lib/mcp/tools/list-my-orders.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z2 } from "npm:zod@^4.4.3";
-var list_my_orders_default = defineTool3({
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z3 } from "npm:zod@^4.4.3";
+var list_my_orders_default = defineTool4({
   name: "list_orders",
   title: "List orders",
   description: "List Classic Visions orders visible to the signed-in user (most recent first). RLS limits customers to their own orders; staff see all.",
   inputSchema: {
-    status: z2.string().min(1).optional().describe("Filter by order status (e.g. pending, paid, cancelled)."),
-    limit: z2.number().int().min(1).max(50).optional().describe("Max orders to return (default 10).")
+    status: z3.string().min(1).optional().describe("Filter by order status (e.g. pending, paid, cancelled)."),
+    limit: z3.number().int().min(1).max(50).optional().describe("Max orders to return (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ status, limit }, ctx) => {
@@ -197,13 +239,13 @@ var list_my_orders_default = defineTool3({
 });
 
 // src/lib/mcp/tools/get-order.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z3 } from "npm:zod@^4.4.3";
-var get_order_default = defineTool4({
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z4 } from "npm:zod@^4.4.3";
+var get_order_default = defineTool5({
   name: "get_order",
   title: "Get order details",
   description: "Fetch one order with its line items, payments and activity. RLS restricts access to orders the caller may see.",
-  inputSchema: { order_id: z3.string().min(1).describe("Order id returned by list_orders.") },
+  inputSchema: { order_id: z4.string().min(1).describe("Order id returned by list_orders.") },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ order_id }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
@@ -221,15 +263,15 @@ var get_order_default = defineTool4({
 });
 
 // src/lib/mcp/tools/list-statements.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z4 } from "npm:zod@^4.4.3";
-var list_statements_default = defineTool5({
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z5 } from "npm:zod@^4.4.3";
+var list_statements_default = defineTool6({
   name: "list_statements",
   title: "List account statements",
   description: "List billing statements visible to the caller (most recent first), optionally for one customer account number.",
   inputSchema: {
-    account_number: z4.string().min(1).optional().describe("Filter by customer account number."),
-    limit: z4.number().int().min(1).max(50).optional().describe("Max statements to return (default 12).")
+    account_number: z5.string().min(1).optional().describe("Filter by customer account number."),
+    limit: z5.number().int().min(1).max(50).optional().describe("Max statements to return (default 12).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ account_number, limit }, ctx) => {
@@ -245,15 +287,15 @@ var list_statements_default = defineTool5({
 });
 
 // src/lib/mcp/tools/get-statement.ts
-import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z5 } from "npm:zod@^4.4.3";
-var get_statement_default = defineTool6({
+import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z6 } from "npm:zod@^4.4.3";
+var get_statement_default = defineTool7({
   name: "get_statement",
   title: "Get statement transactions",
   description: "Fetch one statement with its transaction lines (invoices, payments, credits).",
   inputSchema: {
-    statement_id: z5.string().min(1).describe("Statement id returned by list_statements."),
-    limit: z5.number().int().min(1).max(500).optional().describe("Max transaction lines (default 200).")
+    statement_id: z6.string().min(1).describe("Statement id returned by list_statements."),
+    limit: z6.number().int().min(1).max(500).optional().describe("Max transaction lines (default 200).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ statement_id, limit }, ctx) => {
@@ -270,14 +312,14 @@ var get_statement_default = defineTool6({
 });
 
 // src/lib/mcp/tools/get-account-balance.ts
-import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z6 } from "npm:zod@^4.4.3";
-var get_account_balance_default = defineTool7({
+import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z7 } from "npm:zod@^4.4.3";
+var get_account_balance_default = defineTool8({
   name: "get_account_balance",
   title: "Get account balance",
   description: "Return current balance, credit limit and last statement/payment info for the caller's customer account(s).",
   inputSchema: {
-    account_number: z6.string().min(1).optional().describe("Limit to one customer account number.")
+    account_number: z7.string().min(1).optional().describe("Limit to one customer account number.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ account_number }, ctx) => {
@@ -293,21 +335,21 @@ var get_account_balance_default = defineTool7({
 });
 
 // src/lib/mcp/tools/list-quotes.ts
-import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z7 } from "npm:zod@^4.4.3";
-var list_quotes_default = defineTool8({
+import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z8 } from "npm:zod@^4.4.3";
+var list_quotes_default = defineTool9({
   name: "list_quotes",
   title: "List quotes",
   description: "List quotes visible to the caller (most recent first). Cost and margin fields are hidden from customers by policy.",
   inputSchema: {
-    status: z7.string().min(1).optional().describe("Filter by quote status."),
-    limit: z7.number().int().min(1).max(50).optional().describe("Max quotes to return (default 10).")
+    status: z8.string().min(1).optional().describe("Filter by quote status."),
+    limit: z8.number().int().min(1).max(50).optional().describe("Max quotes to return (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ status, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
     const supabase = supabaseForUser(ctx);
-    let q = supabase.from("quotes").select("id,quote_number,quote_type,status,customer_name,contact_name,contact_email,currency,valid_until,lead_time_days,grand_total,created_at").order("created_at", { ascending: false }).limit(limit ?? 10);
+    let q = supabase.from("quotes").select("id,quote_number,quote_type,status,customer_name,contact_name,contact_email,currency,valid_until,lead_time_days,grand_total,created_at").eq("is_test", false).order("created_at", { ascending: false }).limit(limit ?? 10);
     if (status) q = q.eq("status", status);
     const { data, error } = await q;
     if (error) return fail(error.message);
@@ -317,13 +359,13 @@ var list_quotes_default = defineTool8({
 });
 
 // src/lib/mcp/tools/get-quote.ts
-import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z8 } from "npm:zod@^4.4.3";
-var get_quote_default = defineTool9({
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z9 } from "npm:zod@^4.4.3";
+var get_quote_default = defineTool10({
   name: "get_quote",
   title: "Get quote details",
   description: "Fetch one quote with its lines. Lines are read through the cost-safe server function, so customers never receive cost or margin data.",
-  inputSchema: { quote_id: z8.string().min(1).describe("Quote id returned by list_quotes.") },
+  inputSchema: { quote_id: z9.string().min(1).describe("Quote id returned by list_quotes.") },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ quote_id }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
@@ -339,15 +381,15 @@ var get_quote_default = defineTool9({
 });
 
 // src/lib/mcp/tools/list-support-tickets.ts
-import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z9 } from "npm:zod@^4.4.3";
-var list_support_tickets_default = defineTool10({
+import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z10 } from "npm:zod@^4.4.3";
+var list_support_tickets_default = defineTool11({
   name: "list_support_tickets",
   title: "List support tickets",
   description: "List helpdesk tickets visible to the caller (most recent first).",
   inputSchema: {
-    search: z9.string().min(1).optional().describe("Match against ticket title or description."),
-    limit: z9.number().int().min(1).max(50).optional().describe("Max tickets to return (default 10).")
+    search: z10.string().min(1).optional().describe("Match against ticket title or description."),
+    limit: z10.number().int().min(1).max(50).optional().describe("Max tickets to return (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ search, limit }, ctx) => {
@@ -366,14 +408,14 @@ var list_support_tickets_default = defineTool10({
 });
 
 // src/lib/mcp/tools/get-support-ticket.ts
-import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z10 } from "npm:zod@^4.4.3";
-var get_support_ticket_default = defineTool11({
+import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z11 } from "npm:zod@^4.4.3";
+var get_support_ticket_default = defineTool12({
   name: "get_support_ticket",
   title: "Get support ticket",
   description: "Fetch one helpdesk ticket with its message thread.",
   inputSchema: {
-    ticket_id: z10.string().min(1).describe("Ticket id returned by list_support_tickets.")
+    ticket_id: z11.string().min(1).describe("Ticket id returned by list_support_tickets.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ ticket_id }, ctx) => {
@@ -390,16 +432,16 @@ var get_support_ticket_default = defineTool11({
 });
 
 // src/lib/mcp/tools/create-support-ticket.ts
-import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z11 } from "npm:zod@^4.4.3";
-var create_support_ticket_default = defineTool12({
+import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z12 } from "npm:zod@^4.4.3";
+var create_support_ticket_default = defineTool13({
   name: "create_support_ticket",
   title: "Create support ticket",
   description: "Open a new Classic Visions helpdesk ticket on behalf of the signed-in user. Use only when the user explicitly asks for support.",
   inputSchema: {
-    title: z11.string().trim().min(3).max(200).describe("Short subject line for the ticket."),
-    description: z11.string().trim().min(3).max(5e3).describe("Full description of the issue or request."),
-    priority: z11.string().min(1).optional().describe("Optional priority label recognised by the helpdesk.")
+    title: z12.string().trim().min(3).max(200).describe("Short subject line for the ticket."),
+    description: z12.string().trim().min(3).max(5e3).describe("Full description of the issue or request."),
+    priority: z12.string().min(1).optional().describe("Optional priority label recognised by the helpdesk.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async ({ title, description, priority }, ctx) => {
@@ -419,15 +461,15 @@ var create_support_ticket_default = defineTool12({
 });
 
 // src/lib/mcp/tools/reply-to-support-ticket.ts
-import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z12 } from "npm:zod@^4.4.3";
-var reply_to_support_ticket_default = defineTool13({
+import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z13 } from "npm:zod@^4.4.3";
+var reply_to_support_ticket_default = defineTool14({
   name: "reply_to_support_ticket",
   title: "Reply to support ticket",
   description: "Append a message from the signed-in user to an existing helpdesk ticket thread.",
   inputSchema: {
-    ticket_id: z12.string().min(1).describe("Ticket id returned by list_support_tickets."),
-    body: z12.string().trim().min(1).max(5e3).describe("Message text to append.")
+    ticket_id: z13.string().min(1).describe("Ticket id returned by list_support_tickets."),
+    body: z13.string().trim().min(1).max(5e3).describe("Message text to append.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async ({ ticket_id, body }, ctx) => {
@@ -447,15 +489,15 @@ var reply_to_support_ticket_default = defineTool13({
 });
 
 // src/lib/mcp/tools/search-knowledge-base.ts
-import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z13 } from "npm:zod@^4.4.3";
-var search_knowledge_base_default = defineTool14({
+import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z14 } from "npm:zod@^4.4.3";
+var search_knowledge_base_default = defineTool15({
   name: "search_knowledge_base",
   title: "Search help articles",
   description: "Search Classic Visions help/wiki articles by title, summary or body. Visibility rules limit results to what the caller may read.",
   inputSchema: {
-    query: z13.string().min(1).describe("Search text."),
-    limit: z13.number().int().min(1).max(25).optional().describe("Max articles to return (default 8).")
+    query: z14.string().min(1).describe("Search text."),
+    limit: z14.number().int().min(1).max(25).optional().describe("Max articles to return (default 8).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ query, limit }, ctx) => {
@@ -473,17 +515,17 @@ var search_knowledge_base_default = defineTool14({
 });
 
 // src/lib/mcp/tools/search-crm.ts
-import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z14 } from "npm:zod@^4.4.3";
-var search_crm_default = defineTool15({
+import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z15 } from "npm:zod@^4.4.3";
+var search_crm_default = defineTool16({
   name: "search_crm",
   title: "Search CRM contacts and customers",
   description: "Search CRM contacts and customer accounts by name, email or account number. Staff-only in practice: RLS returns nothing for customer-role callers.",
   inputSchema: {
-    query: z14.string().trim().min(1).describe("Name, email, business name or account number. When combined with a filter, this is a name search.").optional(),
-    country: z14.string().trim().min(1).describe("Exact country or island, e.g. Grenada.").optional(),
-    account_number: z14.string().trim().min(1).describe("Exact portal account number.").optional(),
-    limit: z14.number().int().min(1).max(25).optional().describe("Max rows per collection (default 10).")
+    query: z15.string().trim().min(1).describe("Name, email, business name or account number. When combined with a filter, this is a name search.").optional(),
+    country: z15.string().trim().min(1).describe("Exact country or island, e.g. Grenada.").optional(),
+    account_number: z15.string().trim().min(1).describe("Exact portal account number.").optional(),
+    limit: z15.number().int().min(1).max(25).optional().describe("Max rows per collection (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ query, country, account_number, limit }, ctx) => {
@@ -530,16 +572,16 @@ var search_crm_default = defineTool15({
 });
 
 // src/lib/mcp/tools/list-crm-tasks.ts
-import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z15 } from "npm:zod@^4.4.3";
-var list_crm_tasks_default = defineTool16({
+import { defineTool as defineTool17 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z16 } from "npm:zod@^4.4.3";
+var list_crm_tasks_default = defineTool17({
   name: "list_crm_tasks",
   title: "List CRM tasks and activities",
   description: "List CRM activities/tasks visible to the caller, newest first. Optionally filter to open tasks or one contact.",
   inputSchema: {
-    contact_id: z15.string().min(1).optional().describe("Restrict to one CRM contact id."),
-    status: z15.string().min(1).optional().describe("Filter by inbox, planned, in_progress, waiting, completed, or cancelled. Legacy open and done are accepted."),
-    limit: z15.number().int().min(1).max(50).optional().describe("Max rows (default 15).")
+    contact_id: z16.string().min(1).optional().describe("Restrict to one CRM contact id."),
+    status: z16.string().min(1).optional().describe("Filter by inbox, planned, in_progress, waiting, completed, or cancelled. Legacy open and done are accepted."),
+    limit: z16.number().int().min(1).max(50).optional().describe("Max rows (default 15).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ contact_id, status, limit }, ctx) => {
@@ -557,19 +599,19 @@ var list_crm_tasks_default = defineTool16({
 });
 
 // src/lib/mcp/tools/create-crm-task.ts
-import { defineTool as defineTool17 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z16 } from "npm:zod@^4.4.3";
-var create_crm_task_default = defineTool17({
+import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z17 } from "npm:zod@^4.4.3";
+var create_crm_task_default = defineTool18({
   name: "create_crm_task",
   title: "Create a CRM task or note",
   description: "Log a CRM activity (note or task) against a contact. Staff-only in practice: RLS rejects callers without CRM write access.",
   inputSchema: {
-    contact_id: z16.string().min(1).describe("CRM contact id from search_crm."),
-    content: z16.string().trim().min(1).max(4e3).describe("Note text or task description."),
-    activity_type: z16.enum(["note", "call", "email", "whatsapp", "meeting", "quote", "task"]).optional().describe("Use task for a to-do, or choose a communication type."),
-    title: z16.string().trim().min(1).max(200).optional().describe("Short activity title."),
-    due_at: z16.string().datetime({ offset: true }).optional().describe("ISO timestamp with a timezone offset."),
-    priority: z16.enum(["urgent", "high", "normal", "low"]).optional().describe("Priority, default normal.")
+    contact_id: z17.string().min(1).describe("CRM contact id from search_crm."),
+    content: z17.string().trim().min(1).max(4e3).describe("Note text or task description."),
+    activity_type: z17.enum(["note", "call", "email", "whatsapp", "meeting", "quote", "task"]).optional().describe("Use task for a to-do, or choose a communication type."),
+    title: z17.string().trim().min(1).max(200).optional().describe("Short activity title."),
+    due_at: z17.string().datetime({ offset: true }).optional().describe("ISO timestamp with a timezone offset."),
+    priority: z17.enum(["urgent", "high", "normal", "low"]).optional().describe("Priority, default normal.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async ({ contact_id, content, activity_type = "note", title, due_at, priority }, ctx) => {
@@ -592,15 +634,15 @@ var create_crm_task_default = defineTool17({
 });
 
 // src/lib/mcp/tools/list-opportunities.ts
-import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z17 } from "npm:zod@^4.4.3";
-var list_opportunities_default = defineTool18({
+import { defineTool as defineTool19 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z18 } from "npm:zod@^4.4.3";
+var list_opportunities_default = defineTool19({
   name: "list_opportunities",
   title: "List sales opportunities",
   description: "List CRM opportunities visible to the caller, newest first.",
   inputSchema: {
-    stage: z17.string().min(1).optional().describe("Filter by pipeline stage."),
-    limit: z17.number().int().min(1).max(50).optional().describe("Max rows (default 15).")
+    stage: z18.string().min(1).optional().describe("Filter by pipeline stage."),
+    limit: z18.number().int().min(1).max(50).optional().describe("Max rows (default 15).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ stage, limit }, ctx) => {
@@ -616,14 +658,14 @@ var list_opportunities_default = defineTool18({
 });
 
 // src/lib/mcp/tools/list-pricelists.ts
-import { defineTool as defineTool19 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z18 } from "npm:zod@^4.4.3";
-var list_pricelists_default = defineTool19({
+import { defineTool as defineTool20 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z19 } from "npm:zod@^4.4.3";
+var list_pricelists_default = defineTool20({
   name: "list_pricelists",
   title: "List pricelists and catalogs",
   description: "List pricelist versions and catalog templates the caller may see, to identify which pricelist applies to an account.",
   inputSchema: {
-    limit: z18.number().int().min(1).max(50).optional().describe("Max rows per collection (default 20).")
+    limit: z19.number().int().min(1).max(50).optional().describe("Max rows per collection (default 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
@@ -641,15 +683,15 @@ var list_pricelists_default = defineTool19({
 });
 
 // src/lib/mcp/tools/list-shipments.ts
-import { defineTool as defineTool20 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z19 } from "npm:zod@^4.4.3";
-var list_shipments_default = defineTool20({
+import { defineTool as defineTool21 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z20 } from "npm:zod@^4.4.3";
+var list_shipments_default = defineTool21({
   name: "list_shipments",
   title: "List inbound shipments",
   description: "List supplier shipments visible to the caller (most recent first). Staff-only in practice under RLS.",
   inputSchema: {
-    status: z19.string().min(1).optional().describe("Filter by shipment status (draft, reviewed, locked)."),
-    limit: z19.number().int().min(1).max(50).optional().describe("Max rows (default 10).")
+    status: z20.string().min(1).optional().describe("Filter by shipment status (draft, reviewed, locked)."),
+    limit: z20.number().int().min(1).max(50).optional().describe("Max rows (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ status, limit }, ctx) => {
@@ -665,14 +707,14 @@ var list_shipments_default = defineTool20({
 });
 
 // src/lib/mcp/tools/prepare-erp-portal-rollout.ts
-import { defineTool as defineTool21 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z20 } from "npm:zod@^4.4.3";
-var prepare_erp_portal_rollout_default = defineTool21({
+import { defineTool as defineTool22 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z21 } from "npm:zod@^4.4.3";
+var prepare_erp_portal_rollout_default = defineTool22({
   name: "prepare_erp_portal_rollout",
   title: "Prepare ERP portal rollout",
   description: "Admin-only. Queries live Innovations-synced customers, excludes active portal members, and prepares invite or follow-up action cards. It never sends an email without later explicit approval.",
   inputSchema: {
-    command: z20.string().trim().min(1).max(2e3).optional().describe("The admin's plain-English rollout instruction.")
+    command: z21.string().trim().min(1).max(2e3).optional().describe("The admin's plain-English rollout instruction.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async ({ command }, ctx) => {
@@ -692,14 +734,14 @@ var prepare_erp_portal_rollout_default = defineTool21({
 });
 
 // src/lib/mcp/tools/list-copilot-approvals.ts
-import { defineTool as defineTool22 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z21 } from "npm:zod@^4.4.3";
-var list_copilot_approvals_default = defineTool22({
+import { defineTool as defineTool23 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z22 } from "npm:zod@^4.4.3";
+var list_copilot_approvals_default = defineTool23({
   name: "list_copilot_approvals",
   title: "List Portal Copilot approvals",
   description: "Admin-only. Lists recent Copilot runs and the action cards for one run, including partial failures and audit-safe execution state.",
   inputSchema: {
-    run_id: z21.string().uuid().optional().describe("Copilot run id. Defaults to the latest run.")
+    run_id: z22.string().uuid().optional().describe("Copilot run id. Defaults to the latest run.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ run_id }, ctx) => {
@@ -714,15 +756,15 @@ var list_copilot_approvals_default = defineTool22({
 });
 
 // src/lib/mcp/tools/decide-copilot-action.ts
-import { defineTool as defineTool23 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z22 } from "npm:zod@^4.4.3";
-var decide_copilot_action_default = defineTool23({
+import { defineTool as defineTool24 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z23 } from "npm:zod@^4.4.3";
+var decide_copilot_action_default = defineTool24({
   name: "decide_copilot_action",
   title: "Approve or reject a Portal Copilot action",
   description: "Admin-only. Explicitly approves or rejects one prepared action. Approval can create an internal task or create/link a portal login and queue the customer invitation email.",
   inputSchema: {
-    action_id: z22.string().uuid().describe("Prepared Copilot action id."),
-    decision: z22.enum(["approve", "reject"]).describe("The admin's explicit decision.")
+    action_id: z23.string().uuid().describe("Prepared Copilot action id."),
+    decision: z23.enum(["approve", "reject"]).describe("The admin's explicit decision.")
   },
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   handler: async ({ action_id, decision }, ctx) => {
@@ -737,8 +779,8 @@ var decide_copilot_action_default = defineTool23({
 });
 
 // src/lib/mcp/tools/admin-list-resources.ts
-import { defineTool as defineTool24 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z23 } from "npm:zod@^4.4.3";
+import { defineTool as defineTool25 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z24 } from "npm:zod@^4.4.3";
 
 // supabase/functions/_shared/copilot/adminResources.ts
 var ADMIN_RESOURCES = [
@@ -931,8 +973,8 @@ var ADMIN_RESOURCES = [
     module: "Pricing / Catalog",
     description: "Rx and stock lens catalog, including web_enabled / wspl_enabled channel flags.",
     select: "*",
-    searchColumns: ["name", "description"],
-    writable: ["name", "description", "is_active", "web_enabled", "wspl_enabled", "material_id", "lenstype_id", "finishtype_id", "brand_id"],
+    searchColumns: ["name", "notes"],
+    writable: ["name", "notes", "is_active", "web_enabled", "wspl_enabled", "material_id", "lenstype_id", "finishtype_id", "brand_id"],
     orderBy: "updated_at",
     priceSensitive: true
   },
@@ -1161,6 +1203,39 @@ var ADMIN_RESOURCES = [
     priceSensitive: true,
     financialData: true
   },
+  {
+    key: "shipment_documents",
+    table: "shipment_documents",
+    module: "Costings / Shipment documents",
+    description: "Uploaded shipment source documents. Read metadata only; files remain private and must be reviewed in the costing workspace.",
+    select: "id,shipment_id,source_kind,original_file_name,mime_type,byte_size,created_at",
+    searchColumns: ["original_file_name"],
+    writable: [],
+    orderBy: "created_at",
+    financialData: true
+  },
+  {
+    key: "shipment_document_extractions",
+    table: "shipment_document_extractions",
+    module: "Costings / Shipment documents",
+    description: "Google Document AI extraction drafts. Treat as unverified evidence: present the extracted fields and ask for approval before using them in a shipment, a charge, or a document template.",
+    select: "id,shipment_id,document_id,document_kind,status,extracted_text,extracted_fields,created_at,approved_at",
+    searchColumns: ["extracted_text"],
+    writable: [],
+    orderBy: "created_at",
+    financialData: true
+  },
+  {
+    key: "shipment_document_templates",
+    table: "shipment_document_templates",
+    module: "Costings / Shipment documents",
+    description: "Human-approved document-layout templates for shipment evidence. Read them to explain prior mappings; never create or alter a template without a named operator approval.",
+    select: "id,supplier_id,document_kind,fingerprint,approved_field_mapping,usage_count,last_used_at,created_at",
+    searchColumns: [],
+    writable: [],
+    orderBy: "last_used_at",
+    financialData: true
+  },
   // ---------------------------------------- Docs, knowledge & settings
   {
     key: "docstudio_billing_documents",
@@ -1380,7 +1455,11 @@ var dispatchAdminResourceTool = async (db, name, input, actorUserId, access = { 
       builder = builder.or(resource.searchColumns.map((column) => `${column}.ilike.${like}`).join(","));
     }
     const filters = input.filters ?? {};
+    const allowedFilterColumns = resource.select === "*" ? null : new Set(resource.select.split(",").map((c) => c.trim()).filter(Boolean));
     for (const [column, value] of Object.entries(filters)) {
+      if (!/^[a-z_][a-z0-9_]*$/.test(column) || allowedFilterColumns && !allowedFilterColumns.has(column)) {
+        throw new Error(`Filtering by "${column}" is not allowed for ${resource.key}.`);
+      }
       builder = value === null ? builder.is(column, null) : builder.eq(column, value);
     }
     if (resource.orderBy) builder = builder.order(resource.orderBy, { ascending: false });
@@ -1534,12 +1613,12 @@ var ADMIN_RESOURCE_TOOLS = [
 var ADMIN_RESOURCE_TOOL_NAMES = new Set(ADMIN_RESOURCE_TOOLS.map((tool) => tool.name));
 
 // src/lib/mcp/tools/admin-list-resources.ts
-var admin_list_resources_default = defineTool24({
+var admin_list_resources_default = defineTool25({
   name: "admin_list_resources",
   title: "List admin data resources",
   description: "List every admin module data resource this server can read or write (CRM, helpdesk, orders, Rx, pricing, catalog, customers, billing, shipments, docs, knowledge, settings), with writable fields and whether writes need approval. Call this first when you are unsure which resource covers a task.",
   inputSchema: {
-    module: z23.string().min(1).optional().describe('Optional module filter, e.g. "Helpdesk" or "Pricing".')
+    module: z24.string().min(1).optional().describe('Optional module filter, e.g. "Helpdesk" or "Pricing".')
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: ({ module }, ctx) => {
@@ -1559,17 +1638,17 @@ var admin_list_resources_default = defineTool24({
 });
 
 // src/lib/mcp/tools/admin-search-records.ts
-import { defineTool as defineTool25 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z24 } from "npm:zod@^4.4.3";
-var admin_search_records_default = defineTool25({
+import { defineTool as defineTool26 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z25 } from "npm:zod@^4.4.3";
+var admin_search_records_default = defineTool26({
   name: "admin_search_records",
   title: "Search admin records",
   description: "Search or list records in any admin resource (see admin_list_resources for keys). Row-level security still applies, so only data the caller may see is returned.",
   inputSchema: {
-    resource: z24.string().min(1).describe("Resource key from admin_list_resources."),
-    query: z24.string().min(1).optional().describe("Free-text search across the resource's searchable columns."),
-    filters: z24.record(z24.string(), z24.any()).optional().describe('Exact-match column filters, e.g. {"status":"open"}.'),
-    limit: z24.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
+    resource: z25.string().min(1).describe("Resource key from admin_list_resources."),
+    query: z25.string().min(1).optional().describe("Free-text search across the resource's searchable columns."),
+    filters: z25.record(z25.string(), z25.any()).optional().describe('Exact-match column filters, e.g. {"status":"open"}.'),
+    limit: z25.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ resource, query, filters, limit }, ctx) => {
@@ -1589,15 +1668,15 @@ var admin_search_records_default = defineTool25({
 });
 
 // src/lib/mcp/tools/admin-get-record.ts
-import { defineTool as defineTool26 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z25 } from "npm:zod@^4.4.3";
-var admin_get_record_default = defineTool26({
+import { defineTool as defineTool27 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z26 } from "npm:zod@^4.4.3";
+var admin_get_record_default = defineTool27({
   name: "admin_get_record",
   title: "Get one admin record",
   description: "Fetch a single record by id from any admin resource (see admin_list_resources for keys).",
   inputSchema: {
-    resource: z25.string().min(1).describe("Resource key from admin_list_resources."),
-    id: z25.union([z25.string().min(1), z25.number()]).describe("Record id.")
+    resource: z26.string().min(1).describe("Resource key from admin_list_resources."),
+    id: z26.union([z26.string().min(1), z26.number()]).describe("Record id.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ resource, id }, ctx) => {
@@ -1612,17 +1691,17 @@ var admin_get_record_default = defineTool26({
 });
 
 // src/lib/mcp/tools/admin-write-record.ts
-import { defineTool as defineTool27 } from "npm:@lovable.dev/mcp-js@0.26.2";
-import { z as z26 } from "npm:zod@^4.4.3";
-var admin_write_record_default = defineTool27({
+import { defineTool as defineTool28 } from "npm:@lovable.dev/mcp-js@0.26.2";
+import { z as z27 } from "npm:zod@^4.4.3";
+var admin_write_record_default = defineTool28({
   name: "admin_write_record",
   title: "Create, update or delete an admin record",
   description: "Create, update or delete a record in any admin resource. Ordinary changes execute immediately. Deletes and price-bearing changes are not executed: the tool returns an approval proposal describing exactly what would change, which an admin must approve in the Portal Copilot.",
   inputSchema: {
-    resource: z26.string().min(1).describe("Resource key from admin_list_resources."),
-    operation: z26.enum(["create", "update", "delete"]).describe("What to do."),
-    id: z26.union([z26.string().min(1), z26.number()]).optional().describe("Record id (required for update and delete)."),
-    values: z26.record(z26.string(), z26.any()).optional().describe("Column/value pairs for create and update. Only writable columns are accepted.")
+    resource: z27.string().min(1).describe("Resource key from admin_list_resources."),
+    operation: z27.enum(["create", "update", "delete"]).describe("What to do."),
+    id: z27.union([z27.string().min(1), z27.number()]).optional().describe("Record id (required for update and delete)."),
+    values: z27.record(z27.string(), z27.any()).optional().describe("Column/value pairs for create and update. Only writable columns are accepted.")
   },
   annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   handler: async ({ resource, operation, id, values }, ctx) => {
@@ -1649,11 +1728,13 @@ var projectRef = "xstmeirxhfbiyayrrsob";
 var mcp_default = defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",
-  version: "0.4.0",
+  version: "0.5.0",
   instructions: [
     "Tools for the Classic Visions optical platform (wholesale lenses, coatings and optical supplies).",
     "Every call acts as the signed-in user and row-level security decides what is visible: customers see only their own account data, staff see the wider CRM, catalog and operations data.",
     "Start with `whoami` to learn the caller's roles and linked customer accounts.",
+    "For a contact organization review, use `review_crm_organization`; explain its coverage before presenting counts. Resource discovery lists supported capabilities, not proof of the caller's access; actual reads remain subject to row-level permissions.",
+    "ChatGPT Live can invoke connected tools when available to the caller. Use the same permissions for voice and typed requests. Actions needing host approval must be reviewed on screen; spoken approval does not replace it. Resolve ambiguous spoken names before writes. Never claim a connection or a write succeeded without its result.",
     "Billing: `get_account_balance`, `list_statements`, `get_statement`. Orders: `list_orders`, `get_order`. Quotes: `list_quotes`, `get_quote`.",
     "Support: `list_support_tickets`, `get_support_ticket`, `create_support_ticket`, `reply_to_support_ticket`.",
     "Catalog and knowledge: `search_products`, `list_pricelists`, `search_knowledge_base`.",
@@ -1668,6 +1749,7 @@ var mcp_default = defineMcp({
   }),
   tools: [
     whoami_default,
+    review_crm_organization_default,
     search_products_default,
     list_my_orders_default,
     get_order_default,

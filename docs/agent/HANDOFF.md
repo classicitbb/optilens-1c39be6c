@@ -1125,3 +1125,18 @@ Validation: eleven focused tests passed across MCP activity and search, CRM Focu
 Automatic review rejected the broader MCP write allowlist and approval-policy change and also rejected an MCP search change involving the existing financial projection. The implemented filtered search uses a limited CRM and customer identity projection. Existing caller permissions and approval rules continue to apply. Confirm the exact admin-only write operations and approval boundaries before retrying. The user approved the production email/ticket smoke test triggered by the main-branch Edge workflow.
 
 Release preflight: `git ls-remote origin refs/heads/main` to verify the release base before creating the scoped commit and pushing.
+## 2026-11-20 — Classic Visions MCP and Live
+
+Status: Incomplete — MCP 0.5.0 release and authenticated connection pending.
+
+Affected: src/lib/mcp/index.ts, tools/review-crm-organization.ts, CONTEXT.md; scripts/check_mcp_connection.mjs and generate_mcp_function.mjs; package.json; generated supabase/functions/mcp/index.ts; two mcp unit tests and MCP/continuity/symmetry documentation.
+
+Validation: 6 focused tests, app TypeScript, build and lint (0 errors, 2524 warnings) pass. Broad suite: 2050 pass, 1 skip, 1 fail in liveDataGateway.integration.test.ts from CRLF/LF equality of existing SQL migrations. No unrelated fix made. Anonymous live metadata HTTP 200 and initialization HTTP 401 with resource metadata challenge pass. No identity, authorized business read, tool inventory or Live end-to-end verification. No deployment, data write, credential change or plugin install.
+
+Approval required: production release of only the generated mcp function, followed by edge smoke and host OAuth connection. Existing user instruction requires pausing before production deployment and authentication changes. Do not deploy staging or unrelated functions.
+
+PR checks: lockfile and documentation symmetry pass; blocked by stale existing platformFacts.generated.ts at qa:copilot-facts.
+
+One exact executable next action (read-only): git diff -- supabase/functions/mcp/index.ts
+
+Release guide: docs/classic-visions-mcp.md. Do not repeat uninstallation attempts or claim the missing plugin is repaired.

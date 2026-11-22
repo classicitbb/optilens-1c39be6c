@@ -127,3 +127,6 @@ Set SMOKE_EXISTING_SERVER=1 and SMOKE_PORT to the existing local preview port, t
 
 
 PBX agent over AMI (2026-11-09, local source): create the AMI user in FreePBX Settings > Asterisk Manager Users (permit the agent machine only; read call,reporting; write originate,call,reporting), then follow `docs/pbx-calls-setup.md` steps 5-7. Keep secrets in `pbx-agent.env`, never in git or chat.
+## 2026-11-20 — Classic Visions MCP and Live
+
+To diagnose the MCP connection, configure MCP_SERVER_URL outside Git and run `npm run mcp:check`. A pass covers endpoint discovery only. Then connect through the host OAuth flow and verify whoami and a harmless read. See docs/classic-visions-mcp.md.

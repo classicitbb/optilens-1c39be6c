@@ -462,3 +462,6 @@ On the homepage, pull the rounded handle down or tap it to open shortcuts. Pull 
 Call panel (2026-10-30, local source): after you press Call, the Calls tab shows whether your phone is ringing, the customer is being dialled or you are connected, with Hang up, Record and Stop recording buttons. Tell the customer before recording and stop while they give card details.
 
 Calling from the website (2026-10-30, local source): Barbados and North American numbers can be called. Calls to North American numbers outside Barbados ask for the office's overseas-calls password on your phone after you pick up. Other international numbers can't be dialled from the website yet.
+## 2026-11-20 — Classic Visions MCP and Live
+
+After the Classic Visions plugin is connected, ask Live to review contact organization. It can show company/person, pipeline/stage, archive and account-link breakdowns. Partial coverage is reported; approvals requiring host review must be completed on screen. This source release is not yet deployed.

@@ -530,3 +530,6 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-10-26 — Private clearance activation
 
 ### Release Notes
+## 2026-11-20 — Classic Visions MCP and Live
+
+MCP 0.5.0 is local only: 28 registered tools, contact organization counts and ChatGPT Live instructions. Existing OAuth/RLS and write approvals are preserved. See docs/classic-visions-mcp.md.

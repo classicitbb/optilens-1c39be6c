@@ -511,3 +511,6 @@ Homepage quick-start reserves 44px below the fixed header. Its original rounded 
 FreePBX call panel (2026-10-30, local source): `ContactCalls` polls its `call_requests` row every 2 s while the call is live and sends Hang up / Record / Stop through `pbx-calls` `control`; Record confirms in an `AlertDialog`. See `docs/pbx-calls-setup.md`.
 
 PBX dial format (2026-10-30, local source): `toDialDigits` (shared by `pbx-calls`) returns 7 digits for Barbados numbers and `1` + 10 digits for other North American numbers, matching the FreePBX outbound routes; other international numbers return null and `pbx-calls` answers 422.
+## 2026-11-20 — Classic Visions MCP and Live
+
+MCP source registers 28 tools at version 0.5.0. review_crm_organization returns caller-visible contact grouping counts with explicit bounded coverage. It uses the existing caller token and RLS; no frontend routes or authentication rules changed. See src/lib/mcp/CONTEXT.md.

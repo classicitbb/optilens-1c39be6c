@@ -85,4 +85,4 @@ if (!generated.includes("createSupabaseHandler") || generated.includes("npm:C:\\
 mkdirSync(path.dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, generated, "utf8");
 
-console.log(`Generated portable MCP Edge Function for ${projectRef}.`);
+console.log("Generated portable MCP Edge Function.");

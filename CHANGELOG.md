@@ -1011,3 +1011,6 @@ script errors. No source stock/order write, reservation, payment or email occurr
 
 Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.
 - Keep saved stock-order draft loading in the guarded edit route and pass it into the reusable panel, so ordinary order entry and panel integrations do not require an additional query provider.
+## 2026-11-20 — Classic Visions MCP and Live
+
+MCP 0.5.0 adds a bounded contact-organization review and anonymous connection diagnostics. Generated Edge Function is ready locally; no deployment or authenticated connection verified.
