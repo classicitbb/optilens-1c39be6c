@@ -12,7 +12,7 @@
   "mcp": {
     "server": {
       "name": "classic-visions-mcp",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "title": "Classic Visions"
     },
     "tools": [
@@ -29,6 +29,29 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "review_crm_organization",
+        "title": "Review contact organization",
+        "description": "Read how visible CRM contacts are organized by company/person, pipeline, stage, archive status and ERP customer-account links. Returns counts without names, emails, notes or financial data. Bounded review; reports whether results cover the complete visible collection. Empty results do not establish that the CRM is empty or that access is granted.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Maximum contacts to review, newest first (default 500).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
         },
         "outputSchema": null
       },
