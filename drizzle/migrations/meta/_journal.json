@@ -64,6 +64,13 @@
       "when": 1795266365644,
       "tag": "0008_restrict_definer_function_access",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795555046864,
+      "tag": "0009_restrict_crm_unmerge_contacts",
+      "breakpoints": true
     }
   ]
 }
