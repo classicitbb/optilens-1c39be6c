@@ -50,6 +50,45 @@ describe("import costing totals", () => {
     expect(totals.charityAllocationBbd).toBe(0);
     expect(totals.totalLandedBbd).toBeCloseTo(2314.59, 6);
   });
+  const splitInvoice = {
+    ...shipment, fob_foreign: 100, invoice_total_foreign: 120,
+    settlement_method: "BBD Funded - Wire", fxf_rate: 0.025,
+    fxf_applicability: "applicable" as const, fxf_actual_bbd: 7.5,
+  };
+  const freight = [{ charge_type: "Insurance & Freight", amount_bbd: 100 }];
+
+  it("recalculates a saved automatic fee from the invoice, not FOB or freight", () => {
+    const totals = computeShipmentDerivedTotals(splitInvoice, freight);
+    expect(totals.fobBbd).toBe(200);
+    expect(totals.invoiceBbd).toBe(240);
+    expect(totals.invoicePlusFreightBbd).toBe(340);
+    expect(totals.fxfBasisBbd).toBe(240);
+    expect(totals.actualFxfBbd).toBe(6);
+    expect(totals.totalLandedBbd).toBe(356);
+  });
+
+  it("keeps FCA exempt even if an earlier automatic fee was stored", () => {
+    const totals = computeShipmentDerivedTotals({ ...splitInvoice, settlement_method: "FCA" }, freight);
+    expect(totals.actualFxfBbd).toBe(0);
+    expect(totals.totalLandedBbd).toBe(350);
+  });
+
+  it("preserves a manual override and its variance against the corrected expected fee", () => {
+    const totals = computeShipmentDerivedTotals({ ...splitInvoice, fxf_applicability: "manual_override" }, freight);
+    expect(totals.expectedFxfBbd).toBe(6);
+    expect(totals.actualFxfBbd).toBe(7.5);
+    expect(totals.fxfVarianceBbd).toBe(1.5);
+  });
+
+  it("preserves the recorded fee and basis for an already locked shipment", () => {
+    const totals = computeShipmentDerivedTotals({
+      ...splitInvoice, status: "locked", fxf_basis_bbd: 300, fxf_expected_bbd: 7.5,
+    }, freight);
+    expect(totals.fxfBasisBbd).toBe(300);
+    expect(totals.actualFxfBbd).toBe(7.5);
+    expect(totals.totalLandedBbd).toBe(357.5);
+  });
+
   it("costs lines so their landed totals add up to the shipment total, at any exchange rate", () => {
     const lines = [
       { line_fob_foreign: 600, quantity: 6, markup_percent: 50 },

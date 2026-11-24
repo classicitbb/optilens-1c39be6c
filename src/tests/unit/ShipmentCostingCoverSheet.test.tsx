@@ -8,18 +8,26 @@ const props = {
   reference: "PO-101",
   receivedOn: "2026-09-15",
   currency: "USD",
-  fobBbd: 200,
+  invoiceBbd: 240,
   freightBbd: 100,
   charityAllocationBbd: 10,
-  cifBbd: 300,
-  fxfBbd: 6,
+  invoicePlusFreightBbd: 340,
+  fxfBbd: 4.8,
   otherChargesBbd: 20,
-  totalLandedBbd: 336,
+  totalLandedBbd: 374.8,
   multiplier: 1.68,
   status: "draft",
 } as const;
 
 describe("ShipmentCostingCoverSheet", () => {
+  it("shows the invoice basis, fee and landed total on the printable sheet", () => {
+    render(<ShipmentCostingCoverSheet {...props} freightProvider="dhl" />);
+    expect(screen.getByText("Supplier invoice total").parentElement).toHaveTextContent("BBD 240.00");
+    expect(screen.getByText("Invoice + insurance & freight").parentElement).toHaveTextContent("BBD 340.00");
+    expect(screen.getByText("Foreign exchange fee").parentElement).toHaveTextContent("BBD 4.80");
+    expect(screen.getByText("Current total landed").parentElement).toHaveTextContent("BBD 374.80");
+  });
+
   it("shows the existing DHL charity contribution immediately after freight", () => {
     render(<ShipmentCostingCoverSheet {...props} freightProvider="dhl" />);
 

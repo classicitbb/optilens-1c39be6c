@@ -7,11 +7,11 @@ export type CostingCoverSheetProps = {
   reference: string;
   receivedOn: string | null;
   currency: string;
-  fobBbd: number;
+  invoiceBbd: number;
   freightBbd: number;
   charityAllocationBbd: number;
   freightProvider: "dhl" | "non-dhl";
-  cifBbd: number;
+  invoicePlusFreightBbd: number;
   fxfBbd: number;
   otherChargesBbd: number;
   totalLandedBbd: number;
@@ -24,10 +24,10 @@ const money = (value: number) => new Intl.NumberFormat("en-BB", { minimumFractio
 /** Printable first page for the digital or physical shipment-costing binder. */
 export default function ShipmentCostingCoverSheet(props: CostingCoverSheetProps) {
   const rows: Array<[string, number]> = [
-    ["FOB / supplier invoice", props.fobBbd],
+    ["Supplier invoice total", props.invoiceBbd],
     ["Insurance & freight", props.freightBbd],
     ...(props.freightProvider === "dhl" ? [["DHL charity contribution (10% of insurance & freight)", props.charityAllocationBbd] as [string, number]] : []),
-    ["CIF", props.cifBbd],
+    ["Invoice + insurance & freight", props.invoicePlusFreightBbd],
     ["Foreign exchange fee", props.fxfBbd],
     ["Other landed charges", props.otherChargesBbd],
   ] as const;

@@ -27,13 +27,28 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock, CircleAlert, CircleCheck, FileText, PenLine, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
+import { computeChargeRowTotal, computeShipmentDerivedTotals, formatMoney } from "@/lib/importCostings";
 import ShipmentEvidencePanel, { acceptedShipmentDocuments, uploadShipmentDocuments } from "./ShipmentEvidencePanel";
 import ShipmentCostingCoverSheet from "./ShipmentCostingCoverSheet";
 import { deriveChargeProfiles, type ChargeProfile } from "@/features/shipments/chargeProfiles";
 import { getChargeAdvance, type ChargeField } from "@/features/shipments/chargeKeyboard";
 
 const fmt = formatMoney;
+
+const shipmentFxfFields = (shipment: Shipment, charges: ShipmentCharge[], settings: Parameters<typeof computeShipmentTotals>[2]) => {
+  const computed = computeShipmentTotals(shipment, charges, settings);
+  return {
+    settlement_method: shipment.settlement_method ?? "BBD Funded - Wire",
+    fxf_applicability: computed.fxfApplicable
+      ? (shipment.fxf_applicability === "manual_override" ? "manual_override" : "applicable")
+      : "exempt",
+    fxf_rate: computed.fxfRate,
+    fxf_basis_bbd: computed.fxfBasisBbd,
+    fxf_expected_bbd: computed.expectedFxfBbd,
+    fxf_actual_bbd: computed.actualFxfBbd,
+    fxf_variance_bbd: computed.fxfVarianceBbd,
+  };
+};
 
 /** A text input for numeric values that only saves on blur */
 const NumericInput = ({
@@ -300,7 +315,7 @@ const ShipmentDetailPage = () => {
   const isLensShipment = LENS_CODES.includes(shipment?.type ?? "");
 
   const totals = useMemo(() => {
-    if (!shipment) return { exchangeRate: 1, fobBbd: 0, invoiceBbd: 0, amountTotal: 0, vatTotal: 0, dutyTotal: 0, chargeSubtotalExcludingVatBbd: 0, totalChargesIncludingVatBbd: 0, totalLandedBbd: 0, totalLandedUsd: 0, charityAllocationBbd: 0, totalShipmentCostBbd: 0, multiplier: 0 };
+    if (!shipment) return computeShipmentDerivedTotals({}, []);
     return computeShipmentTotals(shipment, charges, settings);
   }, [shipment, charges, settings]);
 
@@ -338,16 +353,7 @@ const ShipmentDetailPage = () => {
     }
     setSaving(true);
     try {
-      const computed = computeShipmentTotals(shipment, charges, settings);
-      const persistedFxf = {
-        settlement_method: shipment.settlement_method ?? "BBD Funded - Wire",
-        fxf_applicability: computed.fxfApplicable ? "applicable" : "exempt",
-        fxf_rate: computed.fxfRate,
-        fxf_basis_bbd: computed.fxfBasisBbd,
-        fxf_expected_bbd: computed.expectedFxfBbd,
-        fxf_actual_bbd: computed.actualFxfBbd,
-        fxf_variance_bbd: computed.fxfVarianceBbd,
-      };
+      const persistedFxf = shipmentFxfFields(shipment, charges, settings);
       if (isNew) {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
         const { data, error } = await (supabase.from("shipments") as any)
@@ -390,7 +396,20 @@ const ShipmentDetailPage = () => {
     }
     const oldStatus = shipment.status;
     try {
-      const { error } = await (supabase.from("shipments") as any).update({ status: newStatus }).eq("id", id);
+      let fxfFields: ReturnType<typeof shipmentFxfFields> | undefined;
+      if (newStatus === "locked") {
+        // Lock the corrected fee with the saved header, not unsaved form edits.
+        const { data: saved, error: readError } = await (supabase.from("shipments") as any).select("*").eq("id", id).single();
+        if (readError) throw readError;
+        if (Math.abs(lines.reduce((sum, line) => sum + (line.line_fob_foreign || 0), 0) - saved.invoice_total_foreign) >= 0.005) {
+          throw new Error("Save and reconcile the invoice before locking.");
+        }
+        // Keep legacy records without settlement data untouched unless explicitly saved.
+        if (saved.settlement_method != null || saved.fxf_applicability != null || saved.fxf_rate != null || saved.fxf_actual_bbd != null) {
+          fxfFields = shipmentFxfFields(saved, charges, settings);
+        }
+      }
+      const { error } = await (supabase.from("shipments") as any).update({ status: newStatus, ...fxfFields }).eq("id", id);
       if (error) throw error;
       if (newStatus === "locked") {
         const { error: binderError } = await supabase.functions.invoke("shipment-binder", { body: { shipmentId: id } });
@@ -399,7 +418,7 @@ const ShipmentDetailPage = () => {
           throw new Error("Binder generation failed; shipment remains reviewed.");
         }
       }
-      setShipment({ ...shipment, status: newStatus as any });
+      setShipment({ ...shipment, ...fxfFields, status: newStatus as Shipment["status"] } as Shipment);
       logChange({ table_name: "shipments", record_id: id, action: "update", change_summary: { status: { old: oldStatus, new: newStatus } } });
       toast({ title: `Status → ${newStatus}` });
     } catch (e: any) {
@@ -562,10 +581,16 @@ const ShipmentDetailPage = () => {
 
   const xr = totals.exchangeRate || shipment.exchange_rate || 1;
   const currencyMark = shipment.currency === "USD" ? "US$" : `${shipment.currency}$`;
-  const insuranceFreightAmount = computeInsuranceFreightCharge(charges);
+  const insuranceFreightAmount = totals.insuranceFreightBbd;
   const freightProvider = shipment.freight_provider ?? "dhl";
-  const cifBbd = totals.fobBbd + insuranceFreightAmount;
-  const expectedFxfBbd = Math.round(cifBbd * 0.02 * 100) / 100;
+  const fxfRateLabel = (totals.fxfRate * 100).toFixed(2);
+  const fxfLabel = totals.usesSavedFxf
+    ? "FXF (saved)"
+    : !totals.fxfApplicable
+      ? "FXF (not applied)"
+      : shipment.fxf_applicability === "manual_override"
+        ? "FXF (manual override)"
+        : `FXF @ ${fxfRateLabel}% of invoice total`;
   const otherLandedChargesBbd = Math.max(0, totals.chargeSubtotalExcludingVatBbd - insuranceFreightAmount);
   const supplierLinesTotal = lines.reduce((sum, line) => sum + (line.line_fob_foreign || 0), 0);
   const invoiceVariance = supplierLinesTotal - shipment.invoice_total_foreign;
@@ -792,17 +817,17 @@ const ShipmentDetailPage = () => {
         </summary>
         <div className="mt-2 grid gap-2">
           <div className="divide-y rounded-md border bg-muted/20 px-3">
-            <CostStoryRow label="FOB / supplier invoice" value={fmt(totals.fobBbd)} suffix="BBD" />
+            <CostStoryRow label="Supplier invoice total" value={fmt(totals.invoiceBbd)} suffix="BBD" />
             <CostStoryRow label="Insurance & freight" value={fmt(insuranceFreightAmount)} suffix="BBD" />
             {freightProvider === "dhl" && <CostStoryRow label="DHL charity contribution (10% of insurance & freight)" value={fmt(totals.charityAllocationBbd)} suffix="BBD" />}
-            <CostStoryRow label="CIF" value={fmt(cifBbd)} suffix="BBD" strong />
-            <CostStoryRow label="FXF @ 2.00% of CIF" value={fmt(expectedFxfBbd)} suffix="BBD" strong icon={<Lock className="h-3 w-3" />} />
+            <CostStoryRow label="Invoice + insurance & freight" value={fmt(totals.invoicePlusFreightBbd)} suffix="BBD" strong />
+            <CostStoryRow label={fxfLabel} value={fmt(totals.actualFxfBbd)} suffix="BBD" strong icon={<Lock className="h-3 w-3" />} />
             <CostStoryRow label="Other landed charges excl. recoverable VAT" value={fmt(otherLandedChargesBbd)} suffix="BBD" />
             <CostStoryRow label="Current total landed" value={fmt(totals.totalLandedBbd)} suffix="BBD" strong />
             <CostStoryRow label="Current landed multiplier" value={totals.multiplier.toFixed(4)} suffix="×" strong />
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">FXF is persisted on save from CIF at the configured rate; FCA settlement is exempt. Overrides require a reviewed revision.</p>
+        <p className="text-[11px] text-muted-foreground">{totals.usesSavedFxf ? "This locked shipment shows its saved fee." : "FXF is saved from the supplier invoice total at the configured rate. FCA settlement is exempt."}</p>
       </details>
       </div>
 
@@ -831,12 +856,12 @@ const ShipmentDetailPage = () => {
               reference={shipment.po_ref}
               receivedOn={shipment.date_received}
               currency={shipment.currency}
-              fobBbd={totals.fobBbd}
+              invoiceBbd={totals.invoiceBbd}
               freightBbd={insuranceFreightAmount}
               charityAllocationBbd={totals.charityAllocationBbd}
               freightProvider={freightProvider}
-              cifBbd={cifBbd}
-              fxfBbd={expectedFxfBbd}
+              invoicePlusFreightBbd={totals.invoicePlusFreightBbd}
+              fxfBbd={totals.actualFxfBbd}
               otherChargesBbd={otherLandedChargesBbd}
               totalLandedBbd={totals.totalLandedBbd}
               multiplier={totals.multiplier}
@@ -858,8 +883,8 @@ const ShipmentDetailPage = () => {
 
           <TabsContent value="charges" className="space-y-2 pt-2">
             <div className="flex items-center justify-between rounded-md border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-xs">
-              <div className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-violet-700" /><span className="font-medium">Foreign Exchange Fee</span><Badge variant="outline" className="text-[9px]">System · planned</Badge></div>
-              <Tooltip><TooltipTrigger asChild><span tabIndex={0} className="cursor-help font-mono underline decoration-dotted underline-offset-2">{fmt(expectedFxfBbd)} BBD</span></TooltipTrigger><TooltipContent className="text-xs">CIF {fmt(cifBbd)} × 2.00% = {fmt(expectedFxfBbd)} BBD</TooltipContent></Tooltip>
+              <div className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-violet-700" /><span className="font-medium">Foreign Exchange Fee</span><Badge variant="outline" className="text-[9px]">{totals.usesSavedFxf ? "Saved" : "Calculated"}</Badge></div>
+              <Tooltip><TooltipTrigger asChild><span tabIndex={0} className="cursor-help font-mono underline decoration-dotted underline-offset-2">{fmt(totals.actualFxfBbd)} BBD</span></TooltipTrigger><TooltipContent className="text-xs">{fxfLabel}: {totals.fxfApplicable && !totals.usesSavedFxf ? `BBD ${fmt(totals.fxfBasisBbd)} × ${fxfRateLabel}% = BBD ${fmt(totals.expectedFxfBbd)} expected` : `BBD ${fmt(totals.actualFxfBbd)}`}</TooltipContent></Tooltip>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">All amounts in BBD</span>

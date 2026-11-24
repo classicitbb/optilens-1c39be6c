@@ -328,6 +328,13 @@ Email resend (2026-10-15, local source): the Email Previews delivery log has a R
   (model provider/tier, corrections-per-draft threshold, image retention) are
   listed at the end of the plan and are Russell's call, not the agent's.
 
+- **Shipment costing FXF basis** — editable costings use the supplier invoice
+  total converted to BBD for FXF; freight remains a separate landed charge.
+  The workbench summary and printable sheet use the same calculation as save.
+  Explicit fee overrides and already locked fees are preserved. No backfill or
+  database migration is required. Coordinate frontend and shipment-binder
+  release when deploying the shared calculation.
+
 - **Shipment costing workbench repair** — source now uses the bundled PDF.js
   reader with signed-URL failure handling instead of an iframe, labels the panel
   accurately as a PDF reader, and preserves uploaded documents when an operator

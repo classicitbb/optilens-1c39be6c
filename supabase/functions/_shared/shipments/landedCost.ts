@@ -20,6 +20,9 @@ export type ForeignExchangeFeeSource = {
   fxf_applicability?: "applicable" | "exempt" | "manual_override" | null;
   fxf_rate?: number | null;
   fxf_actual_bbd?: number | null;
+  fxf_basis_bbd?: number | null;
+  fxf_expected_bbd?: number | null;
+  status?: string | null;
 };
 
 export type PricingSettingsRateSource = {
@@ -111,16 +114,22 @@ export const computeShipmentDerivedTotals = (
   } = computeChargeTotals(charges);
   const charityAllocationBbd = computeCharityAllocation(charges, shipment.freight_provider ?? "dhl");
   const insuranceFreightBbd = computeInsuranceFreightCharge(charges);
-  // The approved FXF basis is CIF: supplier FOB converted to BBD plus insurance/freight.
+  // FXF is based on the converted supplier invoice total, not FOB or freight.
   // FCA and other explicitly exempt settlements do not create a system fee.
   // Null is intentional for pre-workbench records. Do not backfill or alter
   // historical finalized landed costs simply because the new model exists.
   const hasFxfModel = shipment.settlement_method != null || shipment.fxf_applicability != null || shipment.fxf_rate != null || shipment.fxf_actual_bbd != null;
   const fxfApplicable = hasFxfModel && shipment.fxf_applicability !== "exempt" && shipment.settlement_method !== "FCA";
-  const fxfBasisBbd = fxfApplicable ? fobBbd + insuranceFreightBbd : 0;
+  const usesSavedFxf = shipment.status === "locked" && shipment.fxf_actual_bbd != null;
+  const fxfBasisBbd = usesSavedFxf
+    ? (shipment.fxf_basis_bbd ?? (fxfApplicable ? fobBbd + insuranceFreightBbd : 0))
+    : fxfApplicable ? invoiceBbd : 0;
   const fxfRate = shipment.fxf_rate ?? 0.02;
-  const expectedFxfBbd = Math.round(fxfBasisBbd * fxfRate * 100) / 100;
-  const actualFxfBbd = shipment.fxf_actual_bbd ?? expectedFxfBbd;
+  const calculatedFxfBbd = Math.round(fxfBasisBbd * fxfRate * 100) / 100;
+  const expectedFxfBbd = usesSavedFxf ? (shipment.fxf_expected_bbd ?? calculatedFxfBbd) : calculatedFxfBbd;
+  // Previously saved automatic fees must not override the recalculation on an editable shipment.
+  const useActualFxf = usesSavedFxf || (fxfApplicable && shipment.fxf_applicability === "manual_override");
+  const actualFxfBbd = useActualFxf ? (shipment.fxf_actual_bbd ?? expectedFxfBbd) : expectedFxfBbd;
   const fxfVarianceBbd = Math.round((actualFxfBbd - expectedFxfBbd) * 100) / 100;
   // VAT is reported separately and is not allocated into landed product cost.
   // The DHL charity contribution is a real landed cost and must be allocated.
@@ -144,6 +153,8 @@ export const computeShipmentDerivedTotals = (
     totalShipmentCostBbd,
     multiplier,
     insuranceFreightBbd,
+    invoicePlusFreightBbd: invoiceBbd + insuranceFreightBbd,
+    usesSavedFxf,
     fxfApplicable,
     fxfBasisBbd,
     fxfRate,

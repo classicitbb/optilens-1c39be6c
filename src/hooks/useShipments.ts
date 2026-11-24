@@ -239,7 +239,7 @@ export const useShipmentLines = (shipmentId: string | null) => {
 
 /** Compute shipment derived values */
 export const computeShipmentTotals = (
-  shipment: Pick<Shipment, "currency" | "exchange_rate" | "fob_foreign" | "invoice_total_foreign" | "freight_provider" | "settlement_method" | "fxf_applicability" | "fxf_rate" | "fxf_actual_bbd">,
+  shipment: Pick<Shipment, "currency" | "exchange_rate" | "fob_foreign" | "invoice_total_foreign" | "freight_provider" | "settlement_method" | "fxf_applicability" | "fxf_rate" | "fxf_actual_bbd" | "fxf_basis_bbd" | "fxf_expected_bbd" | "status">,
   charges: ShipmentCharge[],
   settings?: { import_costing_fx_rates?: Record<string, number> | null } | null
 ) => computeShipmentDerivedTotals(shipment, charges, settings);
