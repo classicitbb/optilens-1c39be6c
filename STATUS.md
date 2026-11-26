@@ -1,3 +1,11 @@
+## Live release branch merge — 2026-11-26
+
+Resolved `origin/main` at `f34f0a83` into `codex/public-website-states`. Preserved both documentation histories and the published 0.39.0 release identity. The merged npm manifests match main's security fixes exactly apart from version metadata; the audit reports zero vulnerabilities. Verification is in progress. The user explicitly authorized merging the resolved branch into main after validation, which will trigger the existing production pipeline.
+
+## Public website states — 2026-11-26
+
+Published the first milestone on 2026-11-26 as release 0.39.0, commit `8275278e` on `codex/public-website-states`, through the existing website-only Vercel Git connection. Vercel READY and both public domains confirmed; live browser checks passed for search matches/no-results/reset, retailer no-results/reset and the unsent contact form. Shared state components, retailer guidance and mounted homepage contact are live. The ten-state gallery remains local; session recovery remains a simulation. Thirty focused tests, TypeScript, lint and build pass. Broad test runs remain incomplete and PR checks stop on unchanged stale Copilot facts. No order, payment, inquiry, database, Edge Function or gateway production release occurred. See `docs/public-website-states.md` and `docs/agent/HANDOFF.md`.
+
 ## Checkout: address from CRM contact - 2026-11-14
 
 Local source on `admin-live-orders-shipments`, not committed or deployed. Checkout step 2 fills the shipping address from the customer's CRM contact (company address if the contact has none) when they have no saved address-book entry; an address typed at checkout is written back to their contact on order. Customers cannot read `contacts`, so this uses ownership-checked RPCs in `20261114120000_portal_contact_shipping_address.sql`, **applied live via Lovable on 2026-11-14** (3 functions, security definer, authenticated only; verified by query, not exercised as a customer). Also removed the invented "$12,500 available credit" and the random order number (confirmation now shows the real order id's first 8 characters); review shows the full address. Typecheck, lint (0 errors) and the Scotia redirect test pass; not checked in a signed-in browser. PO number and order notes typed in the cart/checkout are not sent to `place_customer_order_with_shipping`.

@@ -2,6 +2,14 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-26 — Public website state feedback
+
+### Release Notes
+- Published the first milestone as 0.39.0 / `8275278e` to the existing Classic Visions website. Live search, retailer reset and the unsent contact form were verified. Database, Edge Functions, authentication rules and gateway production deployments were unchanged.
+- Public search shows direct page matches, loading, retry and useful no-result links; Iris remains available for follow-up.
+- Retailer and contact surfaces explain offline limitations and keep telephone support available. Iris public inquiries show inline validation and slow-send guidance.
+- The ten-state gallery remains local. Session recovery, draft persistence and order/payment changes are outside this milestone. No live request was submitted for verification.
+
 ## 2026-11-26 — Dependency security maintenance (local)
 
 ### Release Notes

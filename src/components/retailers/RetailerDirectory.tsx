@@ -8,6 +8,10 @@ import { retailerMarkets, retailerCountries, retailerSearchIndex, type RetailerM
 import { cn } from "@/lib/utils";
 import { Building2, ExternalLink, MapPin, Phone, Search, Sparkles } from "lucide-react";
 import { useRetailerAssistantPrompt } from "@/features/assistant/CompanionAssistantContext";
+import { PublicState } from "@/components/public-states/PublicState";
+import { ConnectionNotice } from "@/components/public-states/ConnectionNotice";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { COMPANY_CONTACT } from "@/config/companyContact";
 
 type RetailerDirectoryProps = {
   featuredMarketSlug?: string;
@@ -15,6 +19,7 @@ type RetailerDirectoryProps = {
 
 const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirectoryProps) => {
   const openRetailerAssistant = useRetailerAssistantPrompt();
+  const online = useOnlineStatus();
   const [query, setQuery] = useState("");
   const [activeMarketSlug, setActiveMarketSlug] = useState<string>("all");
 
@@ -50,6 +55,7 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
 
   return (
     <div className="space-y-8">
+      <ConnectionNotice description="You can still search the retailer listings on this page and call listed phone numbers. Reconnect to open websites or ask Iris for help." />
       <section className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
@@ -94,6 +100,7 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
             <Button
               type="button"
               variant={activeMarketSlug === "all" ? "default" : "outline"}
+              aria-pressed={activeMarketSlug === "all"}
               size="sm"
               onClick={() => setActiveMarketSlug("all")}>
               
@@ -104,6 +111,7 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
               key={market.slug}
               type="button"
               variant={activeMarketSlug === market.slug ? "default" : "outline"}
+              aria-pressed={activeMarketSlug === market.slug}
               size="sm"
               onClick={() => setActiveMarketSlug(market.slug)}>
               
@@ -138,21 +146,17 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
 
 
       {!hasResults ?
-      <section className="rounded-3xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">No matches found</p>
-          <h2 className="mt-3 text-2xl font-semibold text-foreground">We couldn&apos;t find a listing for that search yet.</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            Try another island, search for a provider name, or contact Classic Visions so we can help route you to the best nearby retailer.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
+      <PublicState tone={normalizedQuery ? "search" : "empty"}
+        title={normalizedQuery ? `No retailers match “${query.trim()}”` : "No retailers are listed for this island yet"}
+        description={activeMarketSlug === "all" ? "Try a store name, town or shorter phrase. You can also clear your search to browse every island." : "Try another store name or clear the island filter to search across the Caribbean."}>
             <Button variant="outline" onClick={() => {setQuery("");setActiveMarketSlug("all");}}>
               Reset search
             </Button>
-            <Button onClick={() => openRetailerAssistant({ marketSlug: activeMarketSlug !== "all" ? activeMarketSlug : undefined, query })}>
+            <Button disabled={!online} onClick={() => openRetailerAssistant({ marketSlug: activeMarketSlug !== "all" ? activeMarketSlug : undefined, query })}>
               Ask for help
             </Button>
-          </div>
-        </section> :
+            <a className="inline-flex min-h-11 items-center rounded text-sm underline underline-offset-4" href={COMPANY_CONTACT.phoneHref}>Call Classic Visions</a>
+        </PublicState> :
       null}
 
       <div className="space-y-8">
@@ -170,6 +174,7 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
 
 const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltered: boolean;}) => {
   const openRetailerAssistant = useRetailerAssistantPrompt();
+  const online = useOnlineStatus();
   const hasEntries = market.entries.length > 0;
 
   return (
@@ -182,7 +187,7 @@ const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltere
         </div>
         {market.slug === "barbados" ?
         <Button variant="outline" asChild>
-            <Link to="/find-a-retailer/barbados">View Barbados SEO page</Link>
+            <Link to="/find-a-retailer/barbados">View Barbados retailers</Link>
           </Button> :
         null}
       </div>
@@ -225,7 +230,7 @@ const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltere
                       </a>
                     </Button> :
 
-              <Button size="sm" variant="outline" onClick={() => openRetailerAssistant({
+              <Button size="sm" variant="outline" disabled={!online} onClick={() => openRetailerAssistant({
                 marketSlug: market.slug,
                 marketName: market.name,
                 retailerName: entry.name,
@@ -251,6 +256,7 @@ const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltere
           <Button
             className="mt-4"
             variant="outline"
+            disabled={!online}
             onClick={() => openRetailerAssistant({ marketSlug: market.slug, marketName: market.name })}
           >
             Ask for help
