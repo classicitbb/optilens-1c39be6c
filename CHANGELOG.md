@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-26 — Public website state feedback
+
+- Public search shows page matches, loading, retry and useful no-result links using the existing content index; Iris remains available for follow-up.
+- Retailer and contact surfaces explain offline limitations and keep telephone support available. Barbados missing-data fallback preserves navigation. The homepage now mounts the existing contact section; Iris public inquiries show inline required/email errors, pending/slow-send guidance and confirmation-recovery actions.
+- Added shared state components and a local ten-state gallery at `/public-states.html`. Account/session examples are simulations; this frontend-only release adds no draft persistence, auth change or backend release. No live request was submitted for verification. See `docs/public-website-states.md`.
+
 ## 2026-11-13 — Atlas failure messages show the reason (local, not deployed)
 
 - Atlas toasts for a failed section or page action now show the reason the backend gave instead of "Please try again".

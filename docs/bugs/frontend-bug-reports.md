@@ -1,5 +1,11 @@
 # Frontend Bug Reports
 
+## 2026-11-26 — Public state recovery (local implementation)
+
+Browser review found the contact component was not mounted on the homepage and the Barbados page returned null when market data was missing. The homepage now mounts the contact entry point; the missing-market fallback preserves navigation and explains the next action. Anonymous contact requests now identify the person as a website visitor rather than implying they are signed in.
+
+Public search previously only handed queries to Iris. It now distinguishes unloaded results from zero matches and offers retry, browse alternatives and offline guidance. The shared content-index loader no longer retains a rejected promise indefinitely. Public inquiry confirmation is enabled for validation attempts, with required/email errors beside fields; network loss retains current entries, and uncertain confirmations offer telephone checking to avoid encouraging duplicate requests. This does not add automatic mutation retries, reload-safe drafts or session recovery. Focused regressions: `publicWebsiteStates.test.tsx` and `publicRequestFeedback.test.tsx`; full validation status is recorded in `docs/agent/HANDOFF.md`.
+
 ## 2026-11-13 — Atlas subsections and homepage clean-up (no defect)
 
 New feature and a presentation change; no bug fixed. Found while testing: a menu action that opens a text field lost keyboard focus to the menu button; the section menu now hands focus to the field. Known limits: the public Knowledge page still lists sections flat, and creating a top-level section named like a deleted one still does nothing. Reported the same day: "Add subsection" and dragging a section failed with "Try again in a moment". Cause: the build was running before the `wiki_headings.parent_id` change reached the live database, and the message hid the reason. The change is now applied and both actions were confirmed on live data; failure messages show the backend's reason.

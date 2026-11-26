@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-11-26 — Public state feedback
+
+The homepage mounts the existing ContactForm at the `/#contact` destination. The Barbados directory page keeps its shell and a browse-back action when its market data is absent, rather than returning null. Its assistant help controls respect the same advisory offline state.
+
+Shared section states, loading, connection notices and native inline request validation live in `src/components/public-states`. `usePublicPageSearch` wraps the existing public-content loader/matcher with loading, failure, retry and reconnect handling. Failed shared loader promises are cleared. Browser connectivity uses one shared subscription and remains advisory; loaded public results/listings stay available offline. Iris submission and auth contracts are unchanged. `/public-states.html` is a separate dev entry, excluded from the production build entry. Scope and checks: `docs/public-website-states.md`.
+
 ## 2026-11-13 — Atlas nested sections
 
 `AtlasSection.parentId` maps to `wiki_headings.parent_id`. `buildTree` nests section nodes (a section whose parent is deleted, or that points into its own subtree, stays at the top level) and `byTreeOrder` sorts sections before pages. `planSectionMove` in `pageTreeLogic.ts` plans a section drag and `AtlasSource.moveSections` writes it; `createSection(title, parentId)` gives a subsection a unique slug. `PageTree` rows drag for sections too: a section can only be dropped on another section. Homepage (`HomePage.tsx`, `CustomerJourney.tsx`) drops `OpticalRings` and the monospace label styling; `Eyebrow` is now a plain label. `failureReason` in `hooks/useAtlas.ts` reads the `message` of a backend error object (these are not `Error` instances) for Atlas mutation toasts.

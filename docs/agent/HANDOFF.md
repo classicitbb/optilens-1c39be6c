@@ -1,3 +1,19 @@
+## 2026-11-26 — Public website states
+
+Status: First-milestone publication authorized; release preparation in progress.
+
+Affected: `src/components/public-states/*`, public search/index loader, both retailer pages, mounted homepage contact section, Iris request feedback, `public-states.html` / `src/dev/public-states/main.tsx`, focused tests and continuity/release documentation. No inquiry submission or auth-rule change. Release metadata is synchronized to 0.39.0 without dependency upgrades.
+
+Validation: Node 22/npm 10; npm ci restored missing dependencies. Final focused run: 30 tests / 3 files pass (publicWebsiteStates, publicRequestFeedback and CompanionAssistant). App TypeScript, full lint (0 errors / warnings), production builds, search-index check, release-ledger check, documentation symmetry and diff checks passed during verification. qa:pr-checks stops at unchanged stale `supabase/functions/_shared/copilot/platformFacts.generated.ts`; its generator inputs were not changed by this milestone. The standard coverage suite was stopped without a final summary; its two attachment-label failures were corrected and pass in the final focused run. A supplemental broad no-coverage run was also stopped without a final summary; it started before the final edits and reported one publicRequestFeedback failure against the prior four-test file. The final five-test file passes. Do not report a clean broad-suite or coverage result.
+
+Browser: all ten gallery states reachable, desktop and 390px light/dark layouts inspected without horizontal overflow; Edge keyboard checks confirmed page matches, no-result suggestions, clearing search, native first-invalid focus, email correction and simulated success. Actual homepage contact action opens the unsent form, and actual retailer filtering/reset restores listings. The gallery is excluded from production build output. Existing port 5173 serves another checkout; this checkout's preview is running on loopback port 5185.
+
+User explicitly selected “Publish the first milestone” on 2026-11-26. No further publication approval is required for this scoped frontend release. The unfinished second-stage exploration was removed; checkout, auth, order completion, cart and permission-guard logic match the production base. Account/session-expiry examples do not implement guards or draft recovery. Existing trade-price eligibility only gains an explanation and back action.
+
+Production and origin/main both match the current source base, so no merge or replacement of newer live code is needed. Use the existing website project's Git connection; this repository also feeds separate QuickBooks gateway projects, which are outside this deployment. Release-focused recheck: 30 tests pass and the build passes. The standard coverage suite is running with two thread workers and bail-on-first-failure; no broad-suite pass is claimed.
+
+Next executable release action after reviewing the staged diff: `git push -u origin codex/public-website-states`.
+
 ## 2026-11-06 — Guided CRM outreach workspace
 
 Status: Complete — no active handoff

@@ -22,6 +22,12 @@ import { CopyMessageButton } from "@/features/admin/copilot/CopyMessageButton";
 import { useAutoGrowTextarea } from "@/features/admin/copilot/useAutoGrowTextarea";
 import { supabase } from "@/integrations/supabase/client";
 import { HELPDESK_ATTACHMENT_ACCEPT, isAudioAttachment, isImageAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
+import { PublicState } from "@/components/public-states/PublicState";
+import { ConnectionNotice } from "@/components/public-states/ConnectionNotice";
+import { RequestField } from "@/components/public-states/RequestField";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useDelayedBusy } from "@/hooks/useDelayedBusy";
+import { COMPANY_CONTACT } from "@/config/companyContact";
 
 const MessageQuickActions = ({
   quickActions,
@@ -288,10 +294,7 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
 
                 {message.kind === "confirmation" ? (
                   <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 shadow-soft backdrop-blur-md dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-100">
-                    <div>
-                      <p className="font-semibold">{message.title}</p>
-                      <p className="mt-1 leading-6">{message.text}</p>
-                    </div>
+                    <PublicState tone="success" title={message.title} description={message.text} className="border-0 bg-transparent p-0 sm:p-0" />
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} onAction={submitQuickAction} />
                     ) : null}
@@ -408,7 +411,7 @@ const requestAreaForPath = (pathname: string) => {
 
 // Files for the request form live in the window so a drop or paste anywhere in
 // Iris can reach them.
-const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles, removeRequestFile }: {
+export const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles, removeRequestFile }: {
   requestFiles: File[];
   requestFileError: string | null;
   addRequestFiles: (files: File[]) => void;
@@ -419,6 +422,8 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
   const { identity } = usePortalIdentity();
   const { formState, updateForm, submitForm, submitQuickAction, isSubmitting, submissionError } = useCompanionAssistant();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const online = useOnlineStatus();
+  const slow = useDelayedBusy(isSubmitting);
   const requestFileInputRef = useRef<HTMLInputElement | null>(null);
   if (!formState) return null;
 
@@ -426,8 +431,9 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
   const isPortalSupport = formState.kind === "portal_support";
   const isPricelistRequest = formState.kind === "pricelist_request";
   const isTradeSignup = formState.kind === "trade_signup";
-  const accountName = identity?.organizationName || identity?.customerName || formState.customerName || "Signed-in account";
-  const requesterName = formState.name || user?.email || "Signed-in user";
+  const isPublicInquiry = !isQuoteRequest && !isPortalSupport && !isTradeSignup;
+  const accountName = identity?.organizationName || identity?.customerName || formState.customerName || (user ? "Signed-in account" : "");
+  const requesterName = formState.name || user?.email || "Website visitor";
   const requestTitle = isQuoteRequest ? (formState.requestTitle || "") : formState.issueType;
   const hasRequiredContact = isPortalSupport || (formState.name.trim().length > 0 && formState.email.trim().length > 0);
   const isEligiblePricelistRequester = /\b(optician|optical|dispens|clinic|practice|lab(?:oratory)?|retail(?:er)?|store|ophthalm|eye\s*care)\b/i.test(formState.requesterType);
@@ -449,14 +455,25 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
       aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
-        if (canSubmit) void submitForm(requestFiles);
+        if (canSubmit && (!isPublicInquiry || online)) void submitForm(requestFiles);
       }}
     >
       <div className="space-y-1">
         <p className="font-semibold text-foreground">{isQuoteRequest ? "What would you like a quote for?" : "Review your request before sending"}</p>
         <p className="text-xs leading-5 text-muted-foreground">Nothing is sent until you choose Confirm & send.</p>
       </div>
-      {submissionError ? <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{submissionError}</p> : null}
+      {isPublicInquiry ? <ConnectionNotice description="Your entries remain in this open form. Reconnect before sending, or call our team. Files are not saved if you reload the page." /> : null}
+      {isPricelistRequest && !isEligiblePricelistRequester ? <PublicState tone="permission" title="Confirm your optical business first" description="Trade price lists are for optical businesses. Return to Iris and describe your practice or business type before sending this request.">
+        <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Back to Iris" })} disabled={isSubmitting}>Back to Iris</Button>
+      </PublicState> : null}
+      {submissionError ? isPublicInquiry ? <PublicState tone="error" title="We couldn’t confirm your request" description="Your entries remain in this form. If the connection dropped while sending, call our team before sending again so we can check whether it arrived." announce>
+        <a className="inline-flex min-h-11 items-center rounded underline underline-offset-4" href={COMPANY_CONTACT.phoneHref}>Call {COMPANY_CONTACT.phoneDisplay}</a>
+      </PublicState> : <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{submissionError}</p> : null}
+      {isPublicInquiry && isSubmitting ? <div className="space-y-2 text-sm text-muted-foreground">
+        <p>{requestFiles.length ? "Sending your request and attachments…" : "Sending your request…"}</p>
+        <progress className="h-1 w-full accent-secondary" aria-label="Sending request" />
+        {slow ? <p role="status">This is taking longer than usual. Keep this form open while we wait for confirmation.</p> : null}
+      </div> : null}
 
       <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
         <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
@@ -552,23 +569,23 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
         <div className="flex shrink-0 flex-col space-y-3">
           {!isPortalSupport ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2"><Label htmlFor="assistant-requester-name">Your name</Label><Input id="assistant-requester-name" value={formState.name} onChange={(event) => updateForm({ name: event.target.value })} disabled={isSubmitting} /></div>
-              <div className="space-y-2"><Label htmlFor="assistant-requester-email">Reply email</Label><Input id="assistant-requester-email" type="email" value={formState.email} onChange={(event) => updateForm({ email: event.target.value })} disabled={isSubmitting} /></div>
+              <RequestField id="assistant-requester-name" label="Your name" autoComplete="name" value={formState.name} onValueChange={(name) => updateForm({ name })} disabled={isSubmitting} />
+              <RequestField id="assistant-requester-email" label="Reply email" type="email" autoComplete="email" value={formState.email} onValueChange={(email) => updateForm({ email })} disabled={isSubmitting} />
             </div>
           ) : null}
           {isPricelistRequest ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2"><Label htmlFor="assistant-business-name">Business or clinic</Label><Input id="assistant-business-name" value={formState.businessName} onChange={(event) => updateForm({ businessName: event.target.value })} disabled={isSubmitting} /></div>
-              <div className="space-y-2"><Label htmlFor="assistant-market">Country or market</Label><Input id="assistant-market" value={formState.market} onChange={(event) => updateForm({ market: event.target.value })} disabled={isSubmitting} /></div>
+              <RequestField id="assistant-business-name" label="Business or clinic" autoComplete="organization" value={formState.businessName} onValueChange={(businessName) => updateForm({ businessName })} disabled={isSubmitting} />
+              <RequestField id="assistant-market" label="Country or market" autoComplete="country-name" value={formState.market} onValueChange={(market) => updateForm({ market })} disabled={isSubmitting} />
             </div>
           ) : null}
           <div className="space-y-2">
-            <Label htmlFor="assistant-request-title">Request title</Label>
-            <Input id="assistant-request-title" value={formState.issueType} onChange={(event) => updateForm({ issueType: event.target.value })} placeholder="A short title for this request" disabled={isSubmitting} />
+            {!isPublicInquiry ? <Label htmlFor="assistant-request-title">Request title</Label> : null}
+            {isPublicInquiry ? <RequestField id="assistant-public-request-title" label="Request title" value={formState.issueType} onValueChange={(issueType) => updateForm({ issueType })} placeholder="A short title for this request" disabled={isSubmitting} /> : <Input id="assistant-request-title" value={formState.issueType} onChange={(event) => updateForm({ issueType: event.target.value })} placeholder="A short title for this request" disabled={isSubmitting} />}
           </div>
           <div className="flex min-h-40 flex-col space-y-2">
-            <Label htmlFor="assistant-request-details">What do you need help with?</Label>
-            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="min-h-32 flex-1 resize-none overflow-y-auto assistant-scrollbar" />
+            {!isPublicInquiry ? <Label htmlFor="assistant-request-details">What do you need help with?</Label> : null}
+            {isPublicInquiry ? <RequestField id="assistant-public-request-details" label="Request details" multiline value={formState.summary} onValueChange={(summary) => updateForm({ summary })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} /> : <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="min-h-32 flex-1 resize-none overflow-y-auto assistant-scrollbar" />}
           </div>
         </div>
       )}
@@ -602,7 +619,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
 
       <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
         <Button type="button" className="min-h-11" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
-        <Button type="submit" className="min-h-11" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
+        <Button type="submit" className="min-h-11" disabled={isSubmitting || (isPublicInquiry ? !online || (isPricelistRequest && !isEligiblePricelistRequester) : !canSubmit)}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
       </div>
     </form>
   );

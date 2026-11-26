@@ -1,5 +1,7 @@
 # AI Assistant Feature — Context
 
+Public request states (2026-11-26, local): public customer/retailer/product/pricelist inquiries reuse `public-states/RequestField` for required/email feedback, offline guidance, pending/slow-send progress and confirmation errors. Existing submission, server success, attachment handling and duplicate-send guard remain authoritative; no offline queue or new draft storage. Trade signup, quote and portal access behavior are unchanged. Confirmation messages use shared success presentation. See `docs/public-website-states.md`.
+
 ## What this is
 
 The companion AI assistant engine that powers in-app knowledge assistance.
