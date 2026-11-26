@@ -2,6 +2,8 @@
 
 ## 2026-11-26 — Public state feedback
 
+Published as 0.39.0 / `8275278e` through the website's existing Vercel Git connection. Both canonical domain aliases and the live search, retailer recovery and unsent contact form were verified. Release scope and validation limits are recorded in `docs/agent/HANDOFF.md`.
+
 The homepage mounts the existing ContactForm at the `/#contact` destination. The Barbados directory page keeps its shell and a browse-back action when its market data is absent, rather than returning null. Its assistant help controls respect the same advisory offline state.
 
 Shared section states, loading, connection notices and native inline request validation live in `src/components/public-states`. `usePublicPageSearch` wraps the existing public-content loader/matcher with loading, failure, retry and reconnect handling. Failed shared loader promises are cleared. Browser connectivity uses one shared subscription and remains advisory; loaded public results/listings stay available offline. Iris submission and auth contracts are unchanged. `/public-states.html` is a separate dev entry, excluded from the production build entry. Scope and checks: `docs/public-website-states.md`.

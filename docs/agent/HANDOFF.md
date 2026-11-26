@@ -1,6 +1,6 @@
 ## 2026-11-26 — Public website states
 
-Status: First-milestone publication authorized; release preparation in progress.
+Status: Complete — no active handoff
 
 Affected: `src/components/public-states/*`, public search/index loader, both retailer pages, mounted homepage contact section, Iris request feedback, `public-states.html` / `src/dev/public-states/main.tsx`, focused tests and continuity/release documentation. No inquiry submission or auth-rule change. Release metadata is synchronized to 0.39.0 without dependency upgrades.
 
@@ -10,9 +10,9 @@ Browser: all ten gallery states reachable, desktop and 390px light/dark layouts 
 
 User explicitly selected “Publish the first milestone” on 2026-11-26. No further publication approval is required for this scoped frontend release. The unfinished second-stage exploration was removed; checkout, auth, order completion, cart and permission-guard logic match the production base. Account/session-expiry examples do not implement guards or draft recovery. Existing trade-price eligibility only gains an explanation and back action.
 
-Production and origin/main both match the current source base, so no merge or replacement of newer live code is needed. Use the existing website project's Git connection; this repository also feeds separate QuickBooks gateway projects, which are outside this deployment. Release-focused recheck: 30 tests pass and the build passes. The standard coverage suite is running with two thread workers and bail-on-first-failure; no broad-suite pass is claimed.
+Published release 0.39.0, commit `8275278e`, from `codex/public-website-states` using the existing website project's Vercel Git connection. Production READY, correct commit and both `www.classicvisions.net` / `classicvisions.net` aliases were verified with no alias error. The release starts at the prior production/origin-main commit, preserving its current application code. No production gateway, database or Edge Function release was performed. The release branch is retained; incorporate it before a future main-branch frontend publication so the public changes are preserved.
 
-Next executable release action after reviewing the staged diff: `git push -u origin codex/public-website-states`.
+Release recheck: 30 focused tests and build pass. The additional standard coverage run with two thread workers and bail-on-first-failure was stopped after it failed to produce a final summary; no complete suite/coverage pass is claimed. Existing Copilot-facts drift remains outside this release. Live browser verification passed: page matches for a coatings search, no-result alternatives and clearing search; retailer no-match guidance and resetting to real listings; the contact action opens the request form with required name/email fields. No inquiry, order or payment was submitted. All requested first-milestone publication work is complete; session/draft recovery remains outside this milestone.
 
 ## 2026-11-06 — Guided CRM outreach workspace
 

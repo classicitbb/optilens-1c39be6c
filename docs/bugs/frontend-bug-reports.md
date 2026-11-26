@@ -1,6 +1,8 @@
 # Frontend Bug Reports
 
-## 2026-11-26 — Public state recovery (local implementation)
+## 2026-11-26 — Public state recovery (published)
+
+Release 0.39.0 / `8275278e` is live. Browser checks confirmed public search matches, no-result alternatives and clearing; retailer no-match guidance and reset; and the contact form's required name/email fields without submitting a request. Thirty focused tests pass. Broad-suite completion and the pre-existing Copilot-facts drift remain unresolved; neither is reported as a pass.
 
 Browser review found the contact component was not mounted on the homepage and the Barbados page returned null when market data was missing. The homepage now mounts the contact entry point; the missing-market fallback preserves navigation and explains the next action. Anonymous contact requests now identify the person as a website visitor rather than implying they are signed in.
 

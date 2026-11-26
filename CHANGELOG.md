@@ -2,6 +2,10 @@
 
 ## 2026-11-26 — Public website state feedback
 
+### Release Notes
+
+- Published the first milestone as 0.39.0 / `8275278e` to the existing Classic Visions website. Live search, retailer reset and the unsent contact form were verified. Database, Edge Functions, authentication rules and gateway production deployments were unchanged.
+
 - Public search shows page matches, loading, retry and useful no-result links using the existing content index; Iris remains available for follow-up.
 - Retailer and contact surfaces explain offline limitations and keep telephone support available. Barbados missing-data fallback preserves navigation. The homepage now mounts the existing contact section; Iris public inquiries show inline required/email errors, pending/slow-send guidance and confirmation-recovery actions.
 - Added shared state components and a local ten-state gallery at `/public-states.html`. Account/session examples are simulations; this frontend-only release adds no draft persistence, auth change or backend release. No live request was submitted for verification. See `docs/public-website-states.md`.

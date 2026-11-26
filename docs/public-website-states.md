@@ -1,5 +1,7 @@
 # Public website states
 
+Published on 2026-11-26 as release 0.39.0, commit `8275278e`, to [Classic Visions](https://www.classicvisions.net/). Live search matches, no-result alternatives/reset, retailer no-results/reset and the unsent contact form were verified. Thirty focused tests, TypeScript, lint and build pass; broad test validation remains incomplete and the existing Copilot-facts drift remains outside this change. No inquiry, order or payment was submitted.
+
 The first milestone covers public page search, the retailer directory and the existing Iris contact-request form. The local gallery previews all ten states; permission and session-expiry examples do not implement account guards, sign-in changes or draft recovery. Order/payment submission behavior is outside this milestone.
 
 The existing trade-price eligibility rule also gets an explanatory message and a way back to Iris; its eligibility decision is unchanged.
