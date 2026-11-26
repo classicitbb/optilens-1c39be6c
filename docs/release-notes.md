@@ -10,6 +10,11 @@ Summarized release outcomes for each major date-stamped update.
 - Retailer and contact surfaces explain offline limitations and keep telephone support available. Iris public inquiries show inline validation and slow-send guidance.
 - The ten-state gallery remains local. Session recovery, draft persistence and order/payment changes are outside this milestone. No live request was submitted for verification.
 
+## 2026-11-26 — Dependency security maintenance (local)
+
+### Release Notes
+- Patched dependency advisories and corrected optional/development audit classification. Local source only; production deployment and hosted Edge dependency verification remain pending.
+
 ## 2026-11-13 — Atlas failure messages show the reason (local, not deployed)
 
 ### Release Notes
@@ -542,3 +547,4 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-11-20 — Classic Visions MCP and Live
 
 ### Release Notes
+- MCP 0.5.0 is local only: 28 registered tools, contact organization counts and ChatGPT Live instructions. Existing OAuth/RLS and write approvals are preserved. See docs/classic-visions-mcp.md.

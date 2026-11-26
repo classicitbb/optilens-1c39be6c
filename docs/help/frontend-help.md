@@ -6,6 +6,10 @@ These changes are live on the Classic Visions website in release 0.39.0. Session
 
 Type at least two characters to see matching site pages. If there are no matches, shorten the phrase, clear the search or browse lenses and retailers. Ask Iris for further help when connected. Loaded retailer listings stay searchable offline; telephone links remain available. Contact requests require the marked fields and a valid reply email. Correct the inline error, review the request and choose Confirm & send. Keep the form open during a slow send. If confirmation fails after a connection loss, call the team to check whether it arrived before sending again. No new reload-safe draft saving is provided. Local review gallery and implementation boundaries: `docs/public-website-states.md`.
 
+## 2026-11-26 — Dependency security maintenance (local)
+
+No customer workflow changes are included in this security maintenance. Dependency validation uses the existing npm clean-install, audit, lint, test and build commands; no sign-in or access setting changes are required.
+
 ## 2026-11-13 — Sections inside sections in Atlas (pending release)
 
 Hover a section, open its **…** menu and choose **Add subsection**, type a name and press Enter. To move an existing section inside another, drag it onto the middle of that section. Drag it onto the top or bottom edge of a section to place it beside that section instead, or choose **Move to top level** from its menu. Deleting a section keeps its subsections and pages; they move to the top level. If an action fails, the message now says why.

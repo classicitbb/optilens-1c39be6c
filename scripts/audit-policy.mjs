@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { deriveDependencyScope } from "./dependency-audit-scope.mjs";
 
 const HIGH_SEVERITIES = new Set(["high", "critical"]);
 const repoRoot = process.cwd();
@@ -103,34 +104,11 @@ function buildFindings(vulnerabilityMap) {
         name: vuln.name,
         severity: advisory.severity,
         title: advisory.title,
-        scope: deriveScope(vuln.nodes ?? []),
+        scope: deriveDependencyScope(vuln.nodes ?? [], lockfile.packages),
       });
     }
   }
   return dedupeFindings(results);
-}
-
-function deriveScope(nodes) {
-  let hasProdNode = false;
-  let hasDevNode = false;
-
-  for (const node of nodes) {
-    const packageMeta = lockfile.packages?.[node];
-    if (!packageMeta) {
-      hasProdNode = true;
-      continue;
-    }
-    if (packageMeta.dev) {
-      hasDevNode = true;
-    } else {
-      hasProdNode = true;
-    }
-  }
-
-  if (hasProdNode) {
-    return hasDevNode ? "runtime+dev" : "runtime";
-  }
-  return "dev-only";
 }
 
 function dedupeFindings(findings) {

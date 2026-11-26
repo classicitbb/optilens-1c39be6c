@@ -1,3 +1,13 @@
+## 2026-11-26 — Live release branch merge
+
+Status: Merge conflicts resolved locally; verification in progress.
+
+Target: `codex/public-website-states`, merging `origin/main` at `f34f0a83`. Eleven conflicts covered documentation, release metadata and npm manifests. Both documentation histories are retained. Main's security override and lockfile updates are preserved exactly; only package/lock root versions differ from main to retain release 0.39.0. Public website implementation is unchanged.
+
+Validation: documentation symmetry, release-ledger and lockfile policy checks pass; no unmerged paths remain. npm security:audit reports zero vulnerabilities. Initial npm ci failed with Windows EPERM because the task's port-5185 preview held Lightning CSS open. That specific preview was stopped and npm ci was restarted; restore it after validation. The latest production deployment serves `main` at `f34f0a83` following the separate security release. The user subsequently explicitly authorized merging the resolved release branch into main, including the existing pipeline's publication of the combined source.
+
+PR #708 targets main from this release branch. After pushing the conflict-resolution merge, use its standard checks to validate the exact candidate before merging, without bypassing failed required checks. Local exact check after dependency restoration: `npx vitest run --coverage=false --maxWorkers=1 src/tests/unit/dependencyAuditScope.test.ts src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/publicWebsiteStates.test.tsx src/tests/unit/publicRequestFeedback.test.tsx`.
+
 ## 2026-11-26 — Public website states
 
 Status: Complete — no active handoff
@@ -13,6 +23,20 @@ User explicitly selected “Publish the first milestone” on 2026-11-26. No fur
 Published release 0.39.0, commit `8275278e`, from `codex/public-website-states` using the existing website project's Vercel Git connection. Production READY, correct commit and both `www.classicvisions.net` / `classicvisions.net` aliases were verified with no alias error. The release starts at the prior production/origin-main commit, preserving its current application code. No production gateway, database or Edge Function release was performed. The release branch is retained; incorporate it before a future main-branch frontend publication so the public changes are preserved.
 
 Release recheck: 30 focused tests and build pass. The additional standard coverage run with two thread workers and bail-on-first-failure was stopped after it failed to produce a final summary; no complete suite/coverage pass is claimed. Existing Copilot-facts drift remains outside this release. Live browser verification passed: page matches for a coatings search, no-result alternatives and clearing search; retailer no-match guidance and resetting to real listings; the contact action opens the request form with required name/email fields. No inquiry, order or payment was submitted. All requested first-milestone publication work is complete; session/draft recovery remains outside this milestone.
+
+## 2026-11-26 — Dependency security remediation
+
+Status: Complete — no active handoff
+
+Affected: package.json/package-lock.json; scripts/audit-policy.mjs and new dependency-audit-scope.mjs; dependencyAuditScope.test.ts; continuity/module/help/bug/release documentation and generated release manifest. Security overrides: Effect 3.22.1, Hono 4.13.22, adapter 2.1.11, minimatch 11.0.9 and selector-parser v6 6.1.6. No vulnerability exceptions or authorization changes. npm overrides do not constrain the independently resolved hosted Deno dependency graph.
+
+Passed: clean npm ci; npm run security:audit (zero findings); production build; application TypeScript; full lint (0 errors, 2525 warnings); 18 focused tests including real CLI high/critical failure fixtures, MCP metadata/unauthenticated challenge and header policy; qa:pr-checks. Facts/search generators normalized line endings only, with no semantic diff. Release ledger synchronized using the required generator (0.38.0).
+
+Full coverage run was interrupted after several minutes without test result output. The wrapper rejects a second --coverage=false flag; use Vitest directly for diagnostic runs. `npx vitest run --coverage=false --maxWorkers=2` finished: 323 files passed, 2 failed, 1 skipped; 2069 tests passed, 2 failed, 1 skipped. Both failures were five-second timeouts (XLSX reading in spreadsheetPreview.test.ts and the child-process audit in customerInternalDataAccess.integration.test.ts). Each affected file then passed independently, all 11 tests, with no test or timeout change. The full suite is not claimed clean. Ignored logs: .codex-security-tests-no-coverage.log, .codex-security-spreadsheet.log and .codex-security-customer-access.log.
+
+Approval required for production deployment under AGENTS.md. Before any release, reconcile this checkout with the deployed source and verify the hosted Edge dependency graph; this change does not establish deployed versions. No hosted connector, live data, credential, schema, authorization, commit, push or deployment action taken.
+
+No required local continuation remains. Optional exact verification action: `npm run security:audit`. Production release remains a separate approval and source-reconciliation step; no deployment claim is made.
 
 ## 2026-11-06 — Guided CRM outreach workspace
 
