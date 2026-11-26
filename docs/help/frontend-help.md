@@ -1,5 +1,7 @@
 # Frontend Help Docs
 
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
 ## 2026-11-26 — Review the payment design locally
 
 Start `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`, then open `/admin/finance/walk-in-payments?design=1&variant=A`. Use the bottom arrows to compare layouts. Try Continue on the sample draft, Save draft, Requests, Receipts and Details. Reset demo restores the sample rows. Nothing sends, persists or charges.

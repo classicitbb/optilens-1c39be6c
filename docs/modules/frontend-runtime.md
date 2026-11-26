@@ -1,5 +1,7 @@
 # Frontend Runtime Module Docs
 
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
 ## 2026-11-26 — Walk-in payment design bench
 
 The DEV-only `design=1` query on the existing walk-in route loads a lazy sample component from `src/main.tsx`. `variant=A`, B and C compare workspace, register-first and task-focus layouts. The production entry retains App and its guards; no runtime route registration changes. State is memory only.

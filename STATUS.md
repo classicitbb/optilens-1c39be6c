@@ -1,5 +1,7 @@
 ## Checkout: address from CRM contact - 2026-11-14
 
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
 Local source on `admin-live-orders-shipments`, not committed or deployed. Checkout step 2 fills the shipping address from the customer's CRM contact (company address if the contact has none) when they have no saved address-book entry; an address typed at checkout is written back to their contact on order. Customers cannot read `contacts`, so this uses ownership-checked RPCs in `20261114120000_portal_contact_shipping_address.sql`, **applied live via Lovable on 2026-11-14** (3 functions, security definer, authenticated only; verified by query, not exercised as a customer). Also removed the invented "$12,500 available credit" and the random order number (confirmation now shows the real order id's first 8 characters); review shows the full address. Typecheck, lint (0 errors) and the Scotia redirect test pass; not checked in a signed-in browser. PO number and order notes typed in the cart/checkout are not sent to `place_customer_order_with_shipping`.
 
 ## Launch prep: Atlas subsections, homepage clean-up, launch plan - 2026-11-13

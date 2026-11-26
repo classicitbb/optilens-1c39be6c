@@ -1,5 +1,7 @@
 # Frontend Bug Reports
 
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
 ## 2026-11-26 — Walk-in payment design review (proposal only)
 
 The existing form obscures activity and does not present drafts, receipts and mail delivery as separate states. This branch adds a synthetic design bench, not production bug fixes. Source review found the request sender ignores managed-send failed/suppressed results, and token lookup failure falls back to the code-choice screen. Actual delivery and token failures need a separate authorized reproduction and implementation.

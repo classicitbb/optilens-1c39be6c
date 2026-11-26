@@ -1,5 +1,7 @@
 # Walk-in payment design review
 
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
 `WalkInPaymentsPrototype.tsx` and its scoped CSS are a sample-only design bench
 on branch `codex/walk-in-payments-design`. Compare compact preparation and
 history layouts while separating drafts, requests, receipts and mail delivery.

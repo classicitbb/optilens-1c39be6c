@@ -1,5 +1,7 @@
 # Changelog
 
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
 ## Unreleased — Walk-in payments design review
 
 Local sample-only design bench with three compact payment layouts, draft preparation, request and receipt views, and separate delivery states. No production payment or email behavior changed.

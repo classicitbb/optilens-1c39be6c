@@ -4,7 +4,9 @@ Status: Complete — no active handoff
 
 Branch `codex/walk-in-payments-design` contains a DEV-only sample design bench
 on `/admin/finance/walk-in-payments?design=1&variant=A`. A is side-by-side, B
-register-first and C task-focus. The Codex browser preview is open; retain the
+register-first and C task-focus. The user selected B; its New payment and draft
+continuation forms now open in a native modal popup. Browser verified opening,
+Escape/focus restoration, draft resume/save and return to register. The Codex browser preview is open; retain the
 user's selected variant. Entry: `src/main.tsx`; implementation and boundaries:
 `src/features/admin/walk-in-payments/{WalkInPaymentsPrototype.tsx,walk-in-payments-prototype.css,CONTEXT.md}`.
 
