@@ -1,5 +1,10 @@
 # Integrations and Cross-Repository Contract
 
+## Walk-in payments: selected B layout — 2026-11-26
+
+The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
+
+
 Walk-in payment design review (2026-11-26): `?design=1&variant=A` on the local
 walk-in route opens a DEV-only sample bench. It has no backend, gateway,
 mailbox or storage integration. No service, environment variable, auth rule or

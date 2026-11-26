@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
-import { Banknote, CreditCard, Link2, Loader2, Mail, Printer, ReceiptText, RotateCcw, Send, ShieldCheck } from "lucide-react";
+import { Banknote, CreditCard, Link2, Loader2, Mail, Printer, ReceiptText, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,6 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import "@/features/admin/walk-in-payments/walk-in-payments.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,6 +62,9 @@ const WalkInPaymentsPage = () => {
   const { realRole, isLoading } = useAdminRole();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [entryOpen, setEntryOpen] = useState(Boolean(searchParams.get("payment")));
+  const [collectionMethod, setCollectionMethod] = useState<"card" | "link" | "email" | "cash">("card");
+  const [matchingOpen, setMatchingOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [payment, setPayment] = useState<WalkInPayment | null>(null);
   const [loadingResult, setLoadingResult] = useState(false);
@@ -111,6 +116,8 @@ const WalkInPaymentsPage = () => {
   useLiveWalkInPayment(publishedLink?.paymentId, Boolean(publishedLink), loadPayment);
 
   const newPayment = () => {
+    setEntryOpen(true);
+    setCollectionMethod("card");
     setForm(initialForm);
     setPayment(null);
     setError(null);
@@ -259,6 +266,7 @@ const WalkInPaymentsPage = () => {
         description: `${form.customerName.trim()} can pay from the link emailed to ${form.customerEmail.trim()}.`,
       });
       setForm(initialForm);
+      setEntryOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send the payment request.");
     } finally {
@@ -341,15 +349,23 @@ const WalkInPaymentsPage = () => {
   const displayReference = displayedPayment?.gateway_transaction_id || displayedPayment?.payment_reference;
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 print:max-w-none">
-      <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
+    <div className="walk-in-payments-page flex min-h-0 flex-1 flex-col gap-3 overflow-hidden print:overflow-visible">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 print:hidden">
         <div>
           <AdminPageHeader icon={ReceiptText} title="Walk-in payments" />
-          <p className="mt-1 text-sm text-muted-foreground">Create a card payment in a few steps. Card details stay on Scotia’s secure hosted payment page.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Prepare a payment, collect it, and keep the receipt.</p>
         </div>
-        <Button variant="outline" onClick={newPayment}><RotateCcw className="mr-2 h-4 w-4" />New payment</Button>
+        <div className="flex gap-2"><Button variant="outline" onClick={() => setMatchingOpen(true)}>Match payments</Button><Button onClick={newPayment}><RotateCcw className="mr-2 h-4 w-4" />New payment</Button></div>
       </div>
 
+      <LinkActivityPanel onOpenReceipt={(id) => { setPayment(null); setSearchParams({ payment: id }); setEntryOpen(true); }} />
+      <Dialog open={entryOpen} onOpenChange={(open) => { if (!submitting) setEntryOpen(open); }}>
+        <DialogContent className="walk-in-payment-dialog max-h-[90dvh] max-w-3xl overflow-y-auto print:max-h-none print:overflow-visible">
+          <DialogHeader>
+            <DialogTitle>{receiptReady ? "Payment receipt" : publishedLink ? "Payment link" : "New payment"}</DialogTitle>
+            <DialogDescription>{receiptReady || publishedLink ? "Card details stay on Scotia’s secure hosted payment page." : "Enter the details, then choose how to collect payment."}</DialogDescription>
+          </DialogHeader>
+          <Button className="payment-popup-close" variant="ghost" size="icon" aria-label="Close payment" disabled={submitting} onClick={() => setEntryOpen(false)}><X className="h-4 w-4" /></Button>
       {loadingResult ? <div className="py-8 text-center text-sm text-muted-foreground">Checking payment result…</div> : null}
       {returnedOutcome === "success" && !receiptReady && !loadingResult ? (
         <Alert variant="destructive" className="print:hidden"><AlertTitle>Payment is still being confirmed</AlertTitle><AlertDescription>Refresh shortly if the result does not appear. A receipt is shown only after the signed provider result is stored.</AlertDescription></Alert>
@@ -446,7 +462,6 @@ const WalkInPaymentsPage = () => {
         </>
       ) : null}
 
-      {!receiptReady ? <UnmatchedPaymentsQueue /> : null}
 
       {publishedLink && !receiptReady ? (
         <PublishedLinkPanel
@@ -460,59 +475,76 @@ const WalkInPaymentsPage = () => {
       ) : null}
 
       {!receiptReady && !publishedLink ? (
-        <Card className="print:hidden">
-          <CardHeader><CardTitle>Take a payment</CardTitle><CardDescription>Enter the exact amount agreed with the customer, then choose how they pay. Card details always stay on Scotia&rsquo;s hosted page.</CardDescription></CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-sm font-medium">Amount (BBD)<Input inputMode="decimal" type="number" min="0.01" max="999999.99" step="0.01" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} placeholder="0.00" autoComplete="off" /></label>
-            <label className="grid gap-1.5 text-sm font-medium">Customer name<Input value={form.customerName} onChange={(event) => setForm((current) => ({ ...current, customerName: event.target.value }))} placeholder="Customer name" autoComplete="name" /></label>
-            <label className="grid gap-1.5 text-sm font-medium">Customer email <span className="font-normal text-muted-foreground">(for receipt)</span><Input type="email" value={form.customerEmail} onChange={(event) => setForm((current) => ({ ...current, customerEmail: event.target.value }))} placeholder="customer@example.com" autoComplete="email" /></label>
-            <label className="grid gap-1.5 text-sm font-medium">Order / reference <span className="font-normal text-muted-foreground">(optional)</span><Input value={form.orderReference} onChange={(event) => setForm((current) => ({ ...current, orderReference: event.target.value }))} placeholder="Order number or reference" autoComplete="off" /></label>
-            <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Reason <span className="font-normal text-muted-foreground">(optional)</span><Textarea value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} placeholder="What is this payment for?" className="min-h-20" /></label>
-            <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Link to a contact <span className="font-normal text-muted-foreground">(optional)</span><ContactPickerSelect value={form.contactId} onValueChange={(contactId) => setForm((current) => ({ ...current, contactId }))} placeholder="Search contacts" /></label>
-            <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
-              Published link expiry (optional)
-              <Input
-                type="datetime-local"
-                value={form.expiresAt}
-                onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))}
-                aria-describedby="published-link-expiry-help"
-              />
-              <span id="published-link-expiry-help" className="text-xs font-normal text-muted-foreground">
-                Local date and time for the published link and counter code. Leave blank to use the default.
-              </span>
+        <form className="payment-entry-form" onSubmit={(event) => {
+          event.preventDefault();
+          if (collectionMethod === "card") void takePayment();
+          else if (collectionMethod === "link") guardPublicLink(publishLink);
+          else if (collectionMethod === "email") guardPublicLink(requestByEmail);
+          else void recordCash();
+        }}>
+          <div className="payment-entry-fields">
+            <label className="payment-field payment-field-wide">Customer name
+              <Input value={form.customerName} onChange={(event) => setForm(current => ({ ...current, customerName: event.target.value }))} placeholder="Customer or company name" autoComplete="name" required />
             </label>
-            <div className="sm:col-span-2 grid gap-3 border-t pt-4">
-              <p className="text-xs text-muted-foreground">This page never collects or displays raw card details.</p>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <Button onClick={takePayment} disabled={submitting}>
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
-                  Take card now
-                </Button>
-                <Button variant="outline" onClick={() => guardPublicLink(publishLink)} disabled={submitting}>
-                  <Link2 className="mr-2 h-4 w-4" />
-                  Publish link
-                </Button>
-                <Button variant="outline" onClick={() => guardPublicLink(requestByEmail)} disabled={submitting}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Request by email
-                </Button>
-                <Button variant="outline" onClick={recordCash} disabled={submitting}>
-                  <Banknote className="mr-2 h-4 w-4" />
-                  Record cash
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                <strong>Take card now</strong> uses this device. <strong>Publish link</strong> gives you
-                a payment link to share or a code to read at the counter. <strong>Request by email</strong> sends them a
-                link they can use from anywhere. <strong>Record cash</strong> logs cash taken at the counter and
-                emails a receipt.
-              </p>
+            <label className="payment-field">Amount (BBD)
+              <Input className="payment-amount-input" inputMode="decimal" type="number" min="0.01" max="999999.99" step="0.01" value={form.amount} onChange={(event) => setForm(current => ({ ...current, amount: event.target.value }))} placeholder="0.00" autoComplete="off" required />
+            </label>
+            <label className="payment-field">Order / reference
+              <Input value={form.orderReference} onChange={(event) => setForm(current => ({ ...current, orderReference: event.target.value }))} placeholder="Optional" autoComplete="off" />
+            </label>
+            <label className="payment-field payment-field-wide">Customer email
+              <Input type="email" value={form.customerEmail} onChange={(event) => setForm(current => ({ ...current, customerEmail: event.target.value }))} placeholder="customer@example.com" autoComplete="email" required={collectionMethod === "email"} />
+            </label>
+          </div>
+          <details className="payment-entry-details">
+            <summary>More details <span>Reason, contact and expiry</span></summary>
+            <div className="payment-entry-fields">
+              <label className="payment-field payment-field-wide">Reason
+                <Textarea value={form.reason} onChange={(event) => setForm(current => ({ ...current, reason: event.target.value }))} placeholder="What is this payment for?" className="min-h-16" />
+              </label>
+              <label className="payment-field payment-field-wide">Link to a contact
+                <ContactPickerSelect value={form.contactId} onValueChange={(contactId) => setForm(current => ({ ...current, contactId }))} placeholder="Search contacts" />
+              </label>
+              {collectionMethod === "link" ? <label className="payment-field payment-field-wide">Published link expiry
+                <Input type="datetime-local" value={form.expiresAt} onChange={(event) => setForm(current => ({ ...current, expiresAt: event.target.value }))} aria-describedby="published-link-expiry-help" />
+                <span id="published-link-expiry-help" className="text-xs font-normal text-muted-foreground">Local date and time. Leave blank for the default.</span>
+              </label> : null}
             </div>
-          </CardContent>
-        </Card>
+          </details>
+          <fieldset className="payment-method-options" disabled={submitting}>
+            <legend>How will they pay?</legend>
+            {([
+              { key: "card", label: "Take card now", Icon: CreditCard },
+              { key: "email", label: "Request by email", Icon: Mail },
+              { key: "link", label: "Publish link", Icon: Link2 },
+              { key: "cash", label: "Record cash", Icon: Banknote },
+            ] as const).map(({ key, label, Icon }) => <label key={key} className={collectionMethod === key ? "payment-method-selected" : ""}>
+              <input type="radio" name="collection-method" value={key} checked={collectionMethod === key} onChange={() => setCollectionMethod(key)} />
+              <Icon className="h-4 w-4" />{label}
+            </label>)}
+          </fieldset>
+          <p className="payment-method-description">{collectionMethod === "card" ? "Open Scotia’s secure card page on this device." : collectionMethod === "email" ? "Email the customer a private link to pay on their own device." : collectionMethod === "link" ? "Create a payment link to share, or a code to read at the counter." : "Record cash you have already received. A receipt will be prepared."}</p>
+          <div className="payment-entry-footer">
+            <p><ShieldCheck className="h-4 w-4" />Card details stay with Scotia.</p>
+            <div><Button type="button" variant="outline" disabled={submitting} onClick={() => setEntryOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {collectionMethod === "card" ? "Continue to card payment" : collectionMethod === "email" ? "Send payment request" : collectionMethod === "link" ? "Create payment link" : "Record cash payment"}
+            </Button></div>
+          </div>
+        </form>
       ) : null}
 
-      {!receiptReady ? <LinkActivityPanel /> : null}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={matchingOpen} onOpenChange={setMatchingOpen}>
+        <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Match payments</DialogTitle><DialogDescription>Review self-service payments that need an order or contact.</DialogDescription></DialogHeader>
+          <UnmatchedPaymentsQueue />
+        </DialogContent>
+      </Dialog>
+
+
 
       <AlertDialog open={pendingLinkAction !== null} onOpenChange={(open) => { if (!open) setPendingLinkAction(null); }}>
         <AlertDialogContent>

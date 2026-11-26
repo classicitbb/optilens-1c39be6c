@@ -1,21 +1,24 @@
-# Walk-in payment design review
+# Walk-in payments
 
-Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+The selected B layout is implemented in `src/pages/admin/WalkInPaymentsPage.tsx`.
+The page is flex-bounded to the admin shell: no page scrolling. `LinkActivityPanel`
+fills remaining space with a separately scrolling table; its toolbar/footer stay
+outside the scroll region and column headers/actions stay sticky.
 
-`WalkInPaymentsPrototype.tsx` and its scoped CSS are a sample-only design bench
-on branch `codex/walk-in-payments-design`. Compare compact preparation and
-history layouts while separating drafts, requests, receipts and mail delivery.
+The register reads all origins from existing `walk_in_payments` policies, newest
+100 records, plus `order_extra_invoices` to preserve invoice cancellation/resend
+protections. The limit is disclosed in the footer. Search is within loaded rows.
+Cash and direct-card receipts are included. Receipt opens the existing settlement
+read and display. No email delivery success is inferred from payment status.
 
-Run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`, then open
-`/admin/finance/walk-in-payments?design=1&variant=A`. B is register first; C is
-task focus. The bottom switcher updates the variant URL. This entry is enabled
-only by `import.meta.env.DEV` in `src/main.tsx`; production renders the existing
-App and unchanged authorization guards. The bench simulates the shell rather
-than mounting the actual admin application.
+New payment opens a modal with a single form surface. Select a collection method,
+then explicitly submit: existing exact-amount/signing, published-link, request-email
+and cash handlers remain authoritative. Merely changing a method does not invoke
+a payment action. Match payments opens the existing matching tool. No guard,
+credential, policy, schema or deployment change. Persistent drafts and delivery
+repairs remain separate work.
 
-Names, addresses and amounts are synthetic. State is memory only. Draft
-save/resume, filters, receipt details, email retry and the customer handoff are
-simulations with no backend, mailbox, gateway, localStorage or API calls.
-Contact/expiry controls are illustrative, not persisted. Customer-link access,
-email delivery fixes and persistent drafts are separate implementation work
-after design selection. No deployment is authorized.
+The DEV-only `design=1` bench remains sample-only, now locked to selected B.
+It has no backend/mailbox/gateway/storage integration and resets on reload.
+Its draft/receipt/retry actions are simulations. Actual route omits this query.
+Run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort` for local review.

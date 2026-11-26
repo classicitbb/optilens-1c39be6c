@@ -1,29 +1,38 @@
-## 2026-11-26 — Walk-in payment design review
+## 2026-11-26 — Walk-in payment B implementation and popup refinement
 
-Status: Complete — no active handoff
+Status: Incomplete — final broad regression result pending
 
-Branch `codex/walk-in-payments-design` contains a DEV-only sample design bench
-on `/admin/finance/walk-in-payments?design=1&variant=A`. A is side-by-side, B
-register-first and C task-focus. The user selected B; its New payment and draft
-continuation forms now open in a native modal popup. Browser verified opening,
-Escape/focus restoration, draft resume/save and return to register. The Codex browser preview is open; retain the
-user's selected variant. Entry: `src/main.tsx`; implementation and boundaries:
-`src/features/admin/walk-in-payments/{WalkInPaymentsPrototype.tsx,walk-in-payments-prototype.css,CONTEXT.md}`.
+Branch `codex/walk-in-payments-design`. The selected register-first design is
+now implemented in the actual `WalkInPaymentsPage.tsx`, not just the DEV bench.
+The register uses compact single-line columns, a bounded scrolling record
+viewport, sticky headings and pinned right-side actions. Search and filters
+stay fixed. Reads include cash/direct-card origins, newest 100 records, with
+that cap disclosed. Receipts open existing settlement views; Match payments
+opens the existing matching tool. Existing caller access, signing, cash,
+email and settlement handlers remain authoritative. No deployment, schema,
+authentication, credentials or financial data changes.
 
-Validated: production build, app TypeScript, scoped ESLint, full ESLint with
-zero errors/2525 warnings, two existing shared-payment integration tests and
-`git diff --check`. Browser verified A/B/C rendering, draft save/resume and
-customer handoff dialog. Small-screen CSS is present but mobile viewport was
-not browser-tested. The production build excludes the sample strings.
-`npm run qa:pr-checks` passes lockfile and documentation symmetry, then stops
-on existing stale `supabase/functions/_shared/copilot/platformFacts.generated.ts`;
-no unrelated regeneration. Full suite was not run for this throwaway design.
+The popup was refined after user feedback: one white form surface, customer
+first, grouped inputs, More details disclosure, four radio collection choices
+and one explicit primary submit. Selecting a method never invokes a payment.
+The sample `design=1` bench is locked to B; its drafts remain simulations.
+Actual local review URL is `/admin/finance/walk-in-payments` without that query.
 
-Start with `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
-Sample state resets on reload. Optional contact/expiry controls are illustrative.
-No live data, send, payment, schema, auth or deployment changed. Design selection
-and subsequent production implementation are future work, not unfinished preview
-work. Persistent drafts and mail/token repairs remain separate from this bench.
+Validated: production build, app TypeScript, full lint (zero errors/2525
+warnings), 11 tests across four focused payment files and browser review of
+real authorized reads. Browser measured page and shell scroll heights equal
+to their client heights, outer scroll positions zero while records scroll;
+rows about 37px. New payment popup and its refined appearance verified. No
+actual send, cash entry, gateway payment, matching update or receipt resend
+was exercised. No patient/customer rows are copied into repository docs.
+
+`npm run qa:pr-checks` passes lockfile/doc symmetry then stops on pre-existing
+stale `supabase/functions/_shared/copilot/platformFacts.generated.ts`. Initial
+broad suite was interrupted after four unrelated Rx integration timeouts with
+unbounded workers. Correct rerun is active with two workers; inspect its final
+result before replacing this pending status. Logs are ignored local artifacts.
+
+Next executable action: `Get-Content .codex-walkin-suite-two-workers.log -Tail 40`
 
 ## 2026-11-06 — Guided CRM outreach workspace
 

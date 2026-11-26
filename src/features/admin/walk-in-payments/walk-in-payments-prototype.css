@@ -7,3 +7,23 @@
 
 .wp-compose-popup{position:fixed;margin:auto;padding:0;border:1px solid var(--wp-line);border-radius:10px;width:min(460px,calc(100% - 28px));max-height:calc(100dvh - 36px);overflow:auto;color:var(--wp-navy);background:white}.wp-compose-popup::backdrop{background:#102c466b}.wp-compose-popup .wp-compose{width:100%;border:0;padding:24px}.wp-compose-popup .wp-section-heading{padding-right:28px}.wp-prototype .wp-popup-close{position:absolute;right:12px;top:12px;border:0;padding:6px;min-height:32px;background:transparent}.wp-compose-popup .wp-currency{display:none}
 .wp-prototype dialog:modal{overscroll-behavior:contain}.wp-prototype dialog::backdrop{overflow:hidden;overscroll-behavior:contain}
+
+/* Selected B layout: the records viewport owns scrolling. */
+.wp-prototype{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.wp-topbar{flex-shrink:0}.wp-rail{position:fixed}
+.wp-prototype .wp-main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:12px 20px}
+.wp-preview-banner,.wp-page-heading,.wp-summary,.wp-notice{flex-shrink:0}
+.wp-prototype .wp-page-heading{margin:12px 0}.wp-prototype .wp-summary{padding:9px 0}
+.wp-prototype .wp-workspace{flex:1;min-height:0;overflow:hidden;margin-top:12px;gap:0}
+.wp-prototype .wp-register{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.wp-register>.wp-section-heading,.wp-tabs,.wp-filters,.wp-register-footer,.wp-attention{flex-shrink:0}
+.wp-prototype .wp-table-scroll{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.wp-prototype .wp-table-scroll table{width:100%;min-width:1120px}
+.wp-prototype .wp-table-scroll th,.wp-prototype .wp-table-scroll td{height:34px;padding:3px 10px;font-size:11px;line-height:1.4;white-space:nowrap}
+.wp-prototype .wp-table-scroll tbody th{font-weight:600}
+.wp-prototype .wp-table-scroll thead th{height:30px}
+.wp-prototype .wp-row-action{min-height:26px;padding:2px 0}
+.wp-prototype .wp-badge{padding:2px 6px}
+.wp-prototype .wp-register-footer{padding:7px 14px}.wp-prototype .wp-attention{padding:8px 14px}
+.wp-prototype .wp-attention p{display:none}
+@media(max-width:800px){.wp-prototype .wp-main{padding:8px}.wp-prototype .wp-summary{gap:6px 12px}.wp-prototype .wp-table-scroll th,.wp-prototype .wp-table-scroll td{height:38px}.wp-prototype .wp-row-action{min-height:32px}.wp-prototype .wp-page-heading p{display:none}}

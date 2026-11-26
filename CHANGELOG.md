@@ -1,5 +1,10 @@
 # Changelog
 
+## Walk-in payments: selected B layout — 2026-11-26
+
+The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
+
+
 Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
 
 ## Unreleased — Walk-in payments design review

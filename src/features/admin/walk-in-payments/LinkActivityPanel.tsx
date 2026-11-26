@@ -21,7 +21,9 @@ import { functionErrorMessage } from "@/lib/functionErrors";
 
 type LinkRow = {
   id: string;
-  origin: "assisted_link" | "email_request";
+  origin: "staff_terminal" | "assisted_link" | "email_request" | "self_serve";
+  provider: string | null;
+  payment_reference: string;
   customer_name: string;
   customer_email: string | null;
   amount: number;
@@ -44,8 +46,8 @@ type Filter = "unpaid" | "unopened" | "paid" | "all";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "unpaid", label: "Unpaid" },
   { key: "unopened", label: "Not opened" },
-  { key: "paid", label: "Paid" },
-  { key: "all", label: "All" },
+  { key: "paid", label: "Receipts" },
+  { key: "all", label: "All activity" },
 ];
 
 const money = (amount: number) =>
@@ -66,7 +68,7 @@ const matchesFilter = (row: LinkRow, filter: Filter) => {
   const status = statusOf(row);
   if (filter === "all") return true;
   if (filter === "paid") return status === "paid";
-  if (filter === "unopened") return !row.token_used_at && (status === "awaiting" || status === "expired");
+  if (filter === "unopened") return (row.origin === "assisted_link" || row.origin === "email_request") && !row.token_used_at && (status === "awaiting" || status === "expired");
   return status === "awaiting" || status === "started" || status === "expired";
 };
 
@@ -86,29 +88,30 @@ const QUERY_KEY = ["walk-in-link-activity"];
  * Link tokens are stored only as hashes, so a link can never be shown again —
  * "Resend" always issues a new link and retires the old one.
  */
-const LinkActivityPanel = () => {
+const LinkActivityPanel = ({ onOpenReceipt }: { onOpenReceipt?: (id: string) => void }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<Filter>("unpaid");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearch] = useState("");
   const [resendTarget, setResendTarget] = useState<LinkRow | null>(null);
   const [resendAmount, setResendAmount] = useState("");
   const [cancelTarget, setCancelTarget] = useState<LinkRow | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const { data: rows = [], isLoading, isFetching, refetch } = useQuery({
+  const { data: rows = [], isLoading, isFetching, refetch, error: queryError } = useQuery({
     queryKey: QUERY_KEY,
     refetchInterval: 15000,
     queryFn: async () => {
       const [payments, invoices] = await Promise.all([
         (supabase as any)
           .from("walk_in_payments")
-          .select("id,origin,customer_name,customer_email,amount,order_reference,reason,contact_id,status,needs_matching,created_at,link_expires_at,token_used_at,paid_at")
-          .in("origin", ["assisted_link", "email_request"])
+          .select("id,origin,provider,payment_reference,customer_name,customer_email,amount,order_reference,reason,contact_id,status,needs_matching,created_at,link_expires_at,token_used_at,paid_at")
           .order("created_at", { ascending: false })
           .limit(100),
         (supabase as any).from("order_extra_invoices").select("payment_id"),
       ]);
       if (payments.error) throw payments.error;
+      if (invoices.error) throw invoices.error;
       const invoicePaymentIds = new Set<string>(
         ((invoices.data ?? []) as { payment_id: string }[]).map((invoice) => invoice.payment_id),
       );
@@ -204,13 +207,13 @@ const LinkActivityPanel = () => {
     }
   };
 
-  const visible = rows.filter((row) => matchesFilter(row, filter));
+  const visible = rows.filter((row) => matchesFilter(row, filter) && `${row.customer_name} ${row.customer_email ?? ""} ${row.order_reference ?? ""} ${row.payment_reference}`.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <Card className="print:hidden">
-      <CardHeader className="space-y-2 p-4 pb-2">
+    <Card className="walk-in-register print:hidden">
+      <CardHeader className="walk-in-register-header space-y-2 p-3 pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base">Sent links and requests</CardTitle>
+          <CardTitle className="text-base">Payment register</CardTitle>
           <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => void refetch()} disabled={isFetching}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
             Refresh
@@ -224,6 +227,7 @@ const LinkActivityPanel = () => {
                 key={key}
                 size="sm"
                 className="h-7 px-2.5 text-xs"
+                aria-pressed={filter === key}
                 variant={filter === key ? "default" : "outline"}
                 onClick={() => setFilter(key)}
               >
@@ -232,64 +236,44 @@ const LinkActivityPanel = () => {
             );
           })}
         </div>
+        <Input aria-label="Search payments" placeholder="Search customer, email or reference" value={search} onChange={(event) => setSearch(event.target.value)} className="h-8 max-w-md" />
       </CardHeader>
-      <CardContent className="grid max-h-[26rem] gap-1.5 overflow-y-auto p-4 pt-2">
-        {isLoading ? (
-          <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-        ) : visible.length === 0 ? (
-          <p className="py-3 text-center text-sm text-muted-foreground">
-            {filter === "unpaid" ? "No unpaid links — all caught up." : "Nothing here."}
-          </p>
-        ) : (
-          visible.map((row) => {
-            const status = statusOf(row);
-            const reconciled = status === "paid" && !row.needs_matching && Boolean(row.order_reference || row.contact_id);
-            const live = row.status === "pending" && !row.token_used_at && !row.isInvoice;
-            const canResend = live && row.origin === "email_request" && Boolean(row.customer_email);
-            const canCancel = live && status === "awaiting";
-            return (
-              <div key={row.id} className="grid gap-1.5 rounded-md border px-3 py-1.5 text-sm sm:grid-cols-[1fr_auto] sm:items-center">
-                <div className="grid gap-0.5">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <span className="font-semibold">{money(Number(row.amount))}</span>
-                    <span className="text-muted-foreground">— {row.customer_name}</span>
-                    <Badge className="px-1.5 py-0 text-[11px]" variant={status === "paid" ? "default" : status === "awaiting" || status === "started" ? "secondary" : "outline"}>
-                      {STATUS_LABEL[status]}
-                    </Badge>
-                    {status === "paid" && row.needs_matching ? <Badge variant="destructive">Needs matching</Badge> : null}
-                    {reconciled ? <Badge variant="outline">Reconciled</Badge> : null}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {row.origin === "email_request" ? row.customer_email ?? "Emailed" : "Counter code"}
-                    {" · "}
-                    Sent {when(row.created_at)}
-                    {status === "paid" && row.paid_at ? ` · Paid ${when(row.paid_at)}` : ""}
-                    {(status === "awaiting" || status === "expired") && row.link_expires_at
-                      ? ` · ${status === "expired" ? "Expired" : "Expires"} ${when(row.link_expires_at)}`
-                      : ""}
-                    {row.order_reference ? ` · ${row.order_reference}` : ""}
-                    {row.isInvoice ? " · Order invoice" : ""}
-                  </p>
-                </div>
-                {canResend || canCancel ? (
-                  <div className="flex gap-2">
-                    {canResend ? (
-                      <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => openResend(row)}>
-                        <Send className="mr-1.5 h-3.5 w-3.5" />Resend
-                      </Button>
-                    ) : null}
-                    {canCancel ? (
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setCancelTarget(row)}>
-                        <XCircle className="mr-1.5 h-3.5 w-3.5" />Cancel
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })
+      <div className="walk-in-register-records" role="region" aria-label="Payment register records" tabIndex={0}>
+        {queryError ? <p role="alert" className="p-4 text-sm text-destructive">Could not load payments. Refresh to try again.</p> : isLoading ? <Loader2 aria-label="Loading payments" className="m-4 h-5 w-5 animate-spin" /> : (
+          <table>
+            <thead><tr>{["Customer", "Email", "Order / reference", "Amount (BBD)", "Method", "Status", "Created", "Expires", "Paid", "Matching", "Reason", "Payment reference", "Actions"].map(title => <th key={title} scope="col">{title}</th>)}</tr></thead>
+            <tbody>{visible.map(row => {
+              const status = statusOf(row);
+              const isLink = row.origin === "assisted_link" || row.origin === "email_request";
+              const live = isLink && row.status === "pending" && !row.token_used_at && !row.isInvoice;
+              const canResend = live && row.origin === "email_request" && Boolean(row.customer_email);
+              const canCancel = live && status === "awaiting";
+              const method = row.provider === "cash" ? "Cash" : row.origin === "email_request" ? "Email request" : row.origin === "assisted_link" ? "Counter link" : row.origin === "self_serve" ? "Self-service card" : "Card";
+              const statusLabel = !isLink && status === "awaiting" ? "Pending" : STATUS_LABEL[status];
+              const matching = row.status !== "settled" ? "—" : row.needs_matching ? "Needs matching" : row.order_reference || row.contact_id ? "Reconciled" : "Unassigned";
+              return <tr key={row.id}>
+                <th scope="row" className="register-text" title={row.customer_name}>{row.customer_name}</th>
+                <td className="register-text" title={row.customer_email ?? ""}>{row.customer_email || "—"}</td>
+                <td>{row.order_reference || "—"}</td>
+                <td className="font-medium tabular-nums">{money(Number(row.amount))}</td>
+                <td>{row.isInvoice ? `${method} (invoice)` : method}</td>
+                <td><Badge className="px-1.5 py-0 text-[11px]" variant={status === "paid" ? "default" : "outline"}>{statusLabel}</Badge></td>
+                <td>{when(row.created_at)}</td><td>{row.link_expires_at ? when(row.link_expires_at) : "—"}</td><td>{row.paid_at ? when(row.paid_at) : "—"}</td>
+                <td className={row.needs_matching ? "text-destructive" : "text-muted-foreground"}>{matching}</td>
+                <td className="register-text" title={row.reason ?? ""}>{row.reason || "—"}</td>
+                <td>{row.payment_reference}</td>
+                <td><div className="flex gap-1">
+                  {status === "paid" && onOpenReceipt ? <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => onOpenReceipt(row.id)}>Receipt</Button> : null}
+                  {canResend ? <Button variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={() => openResend(row)}>Resend</Button> : null}
+                  {canCancel ? <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setCancelTarget(row)}>Cancel</Button> : null}
+                </div></td>
+              </tr>;
+            })}</tbody>
+          </table>
         )}
-      </CardContent>
+        {!isLoading && !queryError && !visible.length ? <p className="p-4 text-center text-sm text-muted-foreground">No payments match this view.</p> : null}
+      </div>
+      <div className="walk-in-register-footer">{visible.length} of {rows.length} loaded payments · Latest 100 records · Payment status is independent of email delivery.</div>
 
       <AlertDialog open={Boolean(resendTarget)} onOpenChange={(open) => { if (!open && !busy) setResendTarget(null); }}>
         <AlertDialogContent>
