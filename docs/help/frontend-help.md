@@ -1,5 +1,10 @@
 # Frontend Help Docs
 
+## 2026-11-26 — Dependency security maintenance (local)
+
+No customer workflow changes are included in this security maintenance. Dependency validation uses the existing npm clean-install, audit, lint, test and build commands; no sign-in or access setting changes are required.
+
+
 ## 2026-11-13 — Sections inside sections in Atlas (pending release)
 
 Hover a section, open its **…** menu and choose **Add subsection**, type a name and press Enter. To move an existing section inside another, drag it onto the middle of that section. Drag it onto the top or bottom edge of a section to place it beside that section instead, or choose **Move to top level** from its menu. Deleting a section keeps its subsections and pages; they move to the top level. If an action fails, the message now says why.
