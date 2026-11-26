@@ -8,13 +8,21 @@ import { barbadosFaqs, retailerMarketMap } from "@/data/retailers";
 import { Building2, ChevronRight, MapPin, Phone, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { useRetailerAssistantPrompt } from "@/features/assistant/CompanionAssistantContext";
+import { PublicState } from "@/components/public-states/PublicState";
+import { ConnectionNotice } from "@/components/public-states/ConnectionNotice";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const barbadosMarket = retailerMarketMap.get("barbados");
 
 const BarbadosRetailersPage = () => {
   const openRetailerAssistant = useRetailerAssistantPrompt();
+  const online = useOnlineStatus();
   if (!barbadosMarket) {
-    return null;
+    return <div className="min-h-screen bg-background"><Header /><main className="container mx-auto px-4 pb-16 pt-24">
+      <PublicState title="Barbados listings aren’t available here yet" description="You can browse the Caribbean directory for other locations and ways to contact a retailer.">
+        <Button asChild><Link to="/find-a-retailer">Browse all islands</Link></Button>
+      </PublicState>
+    </main><Footer /></div>;
   }
 
   const jsonLd = [
@@ -55,6 +63,7 @@ const BarbadosRetailersPage = () => {
       <Header />
       <main className="pb-16 pt-24">
         <div className="container mx-auto max-w-6xl px-4 lg:px-8">
+          <div className="mb-6"><ConnectionNotice description="You can still read these listings and call the phone numbers shown. Reconnect to open websites or ask Iris for help." /></div>
           <section className="rounded-3xl border border-border bg-card p-8 shadow-sm sm:p-10">
             <Badge variant="secondary">Barbados retailer guide</Badge>
             <div className="mt-5 grid gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
@@ -69,6 +78,7 @@ const BarbadosRetailersPage = () => {
                   </Button>
                   <Button
                     variant="outline"
+                    disabled={!online}
                     onClick={() => openRetailerAssistant({ marketSlug: "barbados", marketName: "Barbados" })}
                   >
                     Need help choosing a retailer?
@@ -110,7 +120,7 @@ const BarbadosRetailersPage = () => {
             </Card>
             <Card className="rounded-3xl border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Fallback CTA</CardTitle>
+                <CardTitle className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Need help?</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-lg font-semibold text-foreground">Need another option?</p>
@@ -167,6 +177,7 @@ const BarbadosRetailersPage = () => {
                       <Button
                         size="sm"
                         variant="outline"
+                        disabled={!online}
                         onClick={() => openRetailerAssistant({
                           marketSlug: "barbados",
                           marketName: "Barbados",

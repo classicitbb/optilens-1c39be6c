@@ -10,6 +10,17 @@ Layout B was selected for further review. New payment and draft continuation now
 ## 2026-11-26 — Walk-in payment design bench
 
 The DEV-only `design=1` query on the existing walk-in route loads a lazy sample component from `src/main.tsx`. `variant=A`, B and C compare workspace, register-first and task-focus layouts. The production entry retains App and its guards; no runtime route registration changes. State is memory only.
+## 2026-11-26 — Public state feedback
+
+Published as 0.39.0 / `8275278e` through the website's existing Vercel Git connection. Both canonical domain aliases and the live search, retailer recovery and unsent contact form were verified. Release scope and validation limits are recorded in `docs/agent/HANDOFF.md`.
+
+The homepage mounts the existing ContactForm at the `/#contact` destination. The Barbados directory page keeps its shell and a browse-back action when its market data is absent, rather than returning null. Its assistant help controls respect the same advisory offline state.
+
+Shared section states, loading, connection notices and native inline request validation live in `src/components/public-states`. `usePublicPageSearch` wraps the existing public-content loader/matcher with loading, failure, retry and reconnect handling. Failed shared loader promises are cleared. Browser connectivity uses one shared subscription and remains advisory; loaded public results/listings stay available offline. Iris submission and auth contracts are unchanged. `/public-states.html` is a separate dev entry, excluded from the production build entry. Scope and checks: `docs/public-website-states.md`.
+
+## 2026-11-26 — Dependency security maintenance (local)
+
+The npm dependency tree pins patched transitive versions without frontend component or route changes. The dependency-audit scope tests exercise metadata classification and high/critical CLI failure using isolated temporary fixtures.
 
 ## 2026-11-13 — Atlas nested sections
 

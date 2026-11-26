@@ -6,6 +6,7 @@ import caribbeanHero from "@/assets/classic-visions-caribbean-team-v2.webp";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import PublicSearchPanel from "@/components/PublicSearchPanel";
+import ContactForm from "@/components/ContactForm";
 import { TaskFinder, ShippingComparison, RelationshipJourney } from "./CustomerJourney";
 import { useShippingPlannerEnabled } from "./useShippingPlannerEnabled";
 import Seo from "@/components/seo/Seo";
@@ -721,7 +722,7 @@ const HomePage = () => {
                 <div className="mt-8 rounded-lg border border-border bg-card p-5">
                   <p className="text-sm font-semibold text-foreground">Still stuck?</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Ask in your own words. We answer first, then point you to the right page.
+                    Search our pages, or ask Iris to help you find what you need.
                   </p>
                   <div className="mt-4">
                     <PublicSearchPanel />
@@ -832,6 +833,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Audience switch — a way back for anyone who scrolled past the hero */}
         {/* ---------------------------------------------------------------- */}
+        <ContactForm />
         <aside className="border-t border-border bg-muted/40" aria-label="Switch homepage view">
           <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-5 py-6 text-center sm:flex-row sm:px-8 sm:text-left">
             <p className="text-sm text-muted-foreground">
