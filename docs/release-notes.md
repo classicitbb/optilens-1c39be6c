@@ -1,5 +1,9 @@
 # Release Notes
 
+## Unreleased — Walk-in payments design review
+
+A development-only interactive preview compares three layouts using synthetic payments. This is a design proposal; persistent drafts, delivery repairs and customer access changes are not released.
+
 Summarized release outcomes for each major date-stamped update.
 
 ## 2026-11-13 — Atlas failure messages show the reason (local, not deployed)

@@ -1,3 +1,28 @@
+## 2026-11-26 — Walk-in payment design review
+
+Status: Complete — no active handoff
+
+Branch `codex/walk-in-payments-design` contains a DEV-only sample design bench
+on `/admin/finance/walk-in-payments?design=1&variant=A`. A is side-by-side, B
+register-first and C task-focus. The Codex browser preview is open; retain the
+user's selected variant. Entry: `src/main.tsx`; implementation and boundaries:
+`src/features/admin/walk-in-payments/{WalkInPaymentsPrototype.tsx,walk-in-payments-prototype.css,CONTEXT.md}`.
+
+Validated: production build, app TypeScript, scoped ESLint, full ESLint with
+zero errors/2525 warnings, two existing shared-payment integration tests and
+`git diff --check`. Browser verified A/B/C rendering, draft save/resume and
+customer handoff dialog. Small-screen CSS is present but mobile viewport was
+not browser-tested. The production build excludes the sample strings.
+`npm run qa:pr-checks` passes lockfile and documentation symmetry, then stops
+on existing stale `supabase/functions/_shared/copilot/platformFacts.generated.ts`;
+no unrelated regeneration. Full suite was not run for this throwaway design.
+
+Start with `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
+Sample state resets on reload. Optional contact/expiry controls are illustrative.
+No live data, send, payment, schema, auth or deployment changed. Design selection
+and subsequent production implementation are future work, not unfinished preview
+work. Persistent drafts and mail/token repairs remain separate from this bench.
+
 ## 2026-11-06 — Guided CRM outreach workspace
 
 Status: Complete — no active handoff

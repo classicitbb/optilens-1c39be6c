@@ -18,6 +18,15 @@ Branch `crm-harvey-psychology`, local source. Borrows ideas from the Harvey sale
 
 # Project Status
 
+## Walk-in payments design review — 2026-11-26
+
+Branch `codex/walk-in-payments-design`: sample-only interactive A/B/C layouts
+for compact collection, draft preparation, requests, receipts and independent
+mail delivery status. Local URL: `/admin/finance/walk-in-payments?design=1`.
+DEV-only entry in `src/main.tsx`; existing production App and payment behavior
+are unchanged. No release, actual send, financial write or auth change.
+Validation and current review state are recorded in HANDOFF.md.
+
 ## Guided CRM outreach workspace — 2026-11-06
 
 Deployed to production on 2026-11-06 from codex/crm-outreach-wizard, commit 0409d407. Vercel reports READY and the live Classic Visions domains assigned. Dashboard opens a five-step outreach workspace; existing reports remain below. Contacts, My Leads, Lead Finder, Pipeline, Activities and Outbox link into it. Activities own briefs/owners/reminders; outreach_outbox owns messages. Company mail confirms sending before CRM recording; external composers never count as sent. Iris receives an editable handoff without auto-submit. Separate reusable practice mode blocks delivery and real stage changes. The user-requested practice brief/draft were saved against an existing test contact, without changing contact/account links or sending email. No schema, Edge Function or authorization release. Broad tests (1,940 passed / one skipped), 54 release-focused tests, typecheck, lint, build, PR checks and route smoke pass. See HANDOFF.md and docs/crm-outreach-workspace.md.

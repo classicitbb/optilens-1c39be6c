@@ -1,5 +1,10 @@
 # Integrations and Cross-Repository Contract
 
+Walk-in payment design review (2026-11-26): `?design=1&variant=A` on the local
+walk-in route opens a DEV-only sample bench. It has no backend, gateway,
+mailbox or storage integration. No service, environment variable, auth rule or
+data write is added. Production keeps the existing App and guards.
+
 CRM production release (2026-11-06): the existing Vercel Git connection published release commit 0409d407 from codex/crm-outreach-wizard. READY and the existing public Classic Visions domain assignments were verified through deployment metadata. Existing project configuration was reused; no environment/credential/permission changes, Supabase deploy or actual email send occurred. The release branch starts at the prior production commit so newer unrelated production account pages are preserved.
 
 CRM release verification (2026-11-06): existing-server route smoke uses the optional SMOKE_EXISTING_SERVER and existing SMOKE_PORT names. No secret or external service is introduced. The Vercel connector's repository/project discovery read works; the local CLI is not signed in. Use a release branch plus the existing project Git integration for deployment, keeping database migrations, Edge Functions and mail sending outside this frontend release. User explicitly approved production publication. No token values or private deployment identifiers belong in these files.

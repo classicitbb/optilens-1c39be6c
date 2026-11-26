@@ -1,5 +1,14 @@
 # Project Knowledge
 
+## Walk-in payment design bench — 2026-11-26
+
+Development only: `/admin/finance/walk-in-payments?design=1&variant=A` renders
+the sample-only `WalkInPaymentsPrototype` via a DEV-gated lazy import in
+`src/main.tsx`. A/B/C compare workspace, register-first and task-focus layouts.
+Run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
+Production App rendering, guards and payment integration remain unchanged.
+See `src/features/admin/walk-in-payments/CONTEXT.md` for simulation boundaries.
+
 CRM verification (2026-11-06): `SMOKE_EXISTING_SERVER=1` makes `npm run qa:smoke` reuse the listener selected by the existing `SMOKE_PORT`, leaving it running; reuse mode cannot inspect startup output. This avoids a second dev server replacing the active preview's optimized dependency cache. If a lockfile/optimizer refresh produces 504 Outdated Optimize Dep module responses, restart the owning local preview with `--force` and reload after dependency optimization completes. The CRM release is based on the currently deployed Git commit, preserving production changes newer than this checkout's main; deploy its scoped branch through the existing Vercel connection, without a main push/all-functions release.
 
 CRM practice uses the existing dashboard query practice=1, separate Outreach practice activities, and generated_by=practice outbox drafts. Saved briefs/emails are reusable; sending, sample replies and outcomes are rehearsed in local state. Outbox also blocks practice delivery. Normal outreach records and customer stages remain separate. See docs/crm-outreach-workspace.md.
