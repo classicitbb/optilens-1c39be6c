@@ -1,6 +1,6 @@
 ## 2026-11-26 — Walk-in payment B implementation and popup refinement
 
-Status: Incomplete — final broad regression result pending
+Status: Complete — no active handoff
 
 Branch `codex/walk-in-payments-design`. The selected register-first design is
 now implemented in the actual `WalkInPaymentsPage.tsx`, not just the DEV bench.
@@ -26,13 +26,29 @@ rows about 37px. New payment popup and its refined appearance verified. No
 actual send, cash entry, gateway payment, matching update or receipt resend
 was exercised. No patient/customer rows are copied into repository docs.
 
-`npm run qa:pr-checks` passes lockfile/doc symmetry then stops on pre-existing
-stale `supabase/functions/_shared/copilot/platformFacts.generated.ts`. Initial
-broad suite was interrupted after four unrelated Rx integration timeouts with
-unbounded workers. Correct rerun is active with two workers; inspect its final
-result before replacing this pending status. Logs are ignored local artifacts.
+Full regression result: `npm run test -- --runInBand --maxWorkers=2` passed
+326 test files, 2,067 tests; one file/test skipped. Coverage thresholds passed.
+This supersedes the earlier unbounded-worker run and pending continuation.
 
-Next executable action: `Get-Content .codex-walkin-suite-two-workers.log -Tail 40`
+PR #709 resolution preserves both the payment documentation and main's
+independent dependency-security notes. Main's dependency pins and audit tests
+are retained. No application-code conflicts occurred. Merge validation is
+recorded below before the resolution commit; production publication follows
+the user's explicit request to merge the PR.
+
+## 2026-11-26 — Dependency security remediation
+
+Status: Complete — no active handoff
+
+Affected: package.json/package-lock.json; scripts/audit-policy.mjs and new dependency-audit-scope.mjs; dependencyAuditScope.test.ts; continuity/module/help/bug/release documentation and generated release manifest. Security overrides: Effect 3.22.1, Hono 4.13.22, adapter 2.1.11, minimatch 11.0.9 and selector-parser v6 6.1.6. No vulnerability exceptions or authorization changes. npm overrides do not constrain the independently resolved hosted Deno dependency graph.
+
+Passed: clean npm ci; npm run security:audit (zero findings); production build; application TypeScript; full lint (0 errors, 2525 warnings); 18 focused tests including real CLI high/critical failure fixtures, MCP metadata/unauthenticated challenge and header policy; qa:pr-checks. Facts/search generators normalized line endings only, with no semantic diff. Release ledger synchronized using the required generator (0.38.0).
+
+Full coverage run was interrupted after several minutes without test result output. The wrapper rejects a second --coverage=false flag; use Vitest directly for diagnostic runs. `npx vitest run --coverage=false --maxWorkers=2` finished: 323 files passed, 2 failed, 1 skipped; 2069 tests passed, 2 failed, 1 skipped. Both failures were five-second timeouts (XLSX reading in spreadsheetPreview.test.ts and the child-process audit in customerInternalDataAccess.integration.test.ts). Each affected file then passed independently, all 11 tests, with no test or timeout change. The full suite is not claimed clean. Ignored logs: .codex-security-tests-no-coverage.log, .codex-security-spreadsheet.log and .codex-security-customer-access.log.
+
+Approval required for production deployment under AGENTS.md. Before any release, reconcile this checkout with the deployed source and verify the hosted Edge dependency graph; this change does not establish deployed versions. No hosted connector, live data, credential, schema, authorization, commit, push or deployment action taken.
+
+No required local continuation remains. Optional exact verification action: `npm run security:audit`. Production release remains a separate approval and source-reconciliation step; no deployment claim is made.
 
 ## 2026-11-06 — Guided CRM outreach workspace
 

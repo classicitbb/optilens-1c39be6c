@@ -34,6 +34,10 @@ DEV-only entry in `src/main.tsx`; existing production App and payment behavior
 are unchanged. No release, actual send, financial write or auth change.
 Validation and current review state are recorded in HANDOFF.md.
 
+## Dependency security remediation — 2026-11-26
+
+Local patches pin all dependencies flagged in the initial audit to patched versions; npm audit reports zero vulnerabilities. Audit scope labels now distinguish optional/development metadata, with high/critical CLI failure regression tests. Clean npm ci, production build, application TypeScript, lint (warnings only), 18 focused security/MCP/header tests and PR checks pass. Generated facts/search refreshes only normalized checkout line endings; no semantic changes. Release ledger synchronized to 0.38.0. Broad run: 2069 passed, 1 skipped, 2 five-second timeouts; both affected files pass independently (11 tests) without changes. Details in HANDOFF.md. No production deploy, backend dependency-resolution verification, data or authorization change occurred.
+
 ## Guided CRM outreach workspace — 2026-11-06
 
 Deployed to production on 2026-11-06 from codex/crm-outreach-wizard, commit 0409d407. Vercel reports READY and the live Classic Visions domains assigned. Dashboard opens a five-step outreach workspace; existing reports remain below. Contacts, My Leads, Lead Finder, Pipeline, Activities and Outbox link into it. Activities own briefs/owners/reminders; outreach_outbox owns messages. Company mail confirms sending before CRM recording; external composers never count as sent. Iris receives an editable handoff without auto-submit. Separate reusable practice mode blocks delivery and real stage changes. The user-requested practice brief/draft were saved against an existing test contact, without changing contact/account links or sending email. No schema, Edge Function or authorization release. Broad tests (1,940 passed / one skipped), 54 release-focused tests, typecheck, lint, build, PR checks and route smoke pass. See HANDOFF.md and docs/crm-outreach-workspace.md.

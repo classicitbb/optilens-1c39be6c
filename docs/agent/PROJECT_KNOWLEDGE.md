@@ -18,6 +18,10 @@ Run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
 Production App rendering, guards and payment integration remain unchanged.
 See `src/features/admin/walk-in-payments/CONTEXT.md` for simulation boundaries.
 
+## Dependency security remediation — 2026-11-26
+
+Security overrides pin Effect 3.22.1, Hono 4.13.22, the Hono Node adapter 2.1.11, minimatch 11.0.9 and the selector parser's v6 line to 6.1.6. The MCP SDK accepts adapter v2; selector-parser stays on its existing major. Keep package.json and package-lock.json synchronized through npm. `scripts/dependency-audit-scope.mjs` reports optional/development lock metadata without claiming deployed reachability; high/critical findings still fail regardless of scope. npm overrides govern npm installs, not independently resolved Deno Edge dependencies. Do not claim these pins update an already deployed function or its Deno dependency graph.
+
 CRM verification (2026-11-06): `SMOKE_EXISTING_SERVER=1` makes `npm run qa:smoke` reuse the listener selected by the existing `SMOKE_PORT`, leaving it running; reuse mode cannot inspect startup output. This avoids a second dev server replacing the active preview's optimized dependency cache. If a lockfile/optimizer refresh produces 504 Outdated Optimize Dep module responses, restart the owning local preview with `--force` and reload after dependency optimization completes. The CRM release is based on the currently deployed Git commit, preserving production changes newer than this checkout's main; deploy its scoped branch through the existing Vercel connection, without a main push/all-functions release.
 
 CRM practice uses the existing dashboard query practice=1, separate Outreach practice activities, and generated_by=practice outbox drafts. Saved briefs/emails are reusable; sending, sample replies and outcomes are rehearsed in local state. Outbox also blocks practice delivery. Normal outreach records and customer stages remain separate. See docs/crm-outreach-workspace.md.

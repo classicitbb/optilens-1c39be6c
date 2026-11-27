@@ -11,6 +11,11 @@ Layout B was selected for further review. New payment and draft continuation now
 
 Local sample-only design bench with three compact payment layouts, draft preparation, request and receipt views, and separate delivery states. No production payment or email behavior changed.
 
+## 2026-11-26 — Dependency security maintenance (local)
+
+Pinned patched dependency versions for Effect, Hono, its Node adapter, minimatch and selector-parser. Corrected optional/development audit labels while retaining high/critical failure checks. Local source only.
+
+
 ## 2026-11-13 — Atlas failure messages show the reason (local, not deployed)
 
 - Atlas toasts for a failed section or page action now show the reason the backend gave instead of "Please try again".

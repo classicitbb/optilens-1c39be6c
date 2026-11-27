@@ -1,5 +1,10 @@
 # Automation Bug Reports
 
+## 2026-11-26 — Dependency security maintenance (local)
+
+The dependency audit previously treated devOptional packages as confirmed runtime dependencies. Explicit optional/development/unknown labels correct triage without excluding vulnerabilities or changing severity enforcement.
+
+
 ## 2026-10-30 — Workbook parity check (no defect)
 
 New check, no bug fixed. Findings: the 2026 workbook rounds exact half-cent R&R amounts inconsistently (up in some months, down in others), and CV-02's R&R column holds a flat non-levy amount, so the check allows one cent on R&R and skips CV-02's R&R.

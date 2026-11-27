@@ -1,5 +1,10 @@
 # Developer Workflow Help
 
+## 2026-11-26 — Dependency security maintenance (local)
+
+Use npm ci, npm run security:audit and npx vitest run --coverage=false src/tests/unit/dependencyAuditScope.test.ts to verify the patched dependency tree and severity gate. npm overrides do not control independently resolved hosted Deno dependencies.
+
+
 ## 2026-10-30 — Checking payroll against the salary workbook
 
 Run `python scripts/hr/export_workbook_parity.py "<workbook.xlsx>" "<path outside the repo>.json"`, then `HR_PARITY_JSON=<that file> HR_PARITY_REPORT=<report path> npx vitest run --coverage=false src/tests/unit/payrollWorkbookParity.test.ts`. Both files hold pay figures: keep them outside the repo and delete them afterwards.
