@@ -1,19 +1,22 @@
 {
-  "semanticVersion": "0.39.0",
-  "sourceEntry": "2026-11-26 — Public website state feedback",
-  "releaseDateTimeUtc": "2026-11-26T00:00:00.000Z",
+  "semanticVersion": "0.40.0",
+  "sourceEntry": "2026-11-27 — Compact walk-in payment register",
+  "releaseDateTimeUtc": "2026-11-27T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Published the first milestone as 0.39.0 / `8275278e` to the existing Classic Visions website. Live search, retailer reset and the unsent contact form were verified. Database, Edge Functions, authentication rules and gateway production deployments were unchanged.",
-    "Public search shows direct page matches, loading, retry and useful no-result links; Iris remains available for follow-up.",
-    "Retailer and contact surfaces explain offline limitations and keep telephone support available. Iris public inquiries show inline validation and slow-send guidance.",
-    "The ten-state gallery remains local. Session recovery, draft persistence and order/payment changes are outside this milestone. No live request was submitted for verification."
+    "Walk-in payments opens on a compact register with separate detail columns, fixed filters and scrolling confined to the records panel.",
+    "New payment opens a refined popup with optional details and one explicit action for the selected payment method. Cash and card receipts appear in the register."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "src/pages/admin",
       "impact": "medium",
-      "notes": "Updated as part of Public website state feedback."
+      "notes": "Updated as part of Compact walk-in payment register."
+    },
+    {
+      "module": "src/features/admin",
+      "impact": "medium",
+      "notes": "Updated as part of Compact walk-in payment register."
     }
   ],
   "migrationNotes": [

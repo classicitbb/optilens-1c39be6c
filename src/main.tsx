@@ -15,4 +15,10 @@ import "@fontsource/dm-sans/latin-700.css";
 import App from "./App.tsx";
 import "./index.css";
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = createRoot(document.getElementById("root")!);
+// Local, sample-only design bench. Never included in a production render.
+if (import.meta.env.DEV && window.location.pathname === "/admin/finance/walk-in-payments" && new URLSearchParams(window.location.search).get("design") === "1") {
+  void import("./features/admin/walk-in-payments/WalkInPaymentsPrototype").then(({ default: Preview }) => root.render(<Preview />));
+} else {
+  root.render(<App />);
+}

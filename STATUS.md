@@ -8,6 +8,13 @@ Published the first milestone on 2026-11-26 as release 0.39.0, commit `8275278e`
 
 ## Checkout: address from CRM contact - 2026-11-14
 
+## Walk-in payments: selected B layout — 2026-11-26
+
+The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
+
+
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
 Local source on `admin-live-orders-shipments`, not committed or deployed. Checkout step 2 fills the shipping address from the customer's CRM contact (company address if the contact has none) when they have no saved address-book entry; an address typed at checkout is written back to their contact on order. Customers cannot read `contacts`, so this uses ownership-checked RPCs in `20261114120000_portal_contact_shipping_address.sql`, **applied live via Lovable on 2026-11-14** (3 functions, security definer, authenticated only; verified by query, not exercised as a customer). Also removed the invented "$12,500 available credit" and the random order number (confirmation now shows the real order id's first 8 characters); review shows the full address. Typecheck, lint (0 errors) and the Scotia redirect test pass; not checked in a signed-in browser. PO number and order notes typed in the cart/checkout are not sent to `place_customer_order_with_shipping`.
 
 ## Launch prep: Atlas subsections, homepage clean-up, launch plan - 2026-11-13
@@ -26,6 +33,14 @@ Branch `crm-harvey-psychology`, local source. Borrows ideas from the Harvey sale
 
 # Project Status
 
+## Walk-in payments design review — 2026-11-26
+
+Branch `codex/walk-in-payments-design`: sample-only interactive A/B/C layouts
+for compact collection, draft preparation, requests, receipts and independent
+mail delivery status. Local URL: `/admin/finance/walk-in-payments?design=1`.
+DEV-only entry in `src/main.tsx`; existing production App and payment behavior
+are unchanged. No release, actual send, financial write or auth change.
+Validation and current review state are recorded in HANDOFF.md.
 ## Dependency security remediation — 2026-11-26
 
 Local patches pin all dependencies flagged in the initial audit to patched versions; npm audit reports zero vulnerabilities. Audit scope labels now distinguish optional/development metadata, with high/critical CLI failure regression tests. Clean npm ci, production build, application TypeScript, lint (warnings only), 18 focused security/MCP/header tests and PR checks pass. Generated facts/search refreshes only normalized checkout line endings; no semantic changes. Release ledger synchronized to 0.38.0. Broad run: 2069 passed, 1 skipped, 2 five-second timeouts; both affected files pass independently (11 tests) without changes. Details in HANDOFF.md. No production deploy, backend dependency-resolution verification, data or authorization change occurred.

@@ -1,5 +1,22 @@
 # Project Knowledge
 
+Test runner: `scripts/run-tests.mjs` removes `--runInBand` and always adds coverage. Use `npm run test -- --maxWorkers=2` to bound Windows worker load; passing `--coverage=false` to this wrapper conflicts with its existing coverage argument. Direct focused `npx vitest run --coverage=false ...` remains supported.
+
+## Walk-in payments: selected B layout — 2026-11-26
+
+The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
+
+
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
+## Walk-in payment design bench — 2026-11-26
+
+Development only: `/admin/finance/walk-in-payments?design=1&variant=A` renders
+the sample-only `WalkInPaymentsPrototype` via a DEV-gated lazy import in
+`src/main.tsx`. A/B/C compare workspace, register-first and task-focus layouts.
+Run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
+Production App rendering, guards and payment integration remain unchanged.
+See `src/features/admin/walk-in-payments/CONTEXT.md` for simulation boundaries.
 Release-note structure: the ledger reads user-facing bullets under `### Release Notes`. Once a dated entry exists in `docs/release-notes.md`, that entry takes precedence over the same CHANGELOG entry, even when empty; update the release-notes entry and run `release-ledger:sync` to refresh the manifest without changing the dated heading/version key.
 
 Public-state publication (2026-11-26): release 0.39.0 / `8275278e` is live from `codex/public-website-states`. Existing website-only Vercel MCP Git deployment works without local CLI login or new credentials. The same repository also deploys QuickBooks gateway projects, so production publication must select the website explicitly. Incorporate the release branch before future main-branch frontend publication. Live search, retailer recovery and unsent contact form were verified; no backend or auth change.

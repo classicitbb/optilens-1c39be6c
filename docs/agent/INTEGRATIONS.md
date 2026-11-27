@@ -1,5 +1,14 @@
 # Integrations and Cross-Repository Contract
 
+## Walk-in payments: selected B layout — 2026-11-26
+
+The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
+
+
+Walk-in payment design review (2026-11-26): `?design=1&variant=A` on the local
+walk-in route opens a DEV-only sample bench. It has no backend, gateway,
+mailbox or storage integration. No service, environment variable, auth rule or
+data write is added. Production keeps the existing App and guards.
 Production source follow-up (2026-11-26): after the public-state publication, a separate security release moved the website's production source to `main` at `f34f0a83`. The user requested conflict resolution and then explicitly instructed merging the resolved branch into main. That authorizes the normal Git-connected production pipeline for the combined source; no gateway, database, credential, or authorization configuration changes are part of this merge.
 
 Public-state release (2026-11-26): the user explicitly authorized publishing the first milestone. Release 0.39.0 / commit `8275278e` on `codex/public-website-states` was published to the existing public website project through Vercel MCP using its server-side Git connection. READY, exact source commit and both public domain aliases were verified. The same repository also feeds separate QuickBooks gateway projects; they and Edge Functions were excluded from production publication. The release starts at the prior production/origin-main base. Retain and incorporate this branch before a later main-branch frontend release. No credential or project configuration change was needed; the local CLI remains signed out.

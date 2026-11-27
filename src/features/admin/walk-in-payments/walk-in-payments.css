@@ -1,0 +1,47 @@
+/* Bound to the admin shell's available height; only records scroll. */
+.walk-in-payments-page { min-width: 0; }
+.walk-in-register { display:flex; flex:1; flex-direction:column; min-height:0; min-width:0; overflow:hidden; }
+.walk-in-register-header,.walk-in-register-footer { flex-shrink:0; }
+.walk-in-register-records { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+.walk-in-register table { width:100%; min-width:1450px; border-collapse:separate; border-spacing:0; text-align:left; font-size:12px; }
+.walk-in-register thead { position:sticky; top:0; z-index:1; background:hsl(var(--card)); }
+.walk-in-register th,.walk-in-register td { height:34px; padding:3px 10px; border-bottom:1px solid hsl(var(--border)); white-space:nowrap; line-height:1.4; }
+.walk-in-register thead th { height:32px; font-weight:500; color:hsl(var(--muted-foreground)); }
+.walk-in-register tbody th { font-weight:500; }
+.walk-in-register .register-text { max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+.walk-in-register-footer { padding:7px 12px; font-size:11px; color:hsl(var(--muted-foreground)); border-top:1px solid hsl(var(--border)); }
+.walk-in-payment-dialog :is(input,select) { min-width:0; }
+@media (pointer:coarse) { .walk-in-register th,.walk-in-register td { height:42px; } }
+@media print { .walk-in-payments-page { overflow:visible; } }
+
+.walk-in-register tbody th { font-family:inherit; text-transform:none; letter-spacing:normal; }
+.walk-in-register tr > :last-child { position:sticky; right:0; background:hsl(var(--card)); box-shadow:-1px 0 hsl(var(--border)); }
+.walk-in-register thead tr > :last-child { z-index:2; }
+.walk-in-payment-dialog > div[data-slot] { min-width:0; }
+
+/* A single, quiet form surface instead of a card inside a dialog. */
+.walk-in-payment-dialog{width:calc(100% - 24px);max-width:580px;padding:24px;gap:20px;background:hsl(var(--ws-paper));color:hsl(var(--ws-ink));border-radius:10px!important}
+.walk-in-payment-dialog>button:last-child{display:none}
+.walk-in-payment-dialog>div:first-child{padding-right:32px;text-align:left}
+.walk-in-payment-dialog .payment-popup-close{position:absolute;right:14px;top:14px;width:30px;height:30px;min-height:30px;padding:5px}
+.payment-entry-form{display:grid;gap:16px;min-width:0}
+.payment-entry-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.payment-field{display:grid;gap:6px;font-size:12px;font-weight:500;min-width:0}
+.payment-field-wide{grid-column:1/-1}
+.walk-in-payment-dialog .payment-field input{height:40px;min-height:40px;background:hsl(var(--ws-paper));border:1px solid hsl(var(--ws-input-border));border-radius:6px;font-size:13px;padding:9px 11px;box-shadow:none}
+.walk-in-payment-dialog .payment-amount-input{font-size:17px!important;font-weight:600;font-variant-numeric:tabular-nums}
+.payment-entry-details{border-block:1px solid hsl(var(--ws-line));padding:12px 0}
+.payment-entry-details summary{cursor:pointer;font-size:12px;font-weight:500}
+.payment-entry-details summary>span{float:right;color:hsl(var(--ws-ink-2));font-size:11px;font-weight:400}
+.payment-entry-details[open]>.payment-entry-fields{margin-top:14px}
+.payment-method-options{border:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+.payment-method-options legend{padding:0;margin-bottom:10px;font-size:12px;font-weight:600}
+.payment-method-options label{display:flex;align-items:center;gap:9px;min-height:43px;padding:11px 12px;border:1px solid hsl(var(--ws-line));border-radius:6px;cursor:pointer;font-size:12px;font-weight:500}
+.payment-method-options input{accent-color:hsl(var(--ws-accent));margin:0;width:13px;height:13px}
+.payment-method-options label.payment-method-selected{border-color:hsl(var(--ws-accent));background:hsl(var(--ws-accent-tint));color:hsl(var(--ws-accent))}
+.payment-method-description{margin:0;font-size:11px;color:hsl(var(--ws-ink-2));min-height:18px;line-height:1.6}
+.payment-entry-footer{display:grid;gap:14px;border-top:1px solid hsl(var(--ws-line));padding-top:16px}
+.payment-entry-footer>p{display:flex;align-items:center;gap:6px;margin:0;font-size:10px;color:hsl(var(--ws-ink-2))}
+.payment-entry-footer>div{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.payment-entry-footer button{font-size:12px;min-height:38px}
+@media(max-width:600px){.walk-in-payment-dialog{padding:18px;gap:16px}.payment-entry-details summary>span{float:none;display:block;margin:4px 0 0 14px}.payment-entry-footer>div{display:grid;grid-template-columns:auto 1fr}.payment-field input{font-size:16px!important}.payment-method-options label{padding:9px;gap:6px;min-height:46px}}

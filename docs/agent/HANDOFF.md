@@ -1,3 +1,45 @@
+## 2026-11-26 — Walk-in payment B implementation and popup refinement
+
+Status: Complete — no active handoff
+
+Branch `codex/walk-in-payments-design`. The selected register-first design is
+now implemented in the actual `WalkInPaymentsPage.tsx`, not just the DEV bench.
+The register uses compact single-line columns, a bounded scrolling record
+viewport, sticky headings and pinned right-side actions. Search and filters
+stay fixed. Reads include cash/direct-card origins, newest 100 records, with
+that cap disclosed. Receipts open existing settlement views; Match payments
+opens the existing matching tool. Existing caller access, signing, cash,
+email and settlement handlers remain authoritative. No deployment, schema,
+authentication, credentials or financial data changes.
+
+The popup was refined after user feedback: one white form surface, customer
+first, grouped inputs, More details disclosure, four radio collection choices
+and one explicit primary submit. Selecting a method never invokes a payment.
+The sample `design=1` bench is locked to B; its drafts remain simulations.
+Actual local review URL is `/admin/finance/walk-in-payments` without that query.
+
+Validated: production build, app TypeScript, full lint (zero errors/2525
+warnings), 11 tests across four focused payment files and browser review of
+real authorized reads. Browser measured page and shell scroll heights equal
+to their client heights, outer scroll positions zero while records scroll;
+rows about 37px. New payment popup and its refined appearance verified. No
+actual send, cash entry, gateway payment, matching update or receipt resend
+was exercised. No patient/customer rows are copied into repository docs.
+
+Full regression result: `npm run test -- --runInBand --maxWorkers=2` passed
+326 test files, 2,067 tests; one file/test skipped. Coverage thresholds passed.
+This supersedes the earlier unbounded-worker run and pending continuation.
+
+PR #709 resolution preserves the payment, public-site and dependency-security
+histories, including newer remote main/branch commits. No application-code
+conflicts occurred. Corrected the malformed payment changelog heading and
+regenerated the release ledger as 0.40.0; npm synchronized package/lock versions.
+After a Windows locked native-module install failure, stopped the owning local
+preview and completed clean npm ci. Combined-source build, app TypeScript, all
+PR checks and 60 targeted payment/public/security/CRM tests pass. Generated facts
+and public index refreshes only normalized local line endings. User explicitly
+authorized committing, merging and publishing through the existing Git pipeline.
+
 ## 2026-11-26 — Live release branch merge
 
 Status: Merge conflicts resolved locally; verification in progress.

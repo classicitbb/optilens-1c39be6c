@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-11-27 — Compact walk-in payment register
+
+### Release Notes
+- Walk-in payments opens on a compact register with separate detail columns, fixed filters and scrolling confined to the records panel.
+- New payment opens a refined popup with optional details and one explicit action for the selected payment method. Cash and card receipts appear in the register.
+
 ## 2026-11-26 — Public website state feedback
 
 ### Release Notes

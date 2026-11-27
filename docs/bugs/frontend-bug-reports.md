@@ -1,5 +1,15 @@
 # Frontend Bug Reports
 
+## Walk-in payments: selected B layout — 2026-11-26
+
+The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
+
+
+Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
+
+## 2026-11-26 — Walk-in payment design review (proposal only)
+
+The existing form obscures activity and does not present drafts, receipts and mail delivery as separate states. This branch adds a synthetic design bench, not production bug fixes. Source review found the request sender ignores managed-send failed/suppressed results, and token lookup failure falls back to the code-choice screen. Actual delivery and token failures need a separate authorized reproduction and implementation.
 ## 2026-11-26 — Public state recovery (published)
 
 Release 0.39.0 / `8275278e` is live. Browser checks confirmed public search matches, no-result alternatives and clearing; retailer no-match guidance and reset; and the contact form's required name/email fields without submitting a request. Thirty focused tests pass. Broad-suite completion and the pre-existing Copilot-facts drift remain unresolved; neither is reported as a pass.
