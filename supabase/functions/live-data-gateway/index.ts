@@ -841,14 +841,32 @@ async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
 
   if (action === "agent.next") {
     // Polling proves the agent is alive even if its heartbeat action name differs.
-    await supabase.from("live_data_gateway_agents").upsert({
-      api_key_id: key.id,
-      agent_name: typeof body.agent_name === "string" ? body.agent_name.slice(0, 100) : "OptiLens Local",
-      capabilities: Array.isArray(body.capabilities)
-        ? body.capabilities.filter((value): value is Operation => typeof value === "string" && value in OPERATIONS)
-        : (Object.keys(OPERATIONS) as Operation[]).filter((value) => !isAllCustomerOperation(value)),
-      last_seen_at: new Date().toISOString(),
-    }, { onConflict: "api_key_id" });
+    // A poll without a capabilities list only refreshes last_seen_at: overwriting
+    // the list here used to wipe the all-customer operations the heartbeat had just
+    // advertised, so Admin > Orders saw the connector as "offline" most of the time.
+    const lastSeenAt = new Date().toISOString();
+    if (Array.isArray(body.capabilities)) {
+      await supabase.from("live_data_gateway_agents").upsert({
+        api_key_id: key.id,
+        agent_name: typeof body.agent_name === "string" ? body.agent_name.slice(0, 100) : "OptiLens Local",
+        capabilities: body.capabilities.filter((value): value is Operation => typeof value === "string" && value in OPERATIONS),
+        last_seen_at: lastSeenAt,
+      }, { onConflict: "api_key_id" });
+    } else {
+      const { data: touched } = await supabase.from("live_data_gateway_agents")
+        .update({ last_seen_at: lastSeenAt })
+        .eq("api_key_id", key.id)
+        .select("api_key_id");
+      if (!touched?.length) {
+        // First contact from an agent that never heartbeats: assume the per-customer reads only.
+        await supabase.from("live_data_gateway_agents").insert({
+          api_key_id: key.id,
+          agent_name: typeof body.agent_name === "string" ? body.agent_name.slice(0, 100) : "OptiLens Local",
+          capabilities: (Object.keys(OPERATIONS) as Operation[]).filter((value) => !isAllCustomerOperation(value)),
+          last_seen_at: lastSeenAt,
+        });
+      }
+    }
     const { data, error } = await supabase.rpc("claim_live_data_gateway_request", { p_agent_key_id: key.id });
     if (error) return json(req, { error: "Could not claim a live-data request.", detail: error.message }, 500);
     const requestRow = Array.isArray(data) ? data[0] ?? null : data ?? null;

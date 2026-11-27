@@ -31,6 +31,16 @@ describe("on-demand live-data gateway contract", () => {
     expect(gateway).not.toMatch(/body\.(url|path|sql|query)\b/);
   });
 
+  it("does not let an agent poll wipe the capabilities its heartbeat advertised", () => {
+    const gateway = read("supabase/functions/live-data-gateway/index.ts");
+    const start = gateway.indexOf('if (action === "agent.next")');
+    const next = gateway.slice(start, gateway.indexOf("claim_live_data_gateway_request", start));
+    expect(next).toContain("if (Array.isArray(body.capabilities))");
+    expect(next).toContain('.update({ last_seen_at: lastSeenAt })');
+    // The default (per-customer only) list is applied to a brand-new row, never over an existing one.
+    expect(next.indexOf("!isAllCustomerOperation")).toBeGreaterThan(next.indexOf("if (!touched?.length)"));
+  });
+
   it("uses live requests for statement and delivery display", () => {
     const statements = read("src/components/account/sections/StatementsSection.tsx");
     const orders = read("src/components/account/sections/MyOrdersSection.tsx");
