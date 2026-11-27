@@ -18506,6 +18506,18 @@ export type Database = {
         }
         Returns: Json
       }
+      publish_walk_in_payment_with_expiry: {
+        Args: {
+          p_amount: number
+          p_contact_id?: string
+          p_customer_email?: string
+          p_customer_name: string
+          p_expires_at: string
+          p_order_reference?: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       purge_live_data_gateway: { Args: never; Returns: undefined }
       qbo_consume_rate_limit: {
         Args: {
