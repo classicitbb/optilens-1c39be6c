@@ -134,8 +134,11 @@ export const searchPublicPages = (
 let indexPromise: Promise<PublicContentEntry[]> | null = null;
 
 export const loadPublicContentIndex = () => {
-  indexPromise ??= import("@/lib/generated/publicContentIndex").then(
-    (module) => module.PUBLIC_CONTENT_INDEX,
-  );
+  indexPromise ??= import("@/lib/generated/publicContentIndex")
+    .then((module) => module.PUBLIC_CONTENT_INDEX)
+    .catch((error: unknown) => {
+      indexPromise = null;
+      throw error;
+    });
   return indexPromise;
 };

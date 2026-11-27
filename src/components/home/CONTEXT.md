@@ -1,5 +1,7 @@
 # Homepage context
 
+- PublicSearchPanel searches the generated public page index after two characters, with loading/error/retry/no-match states, offline guidance and existing Iris handoff. Contact retains Iris and adds telephone fallback. Shared components: `src/components/public-states`; local ten-state gallery: `/public-states.html`. See `docs/public-website-states.md`.
+
 - `HomePage.tsx` composes the public professional/patient home views.
 - `CustomerJourney.tsx` owns the quick-start drawer, relationship guidance and optional shipping worksheet.
 - `homeContent.ts` holds public copy and the returning customer's operational hero actions.

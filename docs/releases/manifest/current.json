@@ -1,16 +1,22 @@
 {
-  "semanticVersion": "0.38.0",
-  "sourceEntry": "2026-11-26 — Dependency security maintenance (local)",
-  "releaseDateTimeUtc": "2026-11-26T00:00:00.000Z",
+  "semanticVersion": "0.40.0",
+  "sourceEntry": "2026-11-27 — Compact walk-in payment register",
+  "releaseDateTimeUtc": "2026-11-27T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Patched dependency advisories and corrected optional/development audit classification. Local source only; production deployment and hosted Edge dependency verification remain pending."
+    "Walk-in payments opens on a compact register with separate detail columns, fixed filters and scrolling confined to the records panel.",
+    "New payment opens a refined popup with optional details and one explicit action for the selected payment method. Cash and card receipts appear in the register."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "src/pages/admin",
       "impact": "medium",
-      "notes": "Updated as part of Dependency security maintenance (local)."
+      "notes": "Updated as part of Compact walk-in payment register."
+    },
+    {
+      "module": "src/features/admin",
+      "impact": "medium",
+      "notes": "Updated as part of Compact walk-in payment register."
     }
   ],
   "migrationNotes": [

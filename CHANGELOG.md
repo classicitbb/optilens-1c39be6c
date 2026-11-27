@@ -1,20 +1,35 @@
 # Changelog
 
-## Walk-in payments: selected B layout — 2026-11-26
+## 2026-11-27 — Compact walk-in payment register
 
-The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
+### Release Notes
 
+- Walk-in payments opens on a compact register with separate detail columns, fixed filters and scrolling confined to the records panel.
+- New payment opens a refined popup with optional details and one explicit action for the selected payment method. Cash and card receipts appear in the register.
+
+### Technical Changelog
+
+- Updated `src/pages/admin/WalkInPaymentsPage.tsx` and `src/features/admin/walk-in-payments/LinkActivityPanel.tsx` without changing payment authorization, signing or settlement handlers.
+- Added register and collection-form integration coverage. Draft persistence and email delivery repairs remain outside this release.
 
 Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
 
-## Unreleased — Walk-in payments design review
+## Walk-in payments design review (unreleased)
 
 Local sample-only design bench with three compact payment layouts, draft preparation, request and receipt views, and separate delivery states. No production payment or email behavior changed.
+## 2026-11-26 — Public website state feedback
+
+### Release Notes
+
+- Published the first milestone as 0.39.0 / `8275278e` to the existing Classic Visions website. Live search, retailer reset and the unsent contact form were verified. Database, Edge Functions, authentication rules and gateway production deployments were unchanged.
+
+- Public search shows page matches, loading, retry and useful no-result links using the existing content index; Iris remains available for follow-up.
+- Retailer and contact surfaces explain offline limitations and keep telephone support available. Barbados missing-data fallback preserves navigation. The homepage now mounts the existing contact section; Iris public inquiries show inline required/email errors, pending/slow-send guidance and confirmation-recovery actions.
+- Added shared state components and a local ten-state gallery at `/public-states.html`. Account/session examples are simulations; this frontend-only release adds no draft persistence, auth change or backend release. No live request was submitted for verification. See `docs/public-website-states.md`.
 
 ## 2026-11-26 — Dependency security maintenance (local)
 
 Pinned patched dependency versions for Effect, Hono, its Node adapter, minimatch and selector-parser. Corrected optional/development audit labels while retaining high/critical failure checks. Local source only.
-
 
 ## 2026-11-13 — Atlas failure messages show the reason (local, not deployed)
 

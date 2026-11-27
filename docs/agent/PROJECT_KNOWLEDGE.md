@@ -17,6 +17,13 @@ the sample-only `WalkInPaymentsPrototype` via a DEV-gated lazy import in
 Run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`.
 Production App rendering, guards and payment integration remain unchanged.
 See `src/features/admin/walk-in-payments/CONTEXT.md` for simulation boundaries.
+Release-note structure: the ledger reads user-facing bullets under `### Release Notes`. Once a dated entry exists in `docs/release-notes.md`, that entry takes precedence over the same CHANGELOG entry, even when empty; update the release-notes entry and run `release-ledger:sync` to refresh the manifest without changing the dated heading/version key.
+
+Public-state publication (2026-11-26): release 0.39.0 / `8275278e` is live from `codex/public-website-states`. Existing website-only Vercel MCP Git deployment works without local CLI login or new credentials. The same repository also deploys QuickBooks gateway projects, so production publication must select the website explicitly. Incorporate the release branch before future main-branch frontend publication. Live search, retailer recovery and unsent contact form were verified; no backend or auth change.
+
+Release metadata synchronization (2026-11-26): if `release-ledger:sync` advances package.json, synchronize package-lock.json metadata through `npm version <version> --no-git-tag-version --ignore-scripts --allow-same-version`, then review that only the intended version fields changed. The public-state release aligns both to 0.39.0 without dependency upgrades.
+
+Public website states (2026-11-26): `src/components/public-states` owns section messages, offline notices, loading and native inline validation. PublicSearchPanel reuses the generated index and existing matcher through `usePublicPageSearch`; rejected loader promises are cleared for retry. Browser connectivity is advisory; loaded public index/listings stay available offline. `public-states.html` is a development-only gallery, excluded from the production build entry and runtime route registry. Start: `npm run dev -- --host 127.0.0.1 --port 5185 --strictPort`. Checks and limits: `docs/public-website-states.md`. No draft persistence or auth change.
 
 ## Dependency security remediation — 2026-11-26
 

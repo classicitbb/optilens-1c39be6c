@@ -10,11 +10,17 @@ Layout B was selected for further review. New payment and draft continuation now
 ## 2026-11-26 — Walk-in payment design review (proposal only)
 
 The existing form obscures activity and does not present drafts, receipts and mail delivery as separate states. This branch adds a synthetic design bench, not production bug fixes. Source review found the request sender ignores managed-send failed/suppressed results, and token lookup failure falls back to the code-choice screen. Actual delivery and token failures need a separate authorized reproduction and implementation.
+## 2026-11-26 — Public state recovery (published)
+
+Release 0.39.0 / `8275278e` is live. Browser checks confirmed public search matches, no-result alternatives and clearing; retailer no-match guidance and reset; and the contact form's required name/email fields without submitting a request. Thirty focused tests pass. Broad-suite completion and the pre-existing Copilot-facts drift remain unresolved; neither is reported as a pass.
+
+Browser review found the contact component was not mounted on the homepage and the Barbados page returned null when market data was missing. The homepage now mounts the contact entry point; the missing-market fallback preserves navigation and explains the next action. Anonymous contact requests now identify the person as a website visitor rather than implying they are signed in.
+
+Public search previously only handed queries to Iris. It now distinguishes unloaded results from zero matches and offers retry, browse alternatives and offline guidance. The shared content-index loader no longer retains a rejected promise indefinitely. Public inquiry confirmation is enabled for validation attempts, with required/email errors beside fields; network loss retains current entries, and uncertain confirmations offer telephone checking to avoid encouraging duplicate requests. This does not add automatic mutation retries, reload-safe drafts or session recovery. Focused regressions: `publicWebsiteStates.test.tsx` and `publicRequestFeedback.test.tsx`; full validation status is recorded in `docs/agent/HANDOFF.md`.
 
 ## 2026-11-26 — Dependency security maintenance (local)
 
 No frontend behavior defect was identified in this change. Dependency vulnerability fixes and audit-scope regressions are covered by the new dependencyAuditScope unit tests. Hosted exploitability is not established by a lockfile advisory.
-
 
 ## 2026-11-13 — Atlas subsections and homepage clean-up (no defect)
 

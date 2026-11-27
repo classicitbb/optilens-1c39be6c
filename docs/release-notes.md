@@ -1,17 +1,20 @@
 # Release Notes
 
-## Walk-in payments: selected B layout — 2026-11-26
-
-The actual admin page now opens New payment in a compact modal with one form surface, four selectable collection methods and one explicit submit action. Optional fields collapse under More details. The register fills the available shell height; only the record viewport scrolls, with sticky headings and right-side actions. Customer, email, order reference, amount, method, status, dates, matching, reason and payment reference have separate compact columns. Existing staff access, signing, send, cash and settlement handlers remain in use. Reads now include all origins, including cash and direct card, limited to the latest 100 records and labelled as such. Receipt buttons open the existing settled receipt. Match payments opens the existing matching tool. No persistent drafts, email-delivery repairs, schema, auth changes or deployment are included.
-
-
-Layout B was selected for further review. New payment and draft continuation now use a native modal popup over the register; Save draft closes it. Escape and the close button dismiss it, with native focus restoration. Browser checked opening, draft resume/save and Escape. Sample-only behavior remains unchanged.
-
-## Unreleased — Walk-in payments design review
-
-A development-only interactive preview compares three layouts using synthetic payments. This is a design proposal; persistent drafts, delivery repairs and customer access changes are not released.
-
 Summarized release outcomes for each major date-stamped update.
+
+## 2026-11-27 — Compact walk-in payment register
+
+### Release Notes
+- Walk-in payments opens on a compact register with separate detail columns, fixed filters and scrolling confined to the records panel.
+- New payment opens a refined popup with optional details and one explicit action for the selected payment method. Cash and card receipts appear in the register.
+
+## 2026-11-26 — Public website state feedback
+
+### Release Notes
+- Published the first milestone as 0.39.0 / `8275278e` to the existing Classic Visions website. Live search, retailer reset and the unsent contact form were verified. Database, Edge Functions, authentication rules and gateway production deployments were unchanged.
+- Public search shows direct page matches, loading, retry and useful no-result links; Iris remains available for follow-up.
+- Retailer and contact surfaces explain offline limitations and keep telephone support available. Iris public inquiries show inline validation and slow-send guidance.
+- The ten-state gallery remains local. Session recovery, draft persistence and order/payment changes are outside this milestone. No live request was submitted for verification.
 
 ## 2026-11-26 — Dependency security maintenance (local)
 

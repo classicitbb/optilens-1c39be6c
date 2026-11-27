@@ -1,3 +1,11 @@
+## Live release branch merge — 2026-11-26
+
+Resolved `origin/main` at `f34f0a83` into `codex/public-website-states`. Preserved both documentation histories and the published 0.39.0 release identity. The merged npm manifests match main's security fixes exactly apart from version metadata; the audit reports zero vulnerabilities. Verification is in progress. The user explicitly authorized merging the resolved branch into main after validation, which will trigger the existing production pipeline.
+
+## Public website states — 2026-11-26
+
+Published the first milestone on 2026-11-26 as release 0.39.0, commit `8275278e` on `codex/public-website-states`, through the existing website-only Vercel Git connection. Vercel READY and both public domains confirmed; live browser checks passed for search matches/no-results/reset, retailer no-results/reset and the unsent contact form. Shared state components, retailer guidance and mounted homepage contact are live. The ten-state gallery remains local; session recovery remains a simulation. Thirty focused tests, TypeScript, lint and build pass. Broad test runs remain incomplete and PR checks stop on unchanged stale Copilot facts. No order, payment, inquiry, database, Edge Function or gateway production release occurred. See `docs/public-website-states.md` and `docs/agent/HANDOFF.md`.
+
 ## Checkout: address from CRM contact - 2026-11-14
 
 ## Walk-in payments: selected B layout — 2026-11-26
@@ -33,7 +41,6 @@ mail delivery status. Local URL: `/admin/finance/walk-in-payments?design=1`.
 DEV-only entry in `src/main.tsx`; existing production App and payment behavior
 are unchanged. No release, actual send, financial write or auth change.
 Validation and current review state are recorded in HANDOFF.md.
-
 ## Dependency security remediation — 2026-11-26
 
 Local patches pin all dependencies flagged in the initial audit to patched versions; npm audit reports zero vulnerabilities. Audit scope labels now distinguish optional/development metadata, with high/critical CLI failure regression tests. Clean npm ci, production build, application TypeScript, lint (warnings only), 18 focused security/MCP/header tests and PR checks pass. Generated facts/search refreshes only normalized checkout line endings; no semantic changes. Release ledger synchronized to 0.38.0. Broad run: 2069 passed, 1 skipped, 2 five-second timeouts; both affected files pass independently (11 tests) without changes. Details in HANDOFF.md. No production deploy, backend dependency-resolution verification, data or authorization change occurred.
